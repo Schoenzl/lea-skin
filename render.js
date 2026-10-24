@@ -211,7 +211,7 @@
   const WTAG = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   const terminZeit = (d, ganztags) => WTAG[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + (ganztags ? '' : ' · ' + hhmm(d.getTime()));
   // Emojis aus Kalendertiteln entfernen (am Pi fehlt meist eine Emoji-Schrift)
-  const ohneEmoji = (t) => String(t || '').replace(/[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u200d\ufe0f]/gu, '').replace(/\s{2,}/g, ' ').trim();
+  const ohneEmoji = (t) => String(t || '').replace(/[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u200d\ufe0f]/gu, '').replace(/\s{2,}/g, ' ').replace(/^[\s/·|–-]+/, '').trim();
   const kachel = (label, wert, unter) => h('div', 'ls-wx', [h('div', 'ls-label', [label]), h('div', 'ls-wx-val', [wert]), h('div', 'ls-wx-sub', [unter])]);
 
   const renderRuhe = () => {
