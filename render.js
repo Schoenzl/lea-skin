@@ -210,6 +210,8 @@
   const wdir = (deg) => (deg == null ? '' : RICHTUNG[Math.round(((deg % 360) + 360) % 360 / 45) % 8]);
   const WTAG = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   const terminZeit = (d, ganztags) => WTAG[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + (ganztags ? '' : ' · ' + hhmm(d.getTime()));
+  // Emojis aus Kalendertiteln entfernen (am Pi fehlt meist eine Emoji-Schrift)
+  const ohneEmoji = (t) => String(t || '').replace(/[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u200d\ufe0f]/gu, '').replace(/\s{2,}/g, ' ').trim();
   const kachel = (label, wert, unter) => h('div', 'ls-wx', [h('div', 'ls-label', [label]), h('div', 'ls-wx-val', [wert]), h('div', 'ls-wx-sub', [unter])]);
 
   const renderRuhe = () => {
@@ -265,7 +267,7 @@
       .sort((a, b) => a.d - b.d);
     const seen = new Set();
     const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3)
-      .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [t.titel])]));
+      .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [ohneEmoji(t.titel)])]));
 
     // WASTL (höchstens 30 min alt)
     const wa = ex.wastl && now - ex.wastl.at < 30 * 60000 && Array.isArray(ex.wastl.laufend) ? ex.wastl : null;

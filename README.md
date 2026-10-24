@@ -3,7 +3,7 @@
 Eigene Darstellung des LEA-Infoscreens (`https://lea-screen.notrufnoe.at`) als Chromium-Erweiterung für den Kiosk-Pi.
 
 - **Einsatzansicht:** Alarmband (Stufe, Art, Alarmzeit + Timer, Uhr), Einsatzort, Meldebild, Karte, alarmierte Gruppen, Zusagen gereiht nach EL-Liste mit Funktionsfarben, Besetzungs-Ampel KLF-W
-- **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), Leitha-Pegel Deutsch Haslau mit Prognose und Warnstufe (Hydrographischer Dienst NÖ, Messstelle 209007), nächste Termine (fix in `config.js` und/oder iCal-Kalender), letzte 4 Einsätze, Bezirkslage direkt aus WASTL (laufende Einsätze mit Alarmstufe, Ort, Meldebild und Dauer, eingesetzte Feuerwehren mit Hervorhebung der eigenen FF, sonst „Zuletzt im Bezirk“)
+- **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), Leitha-Pegel Deutsch Haslau mit Prognose und Warnstufe (Hydrographischer Dienst NÖ, Messstelle 209007), nächste Termine aus dem öffentlichen Google-Kalender „FF Deutsch Haslau“ (Serien, Ausnahmen, Zeitzonen über ical.js), letzte 4 Einsätze, Bezirkslage direkt aus WASTL (laufende Einsätze mit Alarmstufe, Ort, Meldebild und Dauer, eingesetzte Feuerwehren mit Hervorhebung der eigenen FF, sonst „Zuletzt im Bezirk“)
 - **Sicherheitsnetz:** ohne frische Daten (45 s) → LEA-Original
 - **Datenschutz/Sicherheit:** liest nur die Antworten auf `/events` und `/eventhistory` mit, die die Seite selbst abholt; keine eigenen Anfragen, kein Zugriff auf Token/Header; alles bleibt am Gerät
 
@@ -17,6 +17,7 @@ Eigene Darstellung des LEA-Infoscreens (`https://lea-screen.notrufnoe.at`) als C
 | `background.js` | holt alle 5 min Wetter, Pegel, WASTL und Kalender (getrennt von der LEA-Seite) |
 | `bridge.js` | reicht diese Daten an die Anzeige weiter |
 | `render.js` | baut die Ansicht |
+| `lib/ical.min.js` | Mozilla ical.js 1.5.0 (MPL-2.0) für den Kalender |
 | `skin.css`, `fonts/` | Design, Schrift Barlow (SIL Open Font License) |
 
 ## Testen ohne Alarm

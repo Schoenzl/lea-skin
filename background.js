@@ -1,6 +1,10 @@
 // Hintergrund-Dienst: holt Wetter, WASTL-Bezirkslage und Termine für den Ruhebildschirm.
 // Läuft getrennt von der LEA-Seite und hat keinen Zugriff auf LEA-Daten oder den Token.
+// Fenster-Alias, damit auch config.local.js (window.LEASKIN_CONFIG...) hier lesbar ist
+globalThis.window = globalThis;
 importScripts('config.js');
+try { importScripts('config.local.js'); } catch (e) { /* optional */ }
+importScripts('lib/ical.min.js'); // Mozilla ical.js 1.5.0 (MPL-2.0) – Serientermine, Ausnahmen, Zeitzonen
 const C = globalThis.LEASKIN_CONFIG || {};
 
 const getJson = async (url, ms) => {
@@ -80,23 +84,42 @@ const pegel = async () => {
   };
 };
 
-// sehr einfacher iCal-Leser: nur DTSTART + SUMMARY künftiger Termine
+// Kalender (iCal): Serien, Ausnahmen und Zeitzonen über ical.js auflösen, künftige Termine der nächsten Wochen
 const kalender = async () => {
   if (!C.kalenderIcsUrl) return [];
   const r = await fetch(C.kalenderIcsUrl, { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
-  const txt = (await r.text()).replace(/\r?\n[ \t]/g, '');
+  const comp = new ICAL.Component(ICAL.parse(await r.text()));
+  comp.getAllSubcomponents('vtimezone').forEach((tz) => { try { ICAL.TimezoneService.register(tz); } catch (e) {} });
+  const now = Date.now(), von = now - 2 * 3600000, bis = now + (C.kalenderTage || 60) * 86400000;
+  const all = comp.getAllSubcomponents('vevent');
+  const ausnahmen = {};
+  all.filter((v) => v.hasProperty('recurrence-id')).forEach((v) => { const uid = v.getFirstPropertyValue('uid'); (ausnahmen[uid] = ausnahmen[uid] || []).push(v); });
   const out = [];
-  txt.split('BEGIN:VEVENT').slice(1).forEach((blk) => {
-    const ds = (blk.match(/\nDTSTART[^:\n]*:(\d{8})(T(\d{6})(Z)?)?/) || []);
-    const sum = (blk.match(/\nSUMMARY[^:\n]*:([^\n]*)/) || [])[1];
-    if (!ds[1] || !sum) return;
-    const y = ds[1].slice(0, 4), mo = ds[1].slice(4, 6), da = ds[1].slice(6, 8);
-    const hh = ds[3] ? ds[3].slice(0, 2) : '00', mi = ds[3] ? ds[3].slice(2, 4) : '00';
-    const iso = y + '-' + mo + '-' + da + 'T' + hh + ':' + mi + ':00' + (ds[4] ? 'Z' : '');
-    out.push({ start: iso, titel: sum.replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\n/g, ' ').trim(), ganztags: !ds[3] });
+  const push = (start, titel, ganztags, status) => {
+    if (status === 'CANCELLED') return;
+    const t = start.toJSDate().getTime();
+    if (t < von || t > bis) return;
+    out.push({ start: new Date(t).toISOString(), titel: String(titel || '').trim(), ganztags: !!ganztags });
+  };
+  all.filter((v) => !v.hasProperty('recurrence-id')).forEach((v) => {
+    try {
+      const ev = new ICAL.Event(v, { exceptions: ausnahmen[v.getFirstPropertyValue('uid')] || [] });
+      if (ev.isRecurring()) {
+        const it = ev.iterator();
+        let next, n = 0;
+        while ((next = it.next()) && n++ < 2000) {
+          if (next.toJSDate().getTime() > bis) break;
+          const d = ev.getOccurrenceDetails(next);
+          push(d.startDate, d.item.summary, d.startDate.isDate, d.item.component.getFirstPropertyValue('status'));
+        }
+      } else {
+        push(ev.startDate, ev.summary, ev.startDate.isDate, v.getFirstPropertyValue('status'));
+      }
+    } catch (e) { /* einzelnen kaputten Termin überspringen */ }
   });
-  return out;
+  out.sort((a, b) => a.start.localeCompare(b.start));
+  return out.slice(0, 20);
 };
 
 const refresh = async () => {

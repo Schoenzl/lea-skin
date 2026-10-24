@@ -49,11 +49,10 @@ globalThis.LEASKIN_CONFIG = {
   eigeneFF: 'Deutsch Haslau',   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
   // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
   pegel: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' },
-  // Termine: fix eingetragen (Ausbildungsplan 2026, Beginn jeweils 18:00) ...
-  termine: [
-    { start: '2026-11-04T18:00', titel: 'Planspiel Einsatzleiter' }
-  ],
-  // ... und/oder ein Kalender im iCal-Format (z. B. öffentlicher Google-Kalender, „Adresse im iCal-Format“)
-  kalenderIcsUrl: '',
+  // Termine: öffentlicher Google-Kalender „FF Deutsch Haslau“ (iCal) ...
+  kalenderIcsUrl: 'https://calendar.google.com/calendar/ical/99e2e6ed3a981ad4f7ac6eea1af12056aa7e9a6a91587923b10359adc3443447%40group.calendar.google.com/public/basic.ics',
+  kalenderTage: 60,        // so weit im Voraus Termine suchen
+  // ... plus optional fix eingetragene Termine: { start: '2026-11-04T18:00', titel: '...' }
+  termine: [],
   aktualisierenMin: 5      // Wetter/WASTL/Kalender alle 5 Minuten neu holen
 };
