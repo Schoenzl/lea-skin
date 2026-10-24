@@ -227,7 +227,7 @@
     const PFARBE = { 3: '#FACC15', 4: '#FB923C', 5: '#F87171', 6: '#E879F9' };
     let pegelBox = null;
     if (C.pegel) {
-      const titel = 'Pegel ' + (C.pegel.name || '') + ' · ' + (C.pegel.ort || '');
+      const titel = (C.pegel.name || 'Pegel') + ' · ' + (C.pegel.ort || '');
       if (pg) {
         const trend = pg.prognose == null ? '' : pg.prognose > pg.wert ? '↗' : pg.prognose < pg.wert ? '↘' : '→';
         const col = PFARBE[pg.klasse] ? { color: PFARBE[pg.klasse] } : null;
@@ -246,7 +246,7 @@
       kachel('Wetter', Math.round(w.temp) + '°', WETTER[w.code] || ''),
       kachel('Wind', (wdir(w.dir) + ' ' + Math.round(w.wind)).trim(), 'km/h'),
       kachel('Böen', String(Math.round(w.boeen)), 'km/h')
-    ] : [kachel('Wetter', '–', 'keine aktuellen Daten')]);
+    ] : [kachel('Wetter', '–', 'keine Daten')]);
 
     // letzte Einsätze
     const hist = listOf(state.history).slice(0, 4).map((ev) => {
@@ -268,13 +268,36 @@
       .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [t.titel])]));
 
     // WASTL (höchstens 30 min alt)
-    const wa = ex.wastl && now - ex.wastl.at < 30 * 60000 && !ex.wastl.fehler ? ex.wastl : null;
-    const wl = wa ? wa.liste || [] : [];
-    const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wa ? [
-      h('div', 'ls-wastl-n', [String(wl.length)]),
-      h('div', 'ls-wastl-t', [wl.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])
-    ].concat(wl.slice(0, 5).map((e) => h('div', 'ls-wastl-row', [[e.baz, e.ort, e.meldebild].filter(Boolean).join(' · ')])))
-      : [h('div', 'ls-empty', ['keine aktuellen Daten'])]));
+    const wa = ex.wastl && now - ex.wastl.at < 30 * 60000 && Array.isArray(ex.wastl.laufend) ? ex.wastl : null;
+    const kurzZeit = (z) => {
+      const d = /(\d{2})\.(\d{2})\.\d{4}\s+(\d{2}):(\d{2})/.exec(z || '');
+      if (d) return d[1] + '.' + d[2] + '. ' + d[3] + ':' + d[4];
+      const u = /([<~>]\s*\d+)\s*std/i.exec(z || '');
+      return u ? u[1].replace(/\s+/g, ' ') + ' Std.' : '';
+    };
+    const wRow = (e) => h('div', 'ls-w-row', [
+      h('div', 'ls-w-chip', [e.stufe || '–'], { background: bandColor(e.stufe) }),
+      h('div', 'ls-w-main', [h('div', 'ls-w-ort', [e.ort || e.name || '']), h('div', 'ls-w-text', [e.text || ''])]),
+      h('div', 'ls-w-zeit', [kurzZeit(e.zeit)])
+    ]);
+    const eigen = (n) => C.eigeneFF && norm(n).indexOf(norm(C.eigeneFF)) !== -1;
+    let wastlKids;
+    if (!wa) {
+      wastlKids = [h('div', 'ls-empty', ['keine aktuellen Daten'])];
+    } else if (wa.laufend.length) {
+      wastlKids = [
+        h('div', 'ls-w-head', [h('div', 'ls-wastl-n', [String(wa.laufend.length)]), h('div', 'ls-wastl-t', [wa.laufend.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])])
+      ].concat(wa.laufend.slice(0, 3).map(wRow));
+      if (wa.feuerwehren && wa.feuerwehren.length) {
+        wastlKids.push(h('div', 'ls-label ls-w-sub', ['Im Einsatz']));
+        wastlKids.push(h('div', 'ls-w-ffs', wa.feuerwehren.slice(0, 10).map((f) => h('span', 'ls-w-ff' + (eigen(f.name) ? ' ls-w-own' : ''), [f.name]))));
+      }
+    } else {
+      wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine laufenden Einsätze im Bezirk'])]
+        .concat((wa.rueckblick || []).length ? [h('div', 'ls-label ls-w-sub', ['Zuletzt im Bezirk'])] : [])
+        .concat((wa.rueckblick || []).slice(0, 5).map(wRow));
+    }
+    const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wastlKids));
 
     const flamme = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     flamme.setAttribute('viewBox', '0 0 24 24'); flamme.setAttribute('width', '30'); flamme.setAttribute('height', '30');
@@ -387,7 +410,12 @@
     state.extra = {
       wetter: { temp: 12.4, code: 3, wind: 25, dir: 315, boeen: 45, at: Date.now() },
       pegel: { wert: 124, einheit: 'cm', klasse: 1, prognose: 128, at: Date.now() },
-      wastl: { liste: [{ baz: 'T1', ort: 'Nachbarort A', meldebild: 'Ölspur' }, { baz: 'B1', ort: 'Nachbarort B', meldebild: 'BMA' }], at: Date.now() },
+      wastl: {
+        laufend: [{ stufe: 'T1', text: 'Tierrettung', ort: 'Nachbarort A', zeit: '24.10.2026 ~ 1 std.' }, { stufe: 'S1', text: 'Ölspur', ort: 'Nachbarort B', zeit: '24.10.2026 < 1 std.' }],
+        feuerwehren: [{ name: 'Nachbarort A' }, { name: 'Deutsch Haslau' }, { name: 'Nachbarort B' }],
+        rueckblick: [{ stufe: 'T1', text: 'Bergung - PKW', ort: 'Nachbarort C', zeit: '24.10.2026 13:22:21' }],
+        at: Date.now()
+      },
       kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
     };
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];

@@ -120,3 +120,18 @@
 .ls-pegel-stufe { font-size: 24px; color: #D4D9E0; white-space: nowrap; }
 .ls-pegel-prog { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
 .ls-pegel-pval { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; color: #D4D9E0; white-space: nowrap; }
+
+.ls-wastl { gap: 10px; }
+.ls-w-head { display: flex; align-items: baseline; gap: 18px; }
+.ls-w-row { display: flex; align-items: center; gap: 16px; padding: 6px 0; border-top: 1px solid #262E3A; }
+.ls-w-chip { width: 60px; flex: none; text-align: center; font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 800; font-size: 28px; border-radius: 8px; padding: 2px 0; color: #FFFFFF; }
+.ls-w-main { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 14px; }
+.ls-w-ort { font-size: 28px; font-weight: 600; white-space: nowrap; }
+.ls-w-text { font-size: 24px; color: #A9B1BC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-w-zeit { flex: none; font-size: 24px; color: #D4D9E0; font-variant-numeric: tabular-nums; }
+.ls-w-sub { margin-top: 6px; }
+.ls-w-ffs { display: flex; flex-wrap: wrap; gap: 8px; }
+.ls-w-ff { font-size: 22px; font-weight: 600; padding: 4px 12px; border-radius: 8px; background: #262E3A; }
+.ls-w-ff.ls-w-own { background: #FB923C; color: #0B0E13; }
+.ls-w-ruhig { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; }
+.ls-pegel .ls-label { white-space: nowrap; }

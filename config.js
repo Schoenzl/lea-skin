@@ -43,9 +43,10 @@ globalThis.LEASKIN_CONFIG = {
   // ---------- Ruhebildschirm ----------
   // Wetter & Wind (Open-Meteo, frei, ohne Anmeldung)
   ort: { name: 'Deutsch Haslau', lat: 48.07, lon: 16.87 },
-  // Bezirkslage aus dem eigenen WASTL-Proxy (Bezirk Bruck/Leitha)
-  wastlUrl: 'https://wastl-proxy.onrender.com',
+  // Bezirkslage direkt aus WASTL (feuerwehr-krems.at), Bezirk Bruck/Leitha = 03
+  wastlBezirk: '03',
   wastlTitel: 'Bezirk Bruck/Leitha · WASTL',
+  eigeneFF: 'Deutsch Haslau',   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
   // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
   pegel: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' },
   // Termine: fix eingetragen (Ausbildungsplan 2026, Beginn jeweils 18:00) ...

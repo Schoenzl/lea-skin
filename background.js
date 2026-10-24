@@ -23,10 +23,46 @@ const wetter = async () => {
   return { temp: c.temperature_2m, code: c.weather_code, wind: c.wind_speed_10m, dir: c.wind_direction_10m, boeen: c.wind_gusts_10m, at: Date.now() };
 };
 
+// WASTL: öffentliche Listen auf feuerwehr-krems.at (Zeichensatz windows-1252, einfache Tabellen)
+const WASTL = 'https://www.feuerwehr-krems.at/codepages/wastl/wastlmain/';
+const getHtml = async (url) => {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const r = await fetch(url, { cache: 'no-store', signal: ctl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return new TextDecoder('windows-1252').decode(await r.arrayBuffer());
+  } finally { clearTimeout(t); }
+};
+const ENT = { auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü', szlig: 'ß', nbsp: ' ', lt: '<', gt: '>', quot: '"' };
+const cellText = (c) => c.replace(/<\/?[a-zA-Z][^>]*>/g, ' ').replace(/&([a-zA-Z]+);/g, (m, n) => (n in ENT ? ENT[n] : m))
+  .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const tableRows = (html) => (html.match(/<tr\b(?:(?!<tr\b)[\s\S])*?<\/tr>/gi) || [])
+  .map((tr) => (tr.match(/<t[dh]\b(?:(?!<t[dh]\b)[\s\S])*?<\/t[dh]>/gi) || []).map(cellText).filter(Boolean))
+  .filter((r) => r.length);
+const splitMeldung = (m) => { const x = /^([A-Z]\d)\s+(.*)$/.exec(m || ''); return x ? { stufe: x[1], text: x[2] } : { stufe: '', text: m || '' }; };
+
 const wastl = async () => {
-  if (!C.wastlUrl) return null;
-  const d = await getJson(C.wastlUrl, 70000); // Render-Gratisdienst braucht beim Aufwachen bis ~50 s
-  return { liste: d.einsaetze_bl || [], stand: d.stand_bl || '', fehler: d.fehler_bl || null, at: Date.now() };
+  const bz = C.wastlBezirk;
+  if (!bz) return null;
+  const [akt, ff, hist] = await Promise.all([
+    getHtml(WASTL + 'Land_EinsatzAktuell.asp?bezirk=' + bz),
+    getHtml(WASTL + 'Land_FFimEinsatz.asp?bezirk=' + bz),
+    getHtml(WASTL + 'Land_EinsatzHistorie.asp?bezirk=' + bz)
+  ]);
+  const laufend = tableRows(akt).filter((r) => r.length >= 4).map((r) => {
+    const [baz, ort, meldung, zeit] = r.slice(-4);
+    return Object.assign({ baz, ort, zeit }, splitMeldung(meldung));
+  });
+  const feuerwehren = tableRows(ff).filter((r) => r.length >= 3 && /^\d{6}\s/.test(r[0])).map((r) => {
+    const [name, meldung, zeit] = r.slice(-3);
+    return Object.assign({ code: name.slice(0, 6), name: name.slice(7), zeit }, splitMeldung(meldung));
+  });
+  const rueckblick = tableRows(hist).filter((r) => r.length >= 4 && /\d{2}\.\d{2}\.\d{4}/.test(r[r.length - 1])).slice(0, 5).map((r) => {
+    const [baz, ort, meldung, zeit] = r.slice(-4);
+    return Object.assign({ baz, ort, zeit }, splitMeldung(meldung));
+  });
+  return { laufend, feuerwehren, rueckblick, at: Date.now() };
 };
 
 // Pegel: Hydrographischer Dienst NÖ, Messstellen-Liste mit Wasserstand + Prognose + Warnklasse
