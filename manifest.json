@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "LEA Infoscreen – FF Deutsch Haslau",
+  "description": "Eigene Darstellung des LEA-Infoscreens für die FF Deutsch Haslau. Liest nur mit, was die Seite selbst lädt.",
+  "version": "0.1.0",
+  "content_scripts": [
+    {
+      "matches": ["https://lea-screen.notrufnoe.at/*"],
+      "js": ["config.js", "config.local.js", "inject.js", "render.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://lea-screen.notrufnoe.at/*"],
+      "css": ["skin.css"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*.woff2"],
+      "matches": ["https://lea-screen.notrufnoe.at/*"]
+    }
+  ]
+}
