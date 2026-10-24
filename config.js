@@ -1,6 +1,7 @@
 // Einstellungen für den eigenen LEA-Infoscreen der FF Deutsch Haslau.
 // Nach Änderungen: Datei speichern, Kiosk neu starten (oder Seite neu laden).
-window.LEASKIN_CONFIG = {
+// globalThis: wird auch vom Hintergrund-Dienst (background.js) gelesen
+globalThis.LEASKIN_CONFIG = {
   feuerwehr: 'FF Deutsch Haslau',
 
   // true = eigener Ruhebildschirm, false = LEA-Original, wenn kein Einsatz läuft
@@ -37,5 +38,19 @@ window.LEASKIN_CONFIG = {
   einsatzWechselSek: 15,   // mehrere Einsätze gleichzeitig: Wechselintervall
   datenTimeoutSek: 45,     // keine neuen Daten so lange -> Original-Infoscreen zeigen
   karteZoom: 17,
-  karteUrl: 'https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png'
+  karteUrl: 'https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png',
+
+  // ---------- Ruhebildschirm ----------
+  // Wetter & Wind (Open-Meteo, frei, ohne Anmeldung)
+  ort: { name: 'Deutsch Haslau', lat: 48.07, lon: 16.87 },
+  // Bezirkslage aus dem eigenen WASTL-Proxy (Bezirk Bruck/Leitha)
+  wastlUrl: 'https://wastl-proxy.onrender.com',
+  wastlTitel: 'Bezirk Bruck/Leitha · WASTL',
+  // Termine: fix eingetragen (Ausbildungsplan 2026, Beginn jeweils 18:00) ...
+  termine: [
+    { start: '2026-11-04T18:00', titel: 'Planspiel Einsatzleiter' }
+  ],
+  // ... und/oder ein Kalender im iCal-Format (z. B. öffentlicher Google-Kalender, „Adresse im iCal-Format“)
+  kalenderIcsUrl: '',
+  aktualisierenMin: 5      // Wetter/WASTL/Kalender alle 5 Minuten neu holen
 };

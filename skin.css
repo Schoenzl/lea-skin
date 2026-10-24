@@ -82,18 +82,33 @@
 
 /* ---------- Ruhebildschirm ---------- */
 .ls-ruhe { width: 1920px; height: 1080px; display: flex; flex-direction: column; padding: 40px 48px; gap: 32px; }
-.ls-ruhe-head { display: flex; align-items: center; justify-content: space-between; }
+.ls-ruhe-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.ls-brand { display: flex; align-items: center; gap: 18px; }
+.ls-logo { width: 56px; height: 56px; border-radius: 12px; background: #B3122E; display: flex; align-items: center; justify-content: center; }
 .ls-ff { font-weight: 700; font-size: 40px; letter-spacing: 3px; text-transform: uppercase; }
 .ls-status { display: flex; align-items: center; gap: 12px; font-size: 26px; color: #D4D9E0; }
 .ls-dot { width: 16px; height: 16px; border-radius: 50%; background: #4ADE80; display: inline-block; }
-.ls-ruhe-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 48px; align-items: center; }
-.ls-ruhe-left { display: flex; flex-direction: column; gap: 8px; }
-.ls-big-clock { font-weight: 600; font-size: 300px; line-height: 0.9; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
-.ls-date { font-size: 46px; font-weight: 500; color: #D4D9E0; }
-.ls-ruhe-right { display: flex; flex-direction: column; gap: 12px; }
-.ls-hist { display: flex; align-items: center; gap: 20px; background: #161B23; border-radius: 12px; padding: 18px 22px; }
+.ls-ruhe-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 40px; }
+.ls-ruhe-left, .ls-ruhe-right { display: flex; flex-direction: column; gap: 28px; min-height: 0; }
+.ls-clockbox { display: flex; flex-direction: column; gap: 4px; }
+.ls-big-clock { font-weight: 600; font-size: 240px; line-height: 0.9; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+.ls-date { font-size: 44px; font-weight: 500; color: #D4D9E0; }
+.ls-wx-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.ls-wx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ls-wx-val { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 700; font-size: 64px; line-height: 1; white-space: nowrap; }
+.ls-wx-sub { font-size: 24px; color: #D4D9E0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-histbox { display: flex; flex-direction: column; gap: 10px; }
+.ls-hist { display: flex; align-items: center; gap: 20px; background: #161B23; border-radius: 12px; padding: 14px 22px; }
 .ls-hist-date { width: 170px; flex: none; font-size: 24px; color: #D4D9E0; font-variant-numeric: tabular-nums; }
 .ls-hist-code { width: 72px; flex: none; text-align: center; font-weight: 800; font-size: 32px; border-radius: 8px; padding: 2px 0; color: #FFFFFF; }
 .ls-hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ls-hist-title { font-size: 30px; font-weight: 600; }
+.ls-hist-title { font-size: 30px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ls-hist-where { font-size: 22px; color: #A9B1BC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-termine, .ls-wastl { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: hidden; }
+.ls-termin { display: flex; flex-direction: column; gap: 2px; }
+.ls-termin-wann { font-size: 22px; font-weight: 700; color: #F87171; }
+.ls-termin-was { font-size: 28px; font-weight: 600; line-height: 1.2; }
+.ls-wastl { gap: 8px; }
+.ls-wastl-n { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 800; font-size: 96px; line-height: 1; }
+.ls-wastl-t { font-size: 28px; font-weight: 600; }
+.ls-wastl-row { font-size: 24px; color: #A9B1BC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -199,11 +199,35 @@
     drawMap(map, ev);
   };
 
+  // ---------- Ruhebildschirm ----------
+  const WETTER = { 0: 'klar', 1: 'überwiegend klar', 2: 'teils bewölkt', 3: 'bewölkt', 45: 'Nebel', 48: 'Raureifnebel',
+    51: 'leichter Niesel', 53: 'Niesel', 55: 'starker Niesel', 56: 'gefrierender Niesel', 57: 'gefrierender Niesel',
+    61: 'leichter Regen', 63: 'Regen', 65: 'starker Regen', 66: 'gefrierender Regen', 67: 'gefrierender Regen',
+    71: 'leichter Schneefall', 73: 'Schneefall', 75: 'starker Schneefall', 77: 'Schneegriesel',
+    80: 'Regenschauer', 81: 'Regenschauer', 82: 'heftige Schauer', 85: 'Schneeschauer', 86: 'Schneeschauer',
+    95: 'Gewitter', 96: 'Gewitter mit Hagel', 99: 'Gewitter mit Hagel' };
+  const RICHTUNG = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+  const wdir = (deg) => (deg == null ? '' : RICHTUNG[Math.round(((deg % 360) + 360) % 360 / 45) % 8]);
+  const WTAG = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const terminZeit = (d, ganztags) => WTAG[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + (ganztags ? '' : ' · ' + hhmm(d.getTime()));
+  const kachel = (label, wert, unter) => h('div', 'ls-wx', [h('div', 'ls-label', [label]), h('div', 'ls-wx-val', [wert]), h('div', 'ls-wx-sub', [unter])]);
+
   const renderRuhe = () => {
     stage.textContent = '';
     refs.timer = null;
     refs.clock = h('div', 'ls-big-clock', [hhmm(Date.now())]);
-    refs.date = h('div', 'ls-date', [dateLong(new Date())]);
+    const now = Date.now();
+    const ex = state.extra || {};
+
+    // Wetter (höchstens 60 min alt)
+    const w = ex.wetter && now - ex.wetter.at < 60 * 60000 ? ex.wetter : null;
+    const wetterBox = h('div', 'ls-card ls-wx-grid', w ? [
+      kachel('Wetter', Math.round(w.temp) + '°', WETTER[w.code] || ''),
+      kachel('Wind', (wdir(w.dir) + ' ' + Math.round(w.wind)).trim(), 'km/h'),
+      kachel('Böen', String(Math.round(w.boeen)), 'km/h')
+    ] : [kachel('Wetter', '–', 'keine aktuellen Daten')]);
+
+    // letzte Einsätze
     const hist = listOf(state.history).slice(0, 4).map((ev) => {
       const loc = ev.location || {};
       const where = [[loc.street, loc.housenumber].filter(Boolean).join(' '), loc.city].filter(Boolean).join(', ') || loc.objectname || '';
@@ -213,14 +237,47 @@
         h('div', 'ls-hist-main', [h('div', 'ls-hist-title', [ev.eventtypetext || '']), h('div', 'ls-hist-where', [where])])
       ]);
     });
+
+    // Termine: fix eingetragen + Kalender, nur künftige, nächste 3
+    const alle = (C.termine || []).concat(ex.kalender || []).map((t) => ({ d: new Date(t.start), titel: t.titel, ganztags: t.ganztags }))
+      .filter((t) => !isNaN(t.d) && t.d.getTime() > now - 2 * 3600000)
+      .sort((a, b) => a.d - b.d);
+    const seen = new Set();
+    const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3)
+      .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [t.titel])]));
+
+    // WASTL (höchstens 30 min alt)
+    const wa = ex.wastl && now - ex.wastl.at < 30 * 60000 && !ex.wastl.fehler ? ex.wastl : null;
+    const wl = wa ? wa.liste || [] : [];
+    const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wa ? [
+      h('div', 'ls-wastl-n', [String(wl.length)]),
+      h('div', 'ls-wastl-t', [wl.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])
+    ].concat(wl.slice(0, 5).map((e) => h('div', 'ls-wastl-row', [[e.baz, e.ort, e.meldebild].filter(Boolean).join(' · ')])))
+      : [h('div', 'ls-empty', ['keine aktuellen Daten'])]));
+
+    const flamme = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    flamme.setAttribute('viewBox', '0 0 24 24'); flamme.setAttribute('width', '30'); flamme.setAttribute('height', '30');
+    flamme.setAttribute('aria-hidden', 'true');
+    const pth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pth.setAttribute('d', 'M12 3c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z');
+    ['fill:none', 'stroke:#FFFFFF', 'stroke-width:2', 'stroke-linecap:round', 'stroke-linejoin:round'].forEach((x) => { const [k, v] = x.split(':'); pth.setAttribute(k, v); });
+    flamme.appendChild(pth);
+
     stage.appendChild(h('div', 'ls-ruhe', [
       h('header', 'ls-ruhe-head', [
-        h('div', 'ls-ff', [C.feuerwehr || '']),
+        h('div', 'ls-brand', [h('div', 'ls-logo', [flamme]), h('div', 'ls-ff', [C.feuerwehr || ''])]),
         h('div', 'ls-status', [h('span', 'ls-dot'), 'Kein aktiver Einsatz'])
       ]),
       h('main', 'ls-ruhe-body', [
-        h('section', 'ls-ruhe-left', [refs.clock, refs.date]),
-        h('section', 'ls-ruhe-right', [h('div', 'ls-label', ['Letzte Einsätze'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])]))
+        h('section', 'ls-ruhe-left', [
+          h('div', 'ls-clockbox', [refs.clock, h('div', 'ls-date', [dateLong(new Date())])]),
+          wetterBox,
+          h('div', 'ls-card ls-termine', [h('div', 'ls-label', ['Nächste Termine'])].concat(termine.length ? termine : [h('div', 'ls-empty', ['keine Termine eingetragen'])]))
+        ]),
+        h('section', 'ls-ruhe-right', [
+          h('div', 'ls-histbox', [h('div', 'ls-label', ['Letzte Einsätze'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])])),
+          wastlBox
+        ])
       ])
     ]));
   };
@@ -240,7 +297,7 @@
       key = 'e:' + state.idx + ':' + state.dataVersion;
       if (key !== state.key) renderEinsatz(evs[state.idx], state.idx + 1, evs.length);
     } else if (C.ruheAnsicht) {
-      key = 'r:' + state.dataVersion + ':' + new Date().getDate();
+      key = 'r:' + state.dataVersion + ':' + state.extraVersion + ':' + new Date().getDate();
       if (key !== state.key) renderRuhe();
     } else {
       root.classList.add('ls-hidden'); state.key = ''; return;
@@ -252,6 +309,14 @@
   };
 
   state.dataVersion = 0;
+  state.extraVersion = 0;
+  // Wetter/WASTL/Termine aus dem Hintergrund-Dienst (über bridge.js)
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.type !== 'leaskin:extra') return;
+    try {
+      if (e.data.json !== state.lastExtraJson) { state.lastExtraJson = e.data.json; state.extra = JSON.parse(e.data.json); state.extraVersion++; }
+    } catch (err) { /* ignorieren */ }
+  });
   window.addEventListener('leaskin:events', (e) => {
     const s = JSON.stringify(e.detail);
     if (s !== state.lastEventsJson) { state.lastEventsJson = s; state.dataVersion++; }
@@ -297,6 +362,11 @@
       { eventtype: 'B2', eventtypetext: 'Flurbrand', alarmtime: Date.now() - 25 * 864e5, location: { city: 'Demodorf' } }
     ];
     state.dataVersion = 1;
+    state.extra = {
+      wetter: { temp: 12.4, code: 3, wind: 25, dir: 315, boeen: 45, at: Date.now() },
+      wastl: { liste: [{ baz: 'T1', ort: 'Nachbarort A', meldebild: 'Ölspur' }, { baz: 'B1', ort: 'Nachbarort B', meldebild: 'BMA' }], at: Date.now() },
+      kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
+    };
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];
   }
 
