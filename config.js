@@ -45,7 +45,10 @@ globalThis.LEASKIN_CONFIG = {
   ort: { name: 'Deutsch Haslau', lat: 48.07, lon: 16.87 },
   // Bezirkslage direkt aus WASTL (feuerwehr-krems.at), Bezirk Bruck/Leitha = 03
   wastlBezirk: '03',
-  wastlTitel: 'Bezirk Bruck/Leitha · WASTL',
+  wastlTitel: 'Ausgerückte Feuerwehren · Bruck/Leitha & Neusiedl/See',
+  // Burgenland: Landessicherheitszentrale (einsatz.lsz-b.at), Bezirk Neusiedl am See = ND
+  lszBezirk: 'ND',
+  lszUrl: 'https://einsatz.lsz-b.at/',
   eigeneFF: 'Deutsch Haslau',   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
   // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
   pegel: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' },

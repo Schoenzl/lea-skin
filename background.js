@@ -69,6 +69,37 @@ const wastl = async () => {
   return { laufend, feuerwehren, rueckblick, at: Date.now() };
 };
 
+// LSZ Burgenland: laufende Einsätze je Feuerwehr (nur Reiter „Laufend“, nur gewählter Bezirk)
+const lsz = async () => {
+  if (!C.lszUrl || !C.lszBezirk) return null;
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const r = await fetch(C.lszUrl, { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(tm));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const html = await r.text();
+  const a = html.indexOf('id="current-pane"');
+  if (a < 0) throw new Error('Seitenaufbau unbekannt');
+  const b = html.indexOf('id="twelve-hours-pane"', a);
+  const laufend = html.slice(a, b > a ? b : undefined);
+  const out = [];
+  laufend.split('data-filter-district="').slice(1).forEach((blk) => {
+    const bezirk = blk.slice(0, blk.indexOf('"'));
+    if (bezirk !== C.lszBezirk) return;
+    blk.split('class="row gx-3 mb-3 operation"').slice(1).forEach((op) => {
+      const txt = (re) => { const m = re.exec(op); return m ? cellText(m[1]) : ''; };
+      const code = txt(/class="avatar[^"]*"[^>]*>([^<]*)</);
+      const name = txt(/<div class="col">\s*<div>([^<]*)<\/div>/).replace(/^FW\s+/, '');
+      const ort = txt(/fa-location-dot[^>]*><\/i>([^<]*)</);
+      const alarm = txt(/fa-alarm-clock[^>]*><\/i>([^<]*)</);
+      const dauer = txt(/fa-clock-rotate-left[^>]*><\/i>([^<]*)</);
+      if (!name) return;
+      const st = /^([A-Z]\d)/.exec(code);
+      out.push({ name, code, stufe: st ? st[1] : code.slice(0, 3), text: code + (ort && ort !== name ? ' · ' + ort : ''), alarm, dauer, bezirk: 'ND' });
+    });
+  });
+  return { feuerwehren: out, at: Date.now() };
+};
+
 // Pegel: Hydrographischer Dienst NÖ, Messstellen-Liste mit Wasserstand + Prognose + Warnklasse
 const pegel = async () => {
   if (!C.pegel || !C.pegel.station) return null;
@@ -179,6 +210,7 @@ const refresh = async () => {
   await Promise.all([
     run('Wetter', wetter, (v) => { next.wetter = v; }),
     run('WASTL', wastl, (v) => { next.wastl = v; }),
+    run('LSZ', lsz, (v) => { next.lsz = v; }),
     run('Pegel', pegel, (v) => { next.pegel = v; }),
     run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
     run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; })

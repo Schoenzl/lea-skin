@@ -172,3 +172,6 @@
 .ls-w-ffname { font-size: 30px; }
 .ls-w-more { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ls-big-clock { font-size: 230px; }
+
+.ls-w-bez { flex: none; font-size: 18px; font-weight: 700; color: #A9B1BC; border: 1px solid #3A4452; border-radius: 6px; padding: 1px 8px; }
+.ls-w-ffrow .ls-w-zeit { width: 110px; text-align: right; }

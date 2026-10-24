@@ -285,32 +285,35 @@
     ]);
     const eigen = (n) => C.eigeneFF && norm(n).indexOf(norm(C.eigeneFF)) !== -1;
     let wastlKids;
-    if (!wa) {
+    const ls = ex.lsz && now - ex.lsz.at < 30 * 60000 ? ex.lsz : null;
+    if (!wa && !ls) {
       wastlKids = [h('div', 'ls-empty', ['keine aktuellen Daten'])];
     } else {
-      // Kern: welche Feuerwehr im Bezirk ist draußen – eigene FF zuerst
-      const ffs = (wa.feuerwehren || []).slice().sort((a, b) => (eigen(b.name) ? 1 : 0) - (eigen(a.name) ? 1 : 0));
+      // nur aktuell ausgerückte Feuerwehren: NÖ (WASTL, Bezirk Bruck/Leitha) + Burgenland (LSZ, Bezirk Neusiedl/See), eigene FF zuerst
+      const ffs = ((wa && wa.feuerwehren) || []).map((f) => Object.assign({ bezirk: 'BL' }, f))
+        .concat((ls && ls.feuerwehren) || [])
+        .sort((a, b) => (eigen(b.name) ? 1 : 0) - (eigen(a.name) ? 1 : 0));
+      const zeitText = (f) => (f.dauer ? f.dauer.replace(/\s*h$/, ' Std.') : kurzZeit(f.zeit));
       if (ffs.length) {
+        const zeigen = ffs.length > 4 ? 3 : 4;
         wastlKids = [
           h('div', 'ls-w-head', [
             h('div', 'ls-wastl-n', [String(ffs.length)]),
-            h('div', 'ls-wastl-t', [ffs.length === 1 ? 'Feuerwehr im Einsatz' : 'Feuerwehren im Einsatz']),
-            wa.laufend.length ? h('div', 'ls-w-count', [wa.laufend.length + (wa.laufend.length === 1 ? ' Einsatz' : ' Einsätze') + ' im Bezirk']) : null
+            h('div', 'ls-wastl-t', [ffs.length === 1 ? 'Feuerwehr im Einsatz' : 'Feuerwehren im Einsatz'])
           ])
-        ].concat(ffs.slice(0, ffs.length > 4 ? 3 : 4).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
+        ].concat(ffs.slice(0, zeigen).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
           h('div', 'ls-w-chip', [f.stufe || '–'], { background: bandColor(f.stufe) }),
           h('div', 'ls-w-ffname', [f.name]),
           h('div', 'ls-w-text', [f.text || '']),
-          h('div', 'ls-w-zeit', [kurzZeit(f.zeit)])
+          h('div', 'ls-w-bez', [f.bezirk || '']),
+          h('div', 'ls-w-zeit', [zeitText(f)])
         ])));
-        if (ffs.length > 4) wastlKids.push(h('div', 'ls-w-more', ['+ ' + (ffs.length - 3) + ' weitere: ' + ffs.slice(3).map((f) => f.name).join(', ')]));
-      } else if (wa.laufend.length) {
+        if (ffs.length > zeigen) wastlKids.push(h('div', 'ls-w-more', ['+ ' + (ffs.length - zeigen) + ' weitere: ' + ffs.slice(zeigen).map((f) => f.name).join(', ')]));
+      } else if (wa && wa.laufend.length) {
         wastlKids = [h('div', 'ls-w-head', [h('div', 'ls-wastl-n', [String(wa.laufend.length)]), h('div', 'ls-wastl-t', [wa.laufend.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])])]
           .concat(wa.laufend.slice(0, 4).map(wRow));
       } else {
-        wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine Feuerwehr im Bezirk im Einsatz'])]
-          .concat((wa.rueckblick || []).length ? [h('div', 'ls-label ls-w-sub', ['Zuletzt im Bezirk'])] : [])
-          .concat((wa.rueckblick || []).slice(0, 4).map(wRow));
+        wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine Feuerwehr im Einsatz'])];
       }
     }
     const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wastlKids));
@@ -470,9 +473,10 @@
           { name: 'Deutsch Haslau', stufe: 'T1', text: 'Tierrettung', zeit: '24.10.2026 ~ 1 std.' },
           { name: 'Nachbarort B', stufe: 'S1', text: 'Ölspur', zeit: '24.10.2026 < 1 std.' }
         ],
-        rueckblick: [{ stufe: 'T1', text: 'Bergung - PKW', ort: 'Nachbarort C', zeit: '24.10.2026 13:22:21' }],
+        rueckblick: [],
         at: Date.now()
       },
+      lsz: { feuerwehren: [{ name: 'Neusiedl am See', code: 'T1-BOOT', stufe: 'T1', text: 'T1-BOOT', alarm: '20:16', dauer: '1:33 h', bezirk: 'ND' }], at: Date.now() },
       kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
     };
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];
