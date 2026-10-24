@@ -157,3 +157,18 @@
 .ls-fz-weg .ls-fz-status { color: #FBBF24; }
 .ls-fz-weg .ls-fz-dot { background: #FBBF24; }
 .ls-fz-detail { font-size: 24px; color: #D4D9E0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* v0.7.2 – kompakteres Layout, keine Überschneidungen */
+.ls-fz-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 16px; padding: 4px 0; }
+.ls-fz-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ls-fz-status { font-size: 26px; }
+.ls-fz-detail { font-size: 22px; color: #A9B1BC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 24px; }
+.ls-termine { gap: 10px; }
+.ls-termin { display: flex; flex-direction: row; align-items: baseline; gap: 16px; min-width: 0; }
+.ls-termin-wann { flex: none; width: 210px; font-size: 22px; }
+.ls-termin-was { flex: 1; min-width: 0; font-size: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-wastl .ls-wastl-n { font-size: 72px; }
+.ls-w-ffrow { padding: 8px 14px; }
+.ls-w-ffname { font-size: 30px; }
+.ls-w-more { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-big-clock { font-size: 230px; }

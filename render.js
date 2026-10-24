@@ -266,8 +266,9 @@
       .filter((t) => !isNaN(t.d) && t.d.getTime() > now - 2 * 3600000)
       .sort((a, b) => a.d - b.d);
     const seen = new Set();
-    const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3)
+    const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 4)
       .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [ohneEmoji(t.titel)])]));
+    // Termine: bis zu 4, einzeilig
 
     // WASTL (höchstens 30 min alt)
     const wa = ex.wastl && now - ex.wastl.at < 30 * 60000 && Array.isArray(ex.wastl.laufend) ? ex.wastl : null;
@@ -296,16 +297,16 @@
             h('div', 'ls-wastl-t', [ffs.length === 1 ? 'Feuerwehr im Einsatz' : 'Feuerwehren im Einsatz']),
             wa.laufend.length ? h('div', 'ls-w-count', [wa.laufend.length + (wa.laufend.length === 1 ? ' Einsatz' : ' Einsätze') + ' im Bezirk']) : null
           ])
-        ].concat(ffs.slice(0, 7).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
+        ].concat(ffs.slice(0, ffs.length > 4 ? 3 : 4).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
           h('div', 'ls-w-chip', [f.stufe || '–'], { background: bandColor(f.stufe) }),
           h('div', 'ls-w-ffname', [f.name]),
           h('div', 'ls-w-text', [f.text || '']),
           h('div', 'ls-w-zeit', [kurzZeit(f.zeit)])
         ])));
-        if (ffs.length > 7) wastlKids.push(h('div', 'ls-w-more', ['+ ' + (ffs.length - 7) + ' weitere']));
+        if (ffs.length > 4) wastlKids.push(h('div', 'ls-w-more', ['+ ' + (ffs.length - 3) + ' weitere: ' + ffs.slice(3).map((f) => f.name).join(', ')]));
       } else if (wa.laufend.length) {
         wastlKids = [h('div', 'ls-w-head', [h('div', 'ls-wastl-n', [String(wa.laufend.length)]), h('div', 'ls-wastl-t', [wa.laufend.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])])]
-          .concat(wa.laufend.slice(0, 5).map(wRow));
+          .concat(wa.laufend.slice(0, 4).map(wRow));
       } else {
         wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine Feuerwehr im Bezirk im Einsatz'])]
           .concat((wa.rueckblick || []).length ? [h('div', 'ls-label ls-w-sub', ['Zuletzt im Bezirk'])] : [])
@@ -331,8 +332,10 @@
         else if (naechst) { detail = 'ab ' + kurz(naechst.von) + ' · ' + [naechst.name, naechst.zweck].filter(Boolean).join(' · '); }
         return h('div', 'ls-fz-row ' + cls, [
           h('div', 'ls-fz-name', [fz]),
-          h('div', 'ls-fz-status', [h('span', 'ls-fz-dot'), status]),
-          h('div', 'ls-fz-detail', [detail])
+          h('div', 'ls-fz-info', [
+            h('div', 'ls-fz-status', [h('span', 'ls-fz-dot'), status]),
+            detail ? h('div', 'ls-fz-detail', [detail]) : null
+          ])
         ]);
       });
       fzBox = h('div', 'ls-card ls-fz', [h('div', 'ls-label', ['Fahrzeuge'])].concat(rows));
