@@ -124,6 +124,51 @@ const kalender = async () => {
   return out.slice(0, 20);
 };
 
+// Fahrtenbuch: veröffentlichte Google-Tabelle (CSV) mit Fahrzeug, Name, Von, Bis, Zweck
+const csvParse = (txt) => {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (q) { if (c === '"') { if (txt[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && txt[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim() !== ''));
+};
+// Datum aus Google-Tabelle: "24.10.2026 18:00:00", "2026-10-24 18:00", "10/24/2026 18:00:00"
+const parseZeit = (s) => {
+  s = String(s || '').trim();
+  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(s);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime();
+  m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/.exec(s);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)).getTime();
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s);
+  if (m) return new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0)).getTime();
+  return NaN;
+};
+const fahrtenbuch = async () => {
+  if (!C.fahrtenbuchCsvUrl) return null;
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const r = await fetch(C.fahrtenbuchCsvUrl, { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(tm));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const rows = csvParse(await r.text());
+  if (!rows.length) return [];
+  const head = rows[0].map((x) => x.toLowerCase());
+  const col = (...keys) => head.findIndex((h) => keys.some((k) => h.indexOf(k) !== -1));
+  const iF = col('fahrzeug'), iN = col('name'), iV = col('von', 'beginn', 'start'), iB = col('bis', 'ende', 'rückgabe'), iZ = col('zweck', 'grund');
+  if (iF < 0 || iV < 0 || iB < 0) throw new Error('Spalten Fahrzeug/Von/Bis fehlen');
+  const now = Date.now(), bis = now + (C.fahrtenbuchVorschauTage || 7) * 86400000;
+  return rows.slice(1).map((r) => ({
+    fahrzeug: (r[iF] || '').trim(), name: iN >= 0 ? (r[iN] || '').trim() : '', zweck: iZ >= 0 ? (r[iZ] || '').trim() : '',
+    von: parseZeit(r[iV]), bis: parseZeit(r[iB])
+  })).filter((e) => e.fahrzeug && isFinite(e.von) && isFinite(e.bis) && e.bis >= now - 3600000 && e.von <= bis)
+    .sort((a, b) => a.von - b.von).slice(0, 30);
+};
+
 const refresh = async () => {
   const prev = (await chrome.storage.local.get('extra')).extra || {};
   const next = { ...prev, at: Date.now(), version: chrome.runtime.getManifest().version, status: {} };
@@ -133,7 +178,8 @@ const refresh = async () => {
     run('Wetter', wetter, (v) => { next.wetter = v; }),
     run('WASTL', wastl, (v) => { next.wastl = v; }),
     run('Pegel', pegel, (v) => { next.pegel = v; }),
-    run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); })
+    run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
+    run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; })
   ]);
   await chrome.storage.local.set({ extra: next });
 };

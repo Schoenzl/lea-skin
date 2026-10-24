@@ -147,3 +147,13 @@
 .ls-w-ffname { font-size: 32px; font-weight: 700; white-space: nowrap; }
 .ls-w-ffrow .ls-w-text { flex: 1; min-width: 0; }
 .ls-w-more { font-size: 22px; color: #A9B1BC; }
+
+.ls-fz { display: flex; flex-direction: column; gap: 8px; padding: 18px 28px; }
+.ls-fz-row { display: grid; grid-template-columns: 130px 330px minmax(0, 1fr); align-items: center; gap: 16px; }
+.ls-fz-name { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 800; font-size: 34px; }
+.ls-fz-status { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 700; white-space: nowrap; }
+.ls-fz-dot { width: 14px; height: 14px; border-radius: 50%; background: #4ADE80; flex: none; }
+.ls-fz-frei .ls-fz-status { color: #4ADE80; }
+.ls-fz-weg .ls-fz-status { color: #FBBF24; }
+.ls-fz-weg .ls-fz-dot { background: #FBBF24; }
+.ls-fz-detail { font-size: 24px; color: #D4D9E0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

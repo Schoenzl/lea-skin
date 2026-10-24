@@ -5,3 +5,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
   ['Vorname', 'Nachname'],
   ['Vorname', 'Nachname']
 ];
+
+// Fahrtenbuch: Link „Im Web veröffentlichen“ (Tab Formularantworten, Format CSV)
+// globalThis.LEASKIN_CONFIG.fahrtenbuchCsvUrl = 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv';

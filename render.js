@@ -314,6 +314,30 @@
     }
     const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wastlKids));
 
+    // Fahrzeuge aus dem Fahrtenbuch: unterwegs / nächste Nutzung / frei
+    let fzBox = null;
+    if ((C.fahrzeuge || []).length) {
+      const fb = Array.isArray(ex.fahrtenbuch) ? ex.fahrtenbuch : null;
+      const kurz = (t) => { const d = new Date(t); const heute = new Date(); const morgen = new Date(Date.now() + 864e5);
+        if (d.toDateString() === heute.toDateString()) return hhmm(t);
+        if (d.toDateString() === morgen.toDateString()) return 'morgen ' + hhmm(t);
+        return WTAG[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '. ' + hhmm(t); };
+      const rows = C.fahrzeuge.map((fz) => {
+        const mine = fb ? fb.filter((e) => norm(e.fahrzeug) === norm(fz)) : [];
+        const jetzt = mine.find((e) => e.von <= now && e.bis >= now);
+        const naechst = mine.find((e) => e.von > now);
+        let cls = 'ls-fz-frei', status = fb ? 'frei' : '–', detail = '';
+        if (jetzt) { cls = 'ls-fz-weg'; status = 'unterwegs bis ' + kurz(jetzt.bis); detail = [jetzt.name, jetzt.zweck].filter(Boolean).join(' · '); }
+        else if (naechst) { detail = 'ab ' + kurz(naechst.von) + ' · ' + [naechst.name, naechst.zweck].filter(Boolean).join(' · '); }
+        return h('div', 'ls-fz-row ' + cls, [
+          h('div', 'ls-fz-name', [fz]),
+          h('div', 'ls-fz-status', [h('span', 'ls-fz-dot'), status]),
+          h('div', 'ls-fz-detail', [detail])
+        ]);
+      });
+      fzBox = h('div', 'ls-card ls-fz', [h('div', 'ls-label', ['Fahrzeuge'])].concat(rows));
+    }
+
     const flamme = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     flamme.setAttribute('viewBox', '0 0 24 24'); flamme.setAttribute('width', '30'); flamme.setAttribute('height', '30');
     flamme.setAttribute('aria-hidden', 'true');
@@ -341,6 +365,7 @@
         ]),
         h('section', 'ls-ruhe-right', [
           h('div', 'ls-histbox', [h('div', 'ls-label', ['Letzter Einsatz'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])])),
+          fzBox,
           wastlBox
         ])
       ]),
@@ -430,6 +455,10 @@
     state.dataVersion = 1;
     state.extra = {
       wetter: { temp: 12.4, code: 3, wind: 25, dir: 315, boeen: 45, at: Date.now() },
+      fahrtenbuch: [
+        { fahrzeug: 'MTF', name: 'Max Huber', zweck: 'Besorgung', von: Date.now() - 3600000, bis: Date.now() + 2 * 3600000 },
+        { fahrzeug: 'KLF-W', name: 'Lena Steiner', zweck: 'Übung', von: Date.now() + 2 * 864e5, bis: Date.now() + 2 * 864e5 + 3 * 3600000 }
+      ],
       pegel: { wert: 124, einheit: 'cm', klasse: 1, prognose: 128, at: Date.now() },
       wastl: {
         laufend: [{ stufe: 'T1', text: 'Tierrettung', ort: 'Nachbarort A', zeit: '24.10.2026 ~ 1 std.' }, { stufe: 'S1', text: 'Ölspur', ort: 'Nachbarort B', zeit: '24.10.2026 < 1 std.' }],

@@ -54,5 +54,10 @@ globalThis.LEASKIN_CONFIG = {
   kalenderTage: 60,        // so weit im Voraus Termine suchen
   // ... plus optional fix eingetragene Termine: { start: '2026-11-04T18:00', titel: '...' }
   termine: [],
+  // Fahrtenbuch (Google-Formular -> Google-Tabelle, Antwort-Tab „Im Web veröffentlichen“ als CSV)
+  // Der CSV-Link steht nur am Pi in config.local.js (fahrtenbuchCsvUrl), nicht im Repo
+  fahrzeuge: ['KLF-W', 'MTF', 'VFA'],
+  fahrtenbuchCsvUrl: '',
+  fahrtenbuchVorschauTage: 7,   // nächste Nutzung so weit im Voraus anzeigen
   aktualisierenMin: 5      // Wetter/WASTL/Kalender alle 5 Minuten neu holen
 };
