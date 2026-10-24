@@ -124,12 +124,14 @@ const kalender = async () => {
 
 const refresh = async () => {
   const prev = (await chrome.storage.local.get('extra')).extra || {};
-  const next = { ...prev, at: Date.now() };
+  const next = { ...prev, at: Date.now(), version: chrome.runtime.getManifest().version, status: {} };
+  const run = (name, fn, set) => fn().then((v) => { set(v); next.status[name] = { ok: true, at: Date.now(), n: Array.isArray(v) ? v.length : undefined }; })
+    .catch((e) => { next.status[name] = { ok: false, at: Date.now(), fehler: String((e && e.message) || e).slice(0, 80) }; });
   await Promise.all([
-    wetter().then((v) => { next.wetter = v; }).catch(() => {}),
-    wastl().then((v) => { next.wastl = v; }).catch(() => {}),
-    pegel().then((v) => { next.pegel = v; }).catch(() => {}),
-    kalender().then((v) => { next.kalender = v; next.kalenderAt = Date.now(); }).catch(() => {})
+    run('Wetter', wetter, (v) => { next.wetter = v; }),
+    run('WASTL', wastl, (v) => { next.wastl = v; }),
+    run('Pegel', pegel, (v) => { next.pegel = v; }),
+    run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); })
   ]);
   await chrome.storage.local.set({ extra: next });
 };

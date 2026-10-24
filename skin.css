@@ -135,3 +135,7 @@
 .ls-w-ff.ls-w-own { background: #FB923C; color: #0B0E13; }
 .ls-w-ruhig { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; }
 .ls-pegel .ls-label { white-space: nowrap; }
+
+.ls-ruhe { position: relative; }
+.ls-statusline { position: absolute; right: 48px; bottom: 10px; font-size: 16px; color: #5B6573; white-space: nowrap; }
+.ls-st-err { color: #F87171; }

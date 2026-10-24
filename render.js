@@ -309,6 +309,11 @@
     ['fill:none', 'stroke:#FFFFFF', 'stroke-width:2', 'stroke-linecap:round', 'stroke-linejoin:round'].forEach((x) => { const [k, v] = x.split(':'); pth.setAttribute(k, v); });
     flamme.appendChild(pth);
 
+    // Statuszeile für die Wartung: Version + Zustand der Datenquellen
+    const st = ex.status || {};
+    const statusZeile = h('div', 'ls-statusline', ['lea-skin ' + (ex.version || '?') + (ex.at ? ' · ' + hhmm(ex.at) : ' · keine Hintergrunddaten')].concat(
+      Object.keys(st).map((k) => h('span', st[k].ok ? 'ls-st-ok' : 'ls-st-err', [' · ' + k + (st[k].ok ? (st[k].n != null ? ' ' + st[k].n : ' ✓') : ' ✗ ' + (st[k].fehler || '')) ]))));
+
     stage.appendChild(h('div', 'ls-ruhe', [
       h('header', 'ls-ruhe-head', [
         h('div', 'ls-brand', [h('div', 'ls-logo', [flamme]), h('div', 'ls-ff', [C.feuerwehr || ''])]),
@@ -325,7 +330,8 @@
           h('div', 'ls-histbox', [h('div', 'ls-label', ['Letzte Einsätze'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])])),
           wastlBox
         ])
-      ])
+      ]),
+      statusZeile
     ]));
   };
 
