@@ -29,6 +29,21 @@ const wastl = async () => {
   return { liste: d.einsaetze_bl || [], stand: d.stand_bl || '', fehler: d.fehler_bl || null, at: Date.now() };
 };
 
+// Pegel: Hydrographischer Dienst NÖ, Messstellen-Liste mit Wasserstand + Prognose + Warnklasse
+const pegel = async () => {
+  if (!C.pegel || !C.pegel.station) return null;
+  const d = await getJson('https://www.noe.gv.at/wasserstand/kidata/maplist/MapList.json', 30000);
+  const rows = (Array.isArray(d) ? d : []).filter((x) => String(x.Stationnumber) === String(C.pegel.station));
+  const get = (p) => rows.find((x) => x.Parameter === p) || null;
+  const ws = get('Wasserstand'), pr = get('WasserstandPrognose'), q = get('Durchfluss');
+  if (!ws) throw new Error('Messstelle nicht gefunden');
+  return {
+    wert: Number(ws.Value), einheit: ws.Unit, klasse: Number(ws.ClassID), farbe: ws.Class, zeit: ws.Timestamp,
+    prognose: pr ? Number(pr.Value) : null, prognoseZeit: pr ? pr.Timestamp : null, prognoseKlasse: pr ? Number(pr.ClassID) : null,
+    durchfluss: q ? Number(q.Value) : null, at: Date.now()
+  };
+};
+
 // sehr einfacher iCal-Leser: nur DTSTART + SUMMARY künftiger Termine
 const kalender = async () => {
   if (!C.kalenderIcsUrl) return [];
@@ -54,6 +69,7 @@ const refresh = async () => {
   await Promise.all([
     wetter().then((v) => { next.wetter = v; }).catch(() => {}),
     wastl().then((v) => { next.wastl = v; }).catch(() => {}),
+    pegel().then((v) => { next.pegel = v; }).catch(() => {}),
     kalender().then((v) => { next.kalender = v; next.kalenderAt = Date.now(); }).catch(() => {})
   ]);
   await chrome.storage.local.set({ extra: next });

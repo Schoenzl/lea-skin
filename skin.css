@@ -112,3 +112,11 @@
 .ls-wastl-n { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 800; font-size: 96px; line-height: 1; }
 .ls-wastl-t { font-size: 28px; font-weight: 600; }
 .ls-wastl-row { font-size: 24px; color: #A9B1BC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-pegel { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 20px 28px; }
+.ls-pegel-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ls-pegel-row { display: flex; align-items: baseline; gap: 18px; }
+.ls-pegel-val { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 700; font-size: 56px; line-height: 1; white-space: nowrap; }
+.ls-pegel-stufe { font-size: 24px; color: #D4D9E0; white-space: nowrap; }
+.ls-pegel-prog { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+.ls-pegel-pval { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 600; font-size: 40px; line-height: 1; color: #D4D9E0; white-space: nowrap; }

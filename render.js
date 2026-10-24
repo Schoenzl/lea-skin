@@ -221,6 +221,27 @@
 
     // Wetter (höchstens 60 min alt)
     const w = ex.wetter && now - ex.wetter.at < 60 * 60000 ? ex.wetter : null;
+    // Pegel (höchstens 60 min alt). Warnklassen Wasserstand laut NÖ: 1 < MW, 2 > MW, 3 > HW1, 4 > HW5, 5 > HW30, 6 > HW100
+    const pg = ex.pegel && now - ex.pegel.at < 60 * 60000 ? ex.pegel : null;
+    const PSTUFE = { 1: 'unter Mittelwasser', 2: 'über Mittelwasser', 3: 'über HW1', 4: 'über HW5', 5: 'über HW30', 6: 'über HW100' };
+    const PFARBE = { 3: '#FACC15', 4: '#FB923C', 5: '#F87171', 6: '#E879F9' };
+    let pegelBox = null;
+    if (C.pegel) {
+      const titel = 'Pegel ' + (C.pegel.name || '') + ' · ' + (C.pegel.ort || '');
+      if (pg) {
+        const trend = pg.prognose == null ? '' : pg.prognose > pg.wert ? '↗' : pg.prognose < pg.wert ? '↘' : '→';
+        const col = PFARBE[pg.klasse] ? { color: PFARBE[pg.klasse] } : null;
+        pegelBox = h('div', 'ls-card ls-pegel', [
+          h('div', 'ls-pegel-main', [
+            h('div', 'ls-label', [titel]),
+            h('div', 'ls-pegel-row', [h('div', 'ls-pegel-val', [Math.round(pg.wert) + ' cm'], col), h('div', 'ls-pegel-stufe', [PSTUFE[pg.klasse] || ''], col)])
+          ]),
+          pg.prognose != null ? h('div', 'ls-pegel-prog', [h('div', 'ls-label', ['Prognose']), h('div', 'ls-pegel-pval', [trend + ' ' + Math.round(pg.prognose) + ' cm'])]) : null
+        ]);
+      } else {
+        pegelBox = h('div', 'ls-card ls-pegel', [h('div', 'ls-pegel-main', [h('div', 'ls-label', [titel]), h('div', 'ls-empty', ['keine aktuellen Daten'])])]);
+      }
+    }
     const wetterBox = h('div', 'ls-card ls-wx-grid', w ? [
       kachel('Wetter', Math.round(w.temp) + '°', WETTER[w.code] || ''),
       kachel('Wind', (wdir(w.dir) + ' ' + Math.round(w.wind)).trim(), 'km/h'),
@@ -272,6 +293,7 @@
         h('section', 'ls-ruhe-left', [
           h('div', 'ls-clockbox', [refs.clock, h('div', 'ls-date', [dateLong(new Date())])]),
           wetterBox,
+          pegelBox,
           h('div', 'ls-card ls-termine', [h('div', 'ls-label', ['Nächste Termine'])].concat(termine.length ? termine : [h('div', 'ls-empty', ['keine Termine eingetragen'])]))
         ]),
         h('section', 'ls-ruhe-right', [
@@ -364,6 +386,7 @@
     state.dataVersion = 1;
     state.extra = {
       wetter: { temp: 12.4, code: 3, wind: 25, dir: 315, boeen: 45, at: Date.now() },
+      pegel: { wert: 124, einheit: 'cm', klasse: 1, prognose: 128, at: Date.now() },
       wastl: { liste: [{ baz: 'T1', ort: 'Nachbarort A', meldebild: 'Ölspur' }, { baz: 'B1', ort: 'Nachbarort B', meldebild: 'BMA' }], at: Date.now() },
       kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
     };

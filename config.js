@@ -46,6 +46,8 @@ globalThis.LEASKIN_CONFIG = {
   // Bezirkslage aus dem eigenen WASTL-Proxy (Bezirk Bruck/Leitha)
   wastlUrl: 'https://wastl-proxy.onrender.com',
   wastlTitel: 'Bezirk Bruck/Leitha · WASTL',
+  // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
+  pegel: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' },
   // Termine: fix eingetragen (Ausbildungsplan 2026, Beginn jeweils 18:00) ...
   termine: [
     { start: '2026-11-04T18:00', titel: 'Planspiel Einsatzleiter' }

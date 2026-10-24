@@ -3,7 +3,7 @@
 Eigene Darstellung des LEA-Infoscreens (`https://lea-screen.notrufnoe.at`) als Chromium-Erweiterung für den Kiosk-Pi.
 
 - **Einsatzansicht:** Alarmband (Stufe, Art, Alarmzeit + Timer, Uhr), Einsatzort, Meldebild, Karte, alarmierte Gruppen, Zusagen gereiht nach EL-Liste mit Funktionsfarben, Besetzungs-Ampel KLF-W
-- **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), nächste Termine (fix in `config.js` und/oder iCal-Kalender), letzte 4 Einsätze, Bezirkslage aus dem WASTL-Proxy
+- **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), Leitha-Pegel Deutsch Haslau mit Prognose und Warnstufe (Hydrographischer Dienst NÖ, Messstelle 209007), nächste Termine (fix in `config.js` und/oder iCal-Kalender), letzte 4 Einsätze, Bezirkslage aus dem WASTL-Proxy
 - **Sicherheitsnetz:** ohne frische Daten (45 s) → LEA-Original
 - **Datenschutz/Sicherheit:** liest nur die Antworten auf `/events` und `/eventhistory` mit, die die Seite selbst abholt; keine eigenen Anfragen, kein Zugriff auf Token/Header; alles bleibt am Gerät
 
