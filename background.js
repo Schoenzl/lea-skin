@@ -87,7 +87,9 @@ const pegel = async () => {
 // Kalender (iCal): Serien, Ausnahmen und Zeitzonen über ical.js auflösen, künftige Termine der nächsten Wochen
 const kalender = async () => {
   if (!C.kalenderIcsUrl) return [];
-  const r = await fetch(C.kalenderIcsUrl, { cache: 'no-store' });
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const r = await fetch(C.kalenderIcsUrl, { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(tm));
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const comp = new ICAL.Component(ICAL.parse(await r.text()));
   comp.getAllSubcomponents('vtimezone').forEach((tz) => { try { ICAL.TimezoneService.register(tz); } catch (e) {} });

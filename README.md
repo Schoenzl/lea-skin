@@ -31,7 +31,6 @@ Zurück zum Original: Flag wieder entfernen, neu starten.
 
 ## Updates am Pi
 ```bash
-cd /home/admin/lea-skin && git pull
-pkill -f chromium; sleep 2
-DISPLAY=:0 setsid /home/admin/start-kiosk.sh >/dev/null 2>&1 </dev/null &
+/home/admin/lea-skin/update.sh
 ```
+Holt den Code, beendet Chromium, leert den Service-Worker-Zwischenspeicher (sonst läuft der alte Hintergrund-Dienst weiter) und startet den Kiosk neu.
