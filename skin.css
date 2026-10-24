@@ -197,6 +197,14 @@
 .ls-pmain .ls-name { font-size: 28px; }
 .ls-pmain .ls-free { width: auto; text-align: left; font-size: 20px; color: #A9B1BC; }
 
+/* Alarm-Rahmen bei neuem Einsatz */
+.ls-root.ls-alarm::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 10;
+  border: 22px solid var(--ls-alarm, #DC2626);
+  animation: ls-alarm-puls 1s ease-in-out infinite;
+}
+@keyframes ls-alarm-puls { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+
 /* Ausdruck: der LEA-Alarmausdruck soll das Original drucken, nicht unsere Bildschirmansicht */
 @media print {
   .ls-root { display: none !important; }

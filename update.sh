@@ -5,7 +5,9 @@ set -u
 D=/home/admin/lea-skin
 P="/home/admin/.config/chromium/Default"
 
+touch /tmp/leaskin-update
 cd "$D" && git pull
+chmod +x "$D"/*.sh
 echo "Version: $(grep '"version"' "$D/manifest.json" | head -1)"
 
 pkill -f chromium
@@ -17,3 +19,4 @@ rm -rf "$P/Service Worker"
 
 DISPLAY=:0 setsid /home/admin/start-kiosk.sh >/dev/null 2>&1 </dev/null &
 echo "Kiosk startet neu"
+( sleep 60; rm -f /tmp/leaskin-update ) &

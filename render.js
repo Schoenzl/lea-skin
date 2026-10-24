@@ -381,12 +381,28 @@
     ]));
   };
 
+  // ---------- Alarm-Rahmen: neuer Einsatz -> Rand pulsiert ----------
+  state.seen = {};
+  const alarmRahmen = (evs, now) => {
+    const dauer = (C.alarmRahmenSek || 30) * 1000;
+    let farbe = null;
+    evs.forEach((ev) => {
+      const id = ev.id || (ev.alarmtime + ':' + ev.eventtype);
+      if (!state.seen[id]) state.seen[id] = now;
+      // nur bei frischen Alarmen (nicht nach einem Neuladen mitten im längeren Einsatz)
+      const frisch = !ev.alarmtime || now - ev.alarmtime < 10 * 60000;
+      if (frisch && now - state.seen[id] < dauer && !farbe) farbe = bandColor(ev.eventtype);
+    });
+    if (farbe) root.style.setProperty('--ls-alarm', farbe);
+    root.classList.toggle('ls-alarm', !!farbe);
+  };
+
   // ---------- Steuerung ----------
   const tick = () => {
     mount();
     const now = Date.now();
     const fresh = DEMO || (state.events && now - state.lastData < (C.datenTimeoutSek || 45) * 1000);
-    if (!fresh) { root.classList.add('ls-hidden'); state.key = ''; return; }
+    if (!fresh) { root.classList.add('ls-hidden'); root.classList.remove('ls-alarm'); state.key = ''; return; }
     const evs = listOf(state.events);
     let key;
     if (evs.length) {
@@ -396,6 +412,7 @@
       key = 'e:' + state.idx + ':' + state.dataVersion;
       if (key !== state.key) renderEinsatz(evs[state.idx], state.idx + 1, evs.length);
     } else if (C.ruheAnsicht) {
+      root.classList.remove('ls-alarm');
       key = 'r:' + state.dataVersion + ':' + state.extraVersion + ':' + new Date().getDate();
       if (key !== state.key) renderRuhe();
     } else {
@@ -403,6 +420,7 @@
     }
     state.key = key;
     root.classList.remove('ls-hidden');
+    alarmRahmen(evs, now);
     if (refs.clock) refs.clock.textContent = hhmm(now);
     if (refs.timer && evs[state.idx]) refs.timer.textContent = elapsed(evs[state.idx].alarmtime);
   };
@@ -420,6 +438,10 @@
     const s = JSON.stringify(e.detail);
     if (s !== state.lastEventsJson) { state.lastEventsJson = s; state.dataVersion++; }
     state.events = e.detail; state.lastData = Date.now();
+    if (!DEMO && state.lastData - (state.lastAlive || 0) > 20000) {
+      state.lastAlive = state.lastData;
+      window.postMessage({ type: 'leaskin:alive' }, location.origin);
+    }
   });
   window.addEventListener('leaskin:history', (e) => {
     const s = JSON.stringify(e.detail);

@@ -35,3 +35,12 @@ Zurück zum Original: Flag wieder entfernen, neu starten.
 /home/admin/lea-skin/update.sh
 ```
 Holt den Code, beendet Chromium, leert den Service-Worker-Zwischenspeicher (sonst läuft der alte Hintergrund-Dienst weiter) und startet den Kiosk neu.
+
+## Selbstheilung und Ausfallmeldung (ab v0.10)
+- **Seite hängt:** Kommen 3 Minuten keine LEA-Daten, lädt die Erweiterung die LEA-Seite neu (nach 3 erfolglosen Versuchen nur mehr alle 30 Minuten).
+- **Chromium abgestürzt:** `watchdog.sh` per cron alle 2 Minuten startet den Kiosk neu.
+  Einmalig einrichten: `(crontab -l 2>/dev/null; echo "*/2 * * * * /home/admin/lea-skin/watchdog.sh") | crontab -`
+- **Ausfallmeldung:** Bei healthchecks.io einen Check anlegen (Period 5 min, Grace 10 min), Benachrichtigung per E-Mail/App einstellen und die Ping-Adresse am Pi in `config.local.js` als `heartbeatUrl` eintragen. Bleibt der Ping aus (Strom, Internet, Pi weg) oder fehlen länger als 10 Minuten die LEA-Daten, kommt eine Meldung.
+
+## Alarm-Rahmen
+Bei einem neuen Einsatz pulsiert 30 Sekunden lang ein Rahmen in der Farbe der Alarmstufe (`alarmRahmenSek`).

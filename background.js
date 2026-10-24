@@ -218,13 +218,49 @@ const refresh = async () => {
   await chrome.storage.local.set({ extra: next });
 };
 
-chrome.runtime.onInstalled.addListener(() => {
+// ---------- Wächter: Selbstheilung + Ausfallmeldung ----------
+// leaAlive setzt bridge.js, solange LEA-Daten ankommen. Bleiben sie aus, wird die LEA-Seite neu geladen.
+// Nach 3 erfolglosen Versuchen nur mehr alle 30 Minuten (damit z. B. eine Token-Eingabe nicht gestört wird).
+const LEA_URL = 'https://lea-screen.notrufnoe.at/';
+const watch = async () => {
+  const now = Date.now();
+  const w = await chrome.storage.local.get(['leaAlive', 'bootAt', 'watch']);
+  const st = w.watch || { versuche: 0, letzterNeustart: 0, letzterPing: 0 };
+  const seit = Math.max(w.leaAlive || 0, w.bootAt || 0);
+  const stale = now - seit;
+  const grenze = (C.neuladenNachMin || 3) * 60000;
+  if (stale < grenze) st.versuche = 0;
+  else {
+    const pause = st.versuche < 3 ? 5 * 60000 : 30 * 60000;
+    if (now - st.letzterNeustart > pause) {
+      const tabs = await chrome.tabs.query({}).catch(() => []);
+      for (const t of tabs) await chrome.tabs.update(t.id, { url: LEA_URL }).catch(() => {});
+      st.versuche++; st.letzterNeustart = now; st.neustarts = (st.neustarts || 0) + 1;
+    }
+  }
+  // Ausfallmeldung: healthchecks.io meldet sich, wenn der Ping ausbleibt (Pi/Strom/Internet weg)
+  // oder wenn wir länger als 10 Minuten keine LEA-Daten haben (/fail).
+  if (C.heartbeatUrl && now - st.letzterPing > 4 * 60000) {
+    const fail = stale > 10 * 60000;
+    if (stale < grenze || fail) {
+      const msg = fail ? 'Seit ' + Math.round(stale / 60000) + ' min keine LEA-Daten' : 'ok';
+      await fetch(C.heartbeatUrl.replace(/\/+$/, '') + (fail ? '/fail' : ''), { method: 'POST', body: msg }).catch(() => {});
+      st.letzterPing = now;
+    }
+  }
+  await chrome.storage.local.set({ watch: st });
+};
+
+const start = () => {
   chrome.alarms.create('leaskin-refresh', { periodInMinutes: C.aktualisierenMin || 5 });
+  chrome.alarms.create('leaskin-watch', { periodInMinutes: 1 });
+  chrome.storage.local.set({ bootAt: Date.now() });
   refresh();
+};
+chrome.runtime.onInstalled.addListener(start);
+chrome.runtime.onStartup.addListener(start);
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === 'leaskin-refresh') refresh();
+  if (a.name === 'leaskin-watch') watch();
 });
-chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create('leaskin-refresh', { periodInMinutes: C.aktualisierenMin || 5 });
-  refresh();
-});
-chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'leaskin-refresh') refresh(); });
 chrome.runtime.onMessage.addListener((m) => { if (m === 'leaskin-refresh') refresh(); });

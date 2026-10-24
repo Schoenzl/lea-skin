@@ -8,3 +8,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
 
 // Fahrtenbuch: Link „Im Web veröffentlichen“ (Tab Formularantworten, Format CSV)
 // globalThis.LEASKIN_CONFIG.fahrtenbuchCsvUrl = 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv';
+
+// Ausfallmeldung: Ping-Adresse von healthchecks.io (Check anlegen, Adresse kopieren)
+// globalThis.LEASKIN_CONFIG.heartbeatUrl = 'https://hc-ping.com/...';

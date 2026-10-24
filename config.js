@@ -62,5 +62,11 @@ globalThis.LEASKIN_CONFIG = {
   fahrzeuge: ['KLF-W', 'MTF', 'VFA'],
   fahrtenbuchCsvUrl: '',
   fahrtenbuchVorschauTage: 7,   // nächste Nutzung so weit im Voraus anzeigen
-  aktualisierenMin: 5      // Wetter/WASTL/Kalender alle 5 Minuten neu holen
+  aktualisierenMin: 5,     // Wetter/WASTL/Kalender alle 5 Minuten neu holen
+  // Selbstheilung: kommen so lange keine LEA-Daten, wird die Seite neu geladen
+  neuladenNachMin: 3,
+  // Ausfallmeldung: Ping-Adresse von healthchecks.io – steht nur am Pi in config.local.js
+  heartbeatUrl: '',
+  // Alarm-Rahmen: so lange pulsiert der Rand bei einem neuen Einsatz
+  alarmRahmenSek: 30
 };
