@@ -251,7 +251,7 @@
     ] : [kachel('Wetter', '–', 'keine Daten')]);
 
     // letzte Einsätze
-    const hist = listOf(state.history).slice(0, 4).map((ev) => {
+    const hist = listOf(state.history).slice(0, 1).map((ev) => {
       const loc = ev.location || {};
       const where = [[loc.street, loc.housenumber].filter(Boolean).join(' '), loc.city].filter(Boolean).join(', ') || loc.objectname || '';
       return h('div', 'ls-hist', [
@@ -286,18 +286,31 @@
     let wastlKids;
     if (!wa) {
       wastlKids = [h('div', 'ls-empty', ['keine aktuellen Daten'])];
-    } else if (wa.laufend.length) {
-      wastlKids = [
-        h('div', 'ls-w-head', [h('div', 'ls-wastl-n', [String(wa.laufend.length)]), h('div', 'ls-wastl-t', [wa.laufend.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])])
-      ].concat(wa.laufend.slice(0, 3).map(wRow));
-      if (wa.feuerwehren && wa.feuerwehren.length) {
-        wastlKids.push(h('div', 'ls-label ls-w-sub', ['Im Einsatz']));
-        wastlKids.push(h('div', 'ls-w-ffs', wa.feuerwehren.slice(0, 10).map((f) => h('span', 'ls-w-ff' + (eigen(f.name) ? ' ls-w-own' : ''), [f.name]))));
-      }
     } else {
-      wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine laufenden Einsätze im Bezirk'])]
-        .concat((wa.rueckblick || []).length ? [h('div', 'ls-label ls-w-sub', ['Zuletzt im Bezirk'])] : [])
-        .concat((wa.rueckblick || []).slice(0, 5).map(wRow));
+      // Kern: welche Feuerwehr im Bezirk ist draußen – eigene FF zuerst
+      const ffs = (wa.feuerwehren || []).slice().sort((a, b) => (eigen(b.name) ? 1 : 0) - (eigen(a.name) ? 1 : 0));
+      if (ffs.length) {
+        wastlKids = [
+          h('div', 'ls-w-head', [
+            h('div', 'ls-wastl-n', [String(ffs.length)]),
+            h('div', 'ls-wastl-t', [ffs.length === 1 ? 'Feuerwehr im Einsatz' : 'Feuerwehren im Einsatz']),
+            wa.laufend.length ? h('div', 'ls-w-count', [wa.laufend.length + (wa.laufend.length === 1 ? ' Einsatz' : ' Einsätze') + ' im Bezirk']) : null
+          ])
+        ].concat(ffs.slice(0, 7).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
+          h('div', 'ls-w-chip', [f.stufe || '–'], { background: bandColor(f.stufe) }),
+          h('div', 'ls-w-ffname', [f.name]),
+          h('div', 'ls-w-text', [f.text || '']),
+          h('div', 'ls-w-zeit', [kurzZeit(f.zeit)])
+        ])));
+        if (ffs.length > 7) wastlKids.push(h('div', 'ls-w-more', ['+ ' + (ffs.length - 7) + ' weitere']));
+      } else if (wa.laufend.length) {
+        wastlKids = [h('div', 'ls-w-head', [h('div', 'ls-wastl-n', [String(wa.laufend.length)]), h('div', 'ls-wastl-t', [wa.laufend.length === 1 ? 'laufender Einsatz im Bezirk' : 'laufende Einsätze im Bezirk'])])]
+          .concat(wa.laufend.slice(0, 5).map(wRow));
+      } else {
+        wastlKids = [h('div', 'ls-w-ruhig', [h('span', 'ls-dot'), 'Keine Feuerwehr im Bezirk im Einsatz'])]
+          .concat((wa.rueckblick || []).length ? [h('div', 'ls-label ls-w-sub', ['Zuletzt im Bezirk'])] : [])
+          .concat((wa.rueckblick || []).slice(0, 4).map(wRow));
+      }
     }
     const wastlBox = h('div', 'ls-card ls-wastl', [h('div', 'ls-label', [C.wastlTitel || 'Bezirk'])].concat(wastlKids));
 
@@ -327,7 +340,7 @@
           h('div', 'ls-card ls-termine', [h('div', 'ls-label', ['Nächste Termine'])].concat(termine.length ? termine : [h('div', 'ls-empty', ['keine Termine eingetragen'])]))
         ]),
         h('section', 'ls-ruhe-right', [
-          h('div', 'ls-histbox', [h('div', 'ls-label', ['Letzte Einsätze'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])])),
+          h('div', 'ls-histbox', [h('div', 'ls-label', ['Letzter Einsatz'])].concat(hist.length ? hist : [h('div', 'ls-empty', ['Noch keine Daten'])])),
           wastlBox
         ])
       ]),
@@ -420,7 +433,11 @@
       pegel: { wert: 124, einheit: 'cm', klasse: 1, prognose: 128, at: Date.now() },
       wastl: {
         laufend: [{ stufe: 'T1', text: 'Tierrettung', ort: 'Nachbarort A', zeit: '24.10.2026 ~ 1 std.' }, { stufe: 'S1', text: 'Ölspur', ort: 'Nachbarort B', zeit: '24.10.2026 < 1 std.' }],
-        feuerwehren: [{ name: 'Nachbarort A' }, { name: 'Deutsch Haslau' }, { name: 'Nachbarort B' }],
+        feuerwehren: [
+          { name: 'Nachbarort A', stufe: 'T1', text: 'Tierrettung', zeit: '24.10.2026 ~ 1 std.' },
+          { name: 'Deutsch Haslau', stufe: 'T1', text: 'Tierrettung', zeit: '24.10.2026 ~ 1 std.' },
+          { name: 'Nachbarort B', stufe: 'S1', text: 'Ölspur', zeit: '24.10.2026 < 1 std.' }
+        ],
         rueckblick: [{ stufe: 'T1', text: 'Bergung - PKW', ort: 'Nachbarort C', zeit: '24.10.2026 13:22:21' }],
         at: Date.now()
       },

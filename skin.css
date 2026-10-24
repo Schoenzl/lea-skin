@@ -139,3 +139,11 @@
 .ls-ruhe { position: relative; }
 .ls-statusline { position: absolute; right: 48px; bottom: 10px; font-size: 16px; color: #5B6573; white-space: nowrap; }
 .ls-st-err { color: #F87171; }
+
+.ls-w-head { flex-wrap: wrap; }
+.ls-w-count { margin-left: auto; font-size: 24px; color: #A9B1BC; }
+.ls-w-ffrow { display: flex; align-items: center; gap: 16px; padding: 10px 14px; border-radius: 10px; background: #1F2630; border: 2px solid #1F2630; }
+.ls-w-ffrow.ls-w-own { background: #2A1A10; border-color: #FB923C; }
+.ls-w-ffname { font-size: 32px; font-weight: 700; white-space: nowrap; }
+.ls-w-ffrow .ls-w-text { flex: 1; min-width: 0; }
+.ls-w-more { font-size: 22px; color: #A9B1BC; }
