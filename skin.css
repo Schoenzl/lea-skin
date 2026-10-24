@@ -175,3 +175,24 @@
 
 .ls-w-bez { flex: none; font-size: 18px; font-weight: 700; color: #A9B1BC; border: 1px solid #3A4452; border-radius: 6px; padding: 1px 8px; }
 .ls-w-ffrow .ls-w-zeit { width: 110px; text-align: right; }
+
+/* v0.9 – Einsatzansicht: wohin, was, mitalarmiert, Karte, wer kommt */
+.ls-body { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.ls-left { gap: 20px; }
+.ls-strasse { font-size: 88px; }
+.ls-melde { padding: 20px 26px; }
+.ls-melde-text { font-size: 38px; -webkit-line-clamp: 2; }
+.ls-groups-row { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.ls-groups-row .ls-label { flex: none; }
+.ls-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; max-height: 96px; overflow: hidden; }
+.ls-chips .ls-chip { padding: 8px 14px; font-size: 24px; }
+.ls-map-big { flex: 1; min-height: 260px; }
+.ls-right { gap: 16px; }
+.ls-qsums { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.ls-qsum { display: inline-flex; align-items: center; gap: 8px; }
+.ls-qsum .ls-tag { font-size: 22px; }
+.ls-qsum-n { font-family: 'LS Barlow Condensed', 'Barlow Condensed', 'DejaVu Sans Condensed', sans-serif; font-weight: 800; font-size: 34px; }
+.ls-person { height: 60px; }
+.ls-pmain { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.ls-pmain .ls-name { font-size: 28px; }
+.ls-pmain .ls-free { width: auto; text-align: left; font-size: 20px; color: #A9B1BC; }

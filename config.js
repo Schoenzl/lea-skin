@@ -37,7 +37,7 @@ globalThis.LEASKIN_CONFIG = {
 
   einsatzWechselSek: 15,   // mehrere Einsätze gleichzeitig: Wechselintervall
   datenTimeoutSek: 45,     // keine neuen Daten so lange -> Original-Infoscreen zeigen
-  karteZoom: 17,
+  karteZoom: 16,
   karteUrl: 'https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png',
 
   // ---------- Ruhebildschirm ----------

@@ -137,7 +137,6 @@
       if (y.rank != null) return 1;
       return x.t - y.t;
     });
-    const amp = ampel(persons);
     const loc = ev.location || {};
     const strasse = [loc.street, loc.housenumber].filter(Boolean).join(' ') || loc.objectname || loc.city || 'Einsatzort siehe Meldebild';
     const ort = [loc.zipcode, loc.city].filter(Boolean).join(' ');
@@ -157,41 +156,44 @@
       refs.clock
     ], { background: color });
 
-    const map = h('div', 'ls-map');
-    const groups = (ev.alarmedalarmgroups || []).map((g) => h('div', 'ls-chip', [g.name || g.id]));
+    // links: wohin, was, wer ist mitalarmiert, Karte
+    const map = h('div', 'ls-map ls-map-big');
+    const groups = (ev.alarmedalarmgroups || []).map((g) => h('span', 'ls-chip', [String(g.name || g.id).replace(/\s*-\s*Sammelruf$/i, '')]));
     const links = h('section', 'ls-left', [
       h('div', 'ls-ort', [h('div', 'ls-label', ['Einsatzort']), h('div', 'ls-strasse', [strasse]), ort ? h('div', 'ls-stadt', [ort]) : null]),
       h('div', 'ls-card ls-melde', [h('div', 'ls-label', ['Meldebild']), h('div', 'ls-melde-text', [meldebild(ev)]), extra ? h('div', 'ls-melde-extra', [extra]) : null]),
-      h('div', 'ls-bottom', [map, groups.length ? h('div', 'ls-groups', [h('div', 'ls-label', ['Alarmiert'])].concat(groups)) : null])
+      groups.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Mitalarmiert'])].concat([h('div', 'ls-chips', groups)])) : null,
+      map
     ]);
 
-    const ampBox = amp ? h('div', 'ls-ampel ls-st-' + amp.status.replace(/\s+/g, '-'), [
-      h('div', 'ls-ampel-head', [
-        h('div', 'ls-ampel-fz', [(C.fahrzeug.name || '') + ' · ' + (C.fahrzeug.besatzung || '')]),
-        h('div', 'ls-ampel-status', [amp.status])
-      ]),
-      h('div', 'ls-ampel-grid', amp.rows.map((r) => h('div', 'ls-ampel-row', [
-        h('span', null, [r.label]),
-        h('span', 'ls-val ' + (r.ok ? 'ls-ok' : r.pflicht ? 'ls-bad' : 'ls-warn'), [r.ist + ' / ' + r.soll])
-      ])))
-    ]) : null;
-
-    const rows = ranked.map((x, i) => {
+    // rechts: wer kommt, mit welcher Qualifikation
+    const summe = fnKeys.map((k) => ({ k, n: persons.filter((p) => hasFn(p, k)).length })).filter((x) => x.n > 0)
+      .map((x) => h('span', 'ls-qsum', [h('span', 'ls-tag', [x.k], { background: C.funktionen[x.k].bg, color: C.funktionen[x.k].fg }), h('span', 'ls-qsum-n', [String(x.n)])]));
+    const MAXZEILEN = 10;
+    const zeigen = ranked.length > MAXZEILEN ? MAXZEILEN - 1 : ranked.length;
+    const rows = ranked.slice(0, zeigen).map((x, i) => {
       const fns = (x.p.functions || []).slice().sort((a, b) => fnOrder(a.shortname) - fnOrder(b.shortname)).map((f) => {
         const st = fnStyle(f.shortname) || { bg: '#2A3340', fg: '#F2F4F7' };
         return h('span', 'ls-tag', [f.shortname], { background: st.bg, color: st.fg });
       });
       return h('div', 'ls-person' + (i === 0 && x.rank != null ? ' ls-lead' : ''), [
         h('div', 'ls-rank', [x.rank != null ? 'EL ' + x.rank : '']),
-        h('div', 'ls-name', [[x.p.firstname, x.p.lastname].filter(Boolean).join(' ')]),
-        h('div', 'ls-tags', fns),
-        h('div', 'ls-free', [(x.p.response && x.p.response.freetext) || ''])
+        h('div', 'ls-pmain', [
+          h('div', 'ls-name', [[x.p.firstname, x.p.lastname].filter(Boolean).join(' ')]),
+          (x.p.response && x.p.response.freetext) ? h('div', 'ls-free', [x.p.response.freetext]) : null
+        ]),
+        h('div', 'ls-tags', fns)
       ]);
     });
+    if (ranked.length > zeigen) rows.push(h('div', 'ls-w-more', ['+ ' + (ranked.length - zeigen) + ' weitere: ' + ranked.slice(zeigen).map((x) => x.p.firstname + ' ' + x.p.lastname).join(', ')]));
 
     const rechts = h('section', 'ls-right', [
-      h('div', 'ls-count', [h('div', 'ls-count-n', [persons.length]), h('div', null, [h('div', 'ls-label', ['Rückmeldungen']), h('div', 'ls-count-t', ['Zusagen'])]), h('div', 'ls-count-hint', ['gereiht nach EL-Liste'])]),
-      ampBox,
+      h('div', 'ls-count', [
+        h('div', 'ls-count-n', [persons.length]),
+        h('div', null, [h('div', 'ls-label', ['Wer kommt']), h('div', 'ls-count-t', [persons.length === 1 ? 'Zusage' : 'Zusagen'])]),
+        h('div', 'ls-count-hint', ['gereiht nach EL-Liste'])
+      ]),
+      summe.length ? h('div', 'ls-qsums', summe) : null,
       h('div', 'ls-list', rows.length ? rows : [h('div', 'ls-empty', ['Noch keine Zusagen'])])
     ]);
 

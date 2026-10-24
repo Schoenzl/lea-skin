@@ -2,7 +2,7 @@
 
 Eigene Darstellung des LEA-Infoscreens (`https://lea-screen.notrufnoe.at`) als Chromium-Erweiterung für den Kiosk-Pi.
 
-- **Einsatzansicht:** Alarmband (Stufe, Art, Alarmzeit + Timer, Uhr), Einsatzort, Meldebild, Karte, alarmierte Gruppen, Zusagen gereiht nach EL-Liste mit Funktionsfarben, Besetzungs-Ampel KLF-W
+- **Einsatzansicht:** Alarmband (Stufe, Art, Alarmzeit + Timer, Uhr); links wohin (Einsatzort), was (Meldebild), mitalarmiert und große Karte; rechts wer kommt: Zusagen gereiht nach EL-Liste, Summe je Qualifikation und Funktionskürzel je Person in Farbe
 - **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), Leitha-Pegel Deutsch Haslau mit Prognose und Warnstufe (Hydrographischer Dienst NÖ, Messstelle 209007), nächste Termine aus dem öffentlichen Google-Kalender „FF Deutsch Haslau“ (Serien, Ausnahmen, Zeitzonen über ical.js), letzte 4 Einsätze, aktuell ausgerückte Feuerwehren aus WASTL (Bezirk Bruck/Leitha) und der LSZ Burgenland (Bezirk Neusiedl/See), eigene FF hervorgehoben
 - **Fahrzeuge:** KLF-W, MTF, VFA aus dem Fahrtenbuch (Google-Formular → Google-Tabelle, CSV-Link nur in `config.local.js`): „unterwegs bis …“ mit Name und Zweck bzw. „frei“ mit nächster Nutzung; Fahrten mit „abgesagt“/„storniert“ im Zweck oder Bis ≤ Von werden ignoriert
 - **Sicherheitsnetz:** ohne frische Daten (45 s) → LEA-Original
