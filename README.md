@@ -4,7 +4,7 @@ Eigene Darstellung des LEA-Infoscreens (`https://lea-screen.notrufnoe.at`) als C
 
 - **Einsatzansicht:** Alarmband (Stufe, Art, Alarmzeit + Timer, Uhr), Einsatzort, Meldebild, Karte, alarmierte Gruppen, Zusagen gereiht nach EL-Liste mit Funktionsfarben, Besetzungs-Ampel KLF-W
 - **Ruhebildschirm:** Uhr, Datum, Wetter mit Wind und Böen (Open-Meteo), Leitha-Pegel Deutsch Haslau mit Prognose und Warnstufe (Hydrographischer Dienst NÖ, Messstelle 209007), nächste Termine aus dem öffentlichen Google-Kalender „FF Deutsch Haslau“ (Serien, Ausnahmen, Zeitzonen über ical.js), letzte 4 Einsätze, Bezirkslage direkt aus WASTL (laufende Einsätze mit Alarmstufe, Ort, Meldebild und Dauer, eingesetzte Feuerwehren mit Hervorhebung der eigenen FF, sonst „Zuletzt im Bezirk“)
-- **Fahrzeuge:** KLF-W, MTF, VFA aus dem Fahrtenbuch (Google-Formular → Google-Tabelle, CSV-Link nur in `config.local.js`): „unterwegs bis …“ mit Name und Zweck bzw. „frei“ mit nächster Nutzung
+- **Fahrzeuge:** KLF-W, MTF, VFA aus dem Fahrtenbuch (Google-Formular → Google-Tabelle, CSV-Link nur in `config.local.js`): „unterwegs bis …“ mit Name und Zweck bzw. „frei“ mit nächster Nutzung; Fahrten mit „abgesagt“/„storniert“ im Zweck oder Bis ≤ Von werden ignoriert
 - **Sicherheitsnetz:** ohne frische Daten (45 s) → LEA-Original
 - **Datenschutz/Sicherheit:** liest nur die Antworten auf `/events` und `/eventhistory` mit, die die Seite selbst abholt; keine eigenen Anfragen, kein Zugriff auf Token/Header; alles bleibt am Gerät
 

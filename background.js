@@ -149,6 +149,8 @@ const parseZeit = (s) => {
   if (m) return new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0)).getTime();
   return NaN;
 };
+// abgesagte Fahrten: im Zweck „abgesagt“, „storniert“, „storno“, „entfällt“ oder „fällt aus“ (Groß/Klein egal)
+const ABGESAGT = /abgesagt|storniert|storno|entf(ä|ae)llt|f(ä|ae)llt aus/i;
 const fahrtenbuch = async () => {
   if (!C.fahrtenbuchCsvUrl) return null;
   const ctl = new AbortController();
@@ -165,7 +167,7 @@ const fahrtenbuch = async () => {
   return rows.slice(1).map((r) => ({
     fahrzeug: (r[iF] || '').trim(), name: iN >= 0 ? (r[iN] || '').trim() : '', zweck: iZ >= 0 ? (r[iZ] || '').trim() : '',
     von: parseZeit(r[iV]), bis: parseZeit(r[iB])
-  })).filter((e) => e.fahrzeug && isFinite(e.von) && isFinite(e.bis) && e.bis >= now - 3600000 && e.von <= bis)
+  })).filter((e) => e.fahrzeug && isFinite(e.von) && isFinite(e.bis) && e.bis > e.von && !ABGESAGT.test(e.zweck) && e.bis >= now - 3600000 && e.von <= bis)
     .sort((a, b) => a.von - b.von).slice(0, 30);
 };
 
