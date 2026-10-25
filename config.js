@@ -66,7 +66,14 @@ globalThis.LEASKIN_CONFIG = {
   // Der CSV-Link steht nur am Pi in config.local.js (fahrtenbuchCsvUrl), nicht im Repo
   fahrzeuge: ['KLF-W', 'MTF', 'VFA'],
   fahrtenbuchCsvUrl: '',
-  fahrtenbuchVorschauTage: 7,   // nächste Nutzung so weit im Voraus anzeigen
+  fahrtenbuchVorschauTage: 7,
+  // Schlagzeilen-Band am Ruhebildschirm (nur Titel; leere Liste = Band aus)
+  schlagzeilenFeeds: [
+    { name: 'ORF', url: 'https://rss.orf.at/news.xml' },
+    { name: 'ORF NÖ', url: 'https://rss.orf.at/noe.xml' }
+  ],
+  schlagzeilenAnzahl: 8,
+  schlagzeilenWechselSek: 8,   // nächste Nutzung so weit im Voraus anzeigen
   aktualisierenMin: 5,     // Wetter/WASTL/Kalender alle 5 Minuten neu holen
   // Selbstheilung: kommen so lange keine LEA-Daten, wird die Seite neu geladen
   neuladenNachMin: 3,

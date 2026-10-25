@@ -307,7 +307,8 @@
         .sort((a, b) => (eigen(b.name) ? 1 : 0) - (eigen(a.name) ? 1 : 0));
       const zeitText = (f) => (f.dauer ? f.dauer.replace(/\s*h$/, ' Std.') : kurzZeit(f.zeit));
       if (ffs.length) {
-        const zeigen = ffs.length > 4 ? 3 : 4;
+        // mit Nachrichten-Band: 3 Zeilen (+ „weitere“), ohne Band: 4 Zeilen bzw. 3 + „weitere“
+        const zeigen = (ex.schlagzeilen || []).length ? 3 : (ffs.length > 4 ? 3 : 4);
         wastlKids = [
           h('div', 'ls-w-head', [
             h('div', 'ls-wastl-n', [String(ffs.length)]),
@@ -369,11 +370,22 @@
     const statusZeile = h('div', 'ls-statusline', ['lea-skin ' + (ex.version || '?') + (ex.at ? ' · ' + hhmm(ex.at) : ' · keine Hintergrunddaten')].concat(
       Object.keys(st).map((k) => h('span', st[k].ok ? 'ls-st-ok' : 'ls-st-err', [' · ' + k + (st[k].ok ? (st[k].n != null ? ' ' + st[k].n : ' ✓') : ' ✗ ' + (st[k].fehler || '')) ]))));
 
-    stage.appendChild(h('div', 'ls-ruhe', [
+    // Schlagzeilen-Band (wechselt alle paar Sekunden, siehe tick)
+    const news = ex.schlagzeilen || [];
+    refs.news = news; refs.newsText = null; refs.newsQuelle = null;
+    let newsBand = null;
+    if (news.length) {
+      refs.newsText = h('div', 'ls-nw-text', [news[0].titel]);
+      refs.newsQuelle = h('div', 'ls-nw-quelle', [news[0].quelle]);
+      newsBand = h('div', 'ls-nw', [h('div', 'ls-nw-label', ['Nachrichten']), refs.newsText, refs.newsQuelle]);
+    }
+
+    stage.appendChild(h('div', 'ls-ruhe' + (newsBand ? ' ls-mit-nw' : ''), [
       h('header', 'ls-ruhe-head', [
         h('div', 'ls-brand', [h('div', 'ls-logo', [flamme]), h('div', 'ls-ff', [C.feuerwehr || ''])]),
         h('div', 'ls-status', [h('span', 'ls-dot'), 'Kein aktiver Einsatz'])
       ]),
+      newsBand,
       h('main', 'ls-ruhe-body', [
         h('section', 'ls-ruhe-left', [
           h('div', 'ls-clockbox', [refs.clock, h('div', 'ls-date', [dateLong(new Date())])]),
@@ -443,6 +455,11 @@
     if (hell !== root.classList.contains('ls-hell')) { root.classList.toggle('ls-hell', hell); state.key = ''; }
     alarmRahmen(evs, now);
     if (refs.clock) refs.clock.textContent = hhmm(now);
+    if (!evs.length && refs.newsText && refs.news.length > 1) {
+      const i = Math.floor(now / ((C.schlagzeilenWechselSek || 8) * 1000)) % refs.news.length;
+      const n = refs.news[i];
+      if (refs.newsText.textContent !== n.titel) { refs.newsText.textContent = n.titel; refs.newsQuelle.textContent = n.quelle; }
+    }
     if (refs.timer && evs[state.idx]) refs.timer.textContent = elapsed(evs[state.idx].alarmtime);
   };
 
@@ -522,6 +539,10 @@
         at: Date.now()
       },
       lsz: { feuerwehren: [{ name: 'Neusiedl am See', code: 'T1-BOOT', stufe: 'T1', text: 'T1-BOOT', alarm: '20:16', dauer: '1:33 h', bezirk: 'ND' }], at: Date.now() },
+      schlagzeilen: [
+        { titel: 'Beispiel-Schlagzeile: Sturmwarnung für das östliche Niederösterreich', quelle: 'ORF NÖ' },
+        { titel: 'Beispiel-Schlagzeile: Neue Regelung für Rettungsgasse tritt in Kraft', quelle: 'ORF' }
+      ],
       kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
     };
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];

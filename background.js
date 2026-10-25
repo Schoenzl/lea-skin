@@ -202,6 +202,37 @@ const fahrtenbuch = async () => {
     .sort((a, b) => a.von - b.von).slice(0, 30);
 };
 
+// Schlagzeilen (RSS 2.0 oder RDF/RSS 1.0, z. B. ORF): nur Titel, Quelle und Zeit
+const xmlText = (s) => String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, '')
+  .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCharCode(parseInt(n, 16)))
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const tag = (block, name) => { const m = new RegExp('<' + name + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + name + '>', 'i').exec(block); return m ? xmlText(m[1]) : ''; };
+const feed = async (f) => {
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const r = await fetch(f.url, { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(tm));
+  if (!r.ok) throw new Error(f.name + ' HTTP ' + r.status);
+  const xml = await r.text();
+  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
+  return items.map((it, i) => {
+    const d = Date.parse(tag(it, 'dc:date') || tag(it, 'pubDate') || '');
+    return { titel: tag(it, 'title'), quelle: f.name, at: isFinite(d) ? d : null, pos: i };
+  }).filter((x) => x.titel);
+};
+const schlagzeilen = async () => {
+  const feeds = C.schlagzeilenFeeds || [];
+  if (!feeds.length) return null;
+  const res = await Promise.allSettled(feeds.map(feed));
+  const ok = res.filter((x) => x.status === 'fulfilled').map((x) => x.value);
+  if (!ok.length) throw new Error(String(res[0].reason && res[0].reason.message || 'keine Daten').slice(0, 60));
+  const n = C.schlagzeilenAnzahl || 8, seen = new Set(), out = [];
+  // abwechselnd aus jeder Quelle die neuesten (Reihenfolge des Feeds = Aktualität)
+  for (let i = 0; out.length < n && ok.some((l) => l[i]); i++) ok.forEach((l) => {
+    const x = l[i]; if (x && out.length < n && !seen.has(x.titel)) { seen.add(x.titel); out.push(x); }
+  });
+  return out;
+};
+
 const refresh = async () => {
   const prev = (await chrome.storage.local.get('extra')).extra || {};
   const next = { ...prev, at: Date.now(), version: chrome.runtime.getManifest().version, status: {} };
@@ -213,7 +244,8 @@ const refresh = async () => {
     run('LSZ', lsz, (v) => { next.lsz = v; }),
     run('Pegel', pegel, (v) => { next.pegel = v; }),
     run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
-    run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; })
+    run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; }),
+    run('Schlagzeilen', schlagzeilen, (v) => { next.schlagzeilen = v; })
   ]);
   await chrome.storage.local.set({ extra: next });
 };
