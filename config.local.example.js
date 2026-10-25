@@ -11,3 +11,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
 
 // Ausfallmeldung: Ping-Adresse von healthchecks.io (Check anlegen, Adresse kopieren)
 // globalThis.LEASKIN_CONFIG.heartbeatUrl = 'https://hc-ping.com/...';
+
+// Fahrzeugstatus: Tab „Fahrzeuge“ im Web veröffentlichen (CSV)
+// globalThis.LEASKIN_CONFIG.fahrzeugeCsvUrl = 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=2001&single=true&output=csv';

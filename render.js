@@ -41,6 +41,18 @@
   };
   const chipStil = (t) => { const c = bandColor(t); return istHellFarbe(c) ? { background: c, color: '#111827' } : { background: c }; };
 
+  // Pickerl: gültig bis Ende des gelochten Monats, danach 4 Monate Toleranz
+  const pickerlInfo = (pk) => {
+    if (!pk) return null;
+    const ende = new Date(pk.y, pk.m, 0, 23, 59).getTime(), now = Date.now();
+    const txt = 'Pickerl ' + pad(pk.m) + '/' + String(pk.y).slice(2);
+    if (now > new Date(pk.y, pk.m + 4, 0, 23, 59).getTime()) return { txt: txt + ' abgelaufen', cls: 'ls-pk-rot' };
+    if (now > ende) return { txt: txt + ' – Toleranz', cls: 'ls-pk-rot' };
+    if (ende - now < 31 * 864e5) return { txt, cls: 'ls-pk-bald' };
+    return { txt, cls: 'ls-pk-ok' };
+  };
+  const fzStatusVon = (ex, fz) => (ex.fahrzeugStatus || []).find((x) => norm(x.fahrzeug) === norm(fz));
+
   // UWZ-Warnstufen
   const UWZ_FARBE = ['#94A3B8', '#FACC15', '#F97316', '#DC2626', '#9333EA'];
   const UWZ_NAME = ['Vorwarnung', 'Gelb – markantes Wetter', 'Orange – Unwetter', 'Rot – schweres Unwetter', 'Violett – extremes Unwetter'];
@@ -174,6 +186,7 @@
     // links: wohin, was, wer ist mitalarmiert, Karte
     const map = h('div', 'ls-map ls-map-big');
     const uwzHeute = ((state.extra || {}).uwz || []).filter((w) => w.tag === 'heute');
+    const fzMaengel = ((state.extra || {}).fahrzeugStatus || []).filter((x) => x.bereit !== 'ja');
     const groups = (ev.alarmedalarmgroups || []).map((g) => h('span', 'ls-chip', [String(g.name || g.id).replace(/\s*-\s*Sammelruf$/i, '')]));
     const links = h('section', 'ls-left', [
       h('div', 'ls-ort', [h('div', 'ls-label', ['Einsatzort']), h('div', 'ls-strasse', [strasse]), ort ? h('div', 'ls-stadt', [ort]) : null]),
@@ -181,6 +194,9 @@
       groups.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Mitalarmiert'])].concat([h('div', 'ls-chips', groups)])) : null,
       uwzHeute.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Unwetter']), h('div', 'ls-chips',
         uwzHeute.map((w) => h('span', 'ls-chip ls-uwz-chip', ['⚠ ' + w.art + ' · ' + UWZ_NAME[Math.max(0, Math.min(4, w.stufe))].split(' – ')[0]], uwzStil(w.stufe))))]) : null,
+      fzMaengel.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Fahrzeuge']), h('div', 'ls-chips',
+        fzMaengel.map((x) => h('span', 'ls-chip ls-uwz-chip', ['⚠ ' + x.fahrzeug + ' ' + (x.bereit === 'nein' ? 'nicht einsatzbereit' : 'eingeschränkt') + (x.mangel ? ': ' + x.mangel : '')],
+          x.bereit === 'nein' ? { background: '#DC2626', color: '#FFFFFF' } : { background: '#F97316', color: '#FFFFFF' })))]) : null,
       map
     ]);
 
@@ -354,12 +370,23 @@
         let cls = 'ls-fz-frei', status = fb ? 'frei' : '–', detail = '';
         if (jetzt) { cls = 'ls-fz-weg'; status = 'unterwegs bis ' + kurz(jetzt.bis); detail = [jetzt.name, jetzt.zweck].filter(Boolean).join(' · '); }
         else if (naechst) { detail = 'ab ' + kurz(naechst.von) + ' · ' + [naechst.name, naechst.zweck].filter(Boolean).join(' · '); }
+        // Mängel aus dem Tab „Fahrzeuge“ gehen vor
+        const st = fzStatusVon(ex, fz);
+        if (st && st.bereit !== 'ja') {
+          cls = st.bereit === 'nein' ? 'ls-fz-nein' : 'ls-fz-einge';
+          status = (st.bereit === 'nein' ? 'nicht einsatzbereit' : 'eingeschränkt einsatzbereit') + (jetzt ? ' · unterwegs' : '');
+          detail = st.mangel || detail;
+        } else if (st && st.mangel) {
+          detail = '⚠ ' + st.mangel + (detail ? ' · ' + detail : '');
+        }
+        const pk = pickerlInfo(st && st.pickerl);
         return h('div', 'ls-fz-row ' + cls, [
           h('div', 'ls-fz-name', [fz]),
           h('div', 'ls-fz-info', [
             h('div', 'ls-fz-status', [h('span', 'ls-fz-dot'), status]),
             detail ? h('div', 'ls-fz-detail', [detail]) : null
-          ])
+          ]),
+          pk ? h('div', 'ls-fz-pk ' + pk.cls, [pk.txt]) : null
         ]);
       });
       fzBox = h('div', 'ls-card ls-fz', [h('div', 'ls-label', ['Fahrzeuge'])].concat(rows));
@@ -555,6 +582,11 @@
         at: Date.now()
       },
       lsz: { feuerwehren: [{ name: 'Neusiedl am See', code: 'T1-BOOT', stufe: 'T1', text: 'T1-BOOT', alarm: '20:16', dauer: '1:33 h', bezirk: 'ND' }], at: Date.now() },
+      fahrzeugStatus: [
+        { fahrzeug: 'KLF-W', bereit: 'ja', mangel: '', pickerl: { m: 3, y: 2027 } },
+        { fahrzeug: 'MTF', bereit: 'eingeschränkt', mangel: 'Blaulicht hinten links defekt', pickerl: { m: new Date().getMonth() + 1, y: new Date().getFullYear() } },
+        { fahrzeug: 'VFA', bereit: 'nein', mangel: 'Reifen vorne rechts platt', pickerl: { m: 6, y: 2026 } }
+      ],
       uwz: /[?&]uwz=1\b/.test(location.search) ? [{ tag: 'heute', art: 'Wind', stufe: 2 }, { tag: 'morgen', art: 'Regen', stufe: 1 }] : [],
       schlagzeilen: [
         { titel: 'Beispiel-Schlagzeile: Sturmwarnung für das östliche Niederösterreich', quelle: 'ORF NÖ' },

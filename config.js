@@ -68,6 +68,8 @@ globalThis.LEASKIN_CONFIG = {
   // Der CSV-Link steht nur am Pi in config.local.js (fahrtenbuchCsvUrl), nicht im Repo
   fahrzeuge: ['KLF-W', 'MTF', 'VFA'],
   fahrtenbuchCsvUrl: '',
+  // Fahrzeugstatus (Tab „Fahrzeuge“: Einsatzbereit, Mangel, Pickerl) – CSV-Link nur am Pi in config.local.js
+  fahrzeugeCsvUrl: '',
   fahrtenbuchVorschauTage: 7,
   // Schlagzeilen-Band am Ruhebildschirm (nur Titel; leere Liste = Band aus)
   schlagzeilenFeeds: [

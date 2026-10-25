@@ -233,6 +233,39 @@ const schlagzeilen = async () => {
   return out;
 };
 
+// Fahrzeugstatus (Tab „Fahrzeuge“ der Google-Tabelle, als CSV veröffentlicht): Einsatzbereit, Mangel, Pickerl
+const fahrzeugStatus = async () => {
+  if (!C.fahrzeugeCsvUrl) return null;
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const r = await fetch(C.fahrzeugeCsvUrl, { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(tm));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const rows = csvParse(await r.text());
+  if (!rows.length) return [];
+  const head = rows[0].map((x) => x.toLowerCase());
+  const col = (...keys) => head.findIndex((h) => keys.some((k) => h.indexOf(k) !== -1));
+  const iF = col('fahrzeug'), iB = col('einsatzbereit', 'bereit'), iM = col('mangel'), iV = col('gemeldet von', 'von'), iA = col('gemeldet am', 'am'), iP = col('pickerl');
+  if (iF < 0) throw new Error('Spalte Fahrzeug fehlt');
+  // Pickerl „03/2027“, „3/27“, „3.2027“, „2027-03“ -> { m, y }
+  const pickerl = (v) => {
+    v = String(v || '').trim(); let m = /^(\d{1,2})\s*[\/.\-]\s*(\d{2}|\d{4})$/.exec(v);
+    if (m) return { m: +m[1], y: m[2].length === 2 ? 2000 + +m[2] : +m[2] };
+    m = /^(\d{4})-(\d{1,2})/.exec(v); if (m) return { m: +m[2], y: +m[1] };
+    return null;
+  };
+  return rows.slice(1).map((r) => {
+    const b = (iB >= 0 ? r[iB] : '').trim().toLowerCase();
+    return {
+      fahrzeug: (r[iF] || '').trim(),
+      bereit: /^nein/.test(b) ? 'nein' : /^einge/.test(b) ? 'eingeschränkt' : 'ja',
+      mangel: iM >= 0 ? (r[iM] || '').trim() : '',
+      von: iV >= 0 ? (r[iV] || '').trim() : '',
+      am: iA >= 0 ? (r[iA] || '').trim() : '',
+      pickerl: iP >= 0 ? pickerl(r[iP]) : null
+    };
+  }).filter((x) => x.fahrzeug);
+};
+
 // Unwetterwarnungen der UWZ (uwz.at): Warngebiete je Tag und Art als GeoJSON -> liegt Deutsch Haslau drin?
 // Stufen: 0 Vorwarnung, 1 Gelb (markant), 2 Orange (Unwetter), 3 Rot (schweres Unwetter), 4 Violett (extrem)
 const UWZ_ARTEN = { storm: 'Wind', rain: 'Regen', thunderstorm: 'Gewitter/Hagel', snowfall: 'Schneefall', freezingRain: 'Gefrierender Regen' };
@@ -276,7 +309,8 @@ const refresh = async () => {
     run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
     run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; }),
     run('Schlagzeilen', schlagzeilen, (v) => { next.schlagzeilen = v; }),
-    run('UWZ', uwz, (v) => { next.uwz = v; })
+    run('UWZ', uwz, (v) => { next.uwz = v; }),
+    run('Fahrzeuge', fahrzeugStatus, (v) => { next.fahrzeugStatus = v; })
   ]);
   await chrome.storage.local.set({ extra: next });
 };

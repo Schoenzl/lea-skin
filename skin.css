@@ -241,6 +241,20 @@
 .ls-mit-nw .ls-w-ffrow { padding: 4px 14px; }
 .ls-mit-nw .ls-wastl { gap: 8px; }
 
+/* Fahrzeugstatus: Mängel und Pickerl */
+.ls-fz-row { grid-template-columns: 130px minmax(0, 1fr) auto; }
+.ls-fz-nein .ls-fz-status { color: #F87171; } .ls-fz-nein .ls-fz-dot { background: #F87171; }
+.ls-fz-einge .ls-fz-status { color: #FB923C; } .ls-fz-einge .ls-fz-dot { background: #FB923C; }
+.ls-fz-nein .ls-fz-detail, .ls-fz-einge .ls-fz-detail { color: #D4D9E0; font-weight: 600; }
+.ls-fz-pk { flex: none; align-self: start; margin-top: 4px; font-size: 20px; font-weight: 700; padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+.ls-pk-ok { color: #A9B1BC; border: 1px solid #3A4452; }
+.ls-pk-bald { background: #FB923C; color: #111827; }
+.ls-pk-rot { background: #DC2626; color: #FFFFFF; }
+.ls-hell .ls-fz-nein .ls-fz-status { color: #B91C1C; } .ls-hell .ls-fz-nein .ls-fz-dot { background: #DC2626; }
+.ls-hell .ls-fz-einge .ls-fz-status { color: #C2410C; } .ls-hell .ls-fz-einge .ls-fz-dot { background: #EA580C; }
+.ls-hell .ls-fz-nein .ls-fz-detail, .ls-hell .ls-fz-einge .ls-fz-detail { color: #111827; }
+.ls-hell .ls-pk-ok { color: #5B6573; border-color: #C5CCD6; }
+
 /* Alarm-Rahmen bei neuem Einsatz */
 .ls-root.ls-alarm::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 10;
@@ -258,3 +272,7 @@
 .ls-band.ls-band-hell { color: #111827; }
 .ls-band-hell .ls-stufe, .ls-band-hell .ls-multi { background: rgba(0,0,0,0.12); }
 .ls-band-hell .ls-sep { background: rgba(0,0,0,0.3); }
+
+/* Einsatzansicht: Karte schrumpft, wenn Unwetter-/Fahrzeug-Hinweise dazukommen */
+.ls-map-big { min-height: 160px; }
+.ls-left { overflow: hidden; }
