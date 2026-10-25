@@ -41,14 +41,21 @@
   };
   const chipStil = (t) => { const c = bandColor(t); return istHellFarbe(c) ? { background: c, color: '#111827' } : { background: c }; };
 
-  // Pickerl: gültig bis Ende des gelochten Monats, danach 4 Monate Toleranz
-  const pickerlInfo = (pk) => {
+  // Pickerl (§57a): gelochter Monat = fällig bis Monatsende.
+  // LKW (pickerlLkw, z. B. KLF-W, VFA): Begutachtung ab 3 Monate vorher, keine Toleranz danach.
+  // sonst: ab 1 Monat vorher, danach 4 Monate Toleranz.
+  const pickerlInfo = (pk, fz) => {
     if (!pk) return null;
-    const ende = new Date(pk.y, pk.m, 0, 23, 59).getTime(), now = Date.now();
+    const lkw = (C.pickerlLkw || []).some((x) => norm(x) === norm(fz));
+    const now = Date.now();
+    const ende = new Date(pk.y, pk.m, 0, 23, 59).getTime();                // Ende des gelochten Monats
+    const ab = new Date(pk.y, pk.m - 1 - (lkw ? 3 : 1), 1).getTime();       // Beginn des Prüfzeitraums
     const txt = 'Pickerl ' + pad(pk.m) + '/' + String(pk.y).slice(2);
-    if (now > new Date(pk.y, pk.m + 4, 0, 23, 59).getTime()) return { txt: txt + ' abgelaufen', cls: 'ls-pk-rot' };
-    if (now > ende) return { txt: txt + ' – Toleranz', cls: 'ls-pk-rot' };
-    if (ende - now < 31 * 864e5) return { txt, cls: 'ls-pk-bald' };
+    if (now > ende) {
+      if (lkw || now > new Date(pk.y, pk.m + 4, 0, 23, 59).getTime()) return { txt: txt + ' abgelaufen', cls: 'ls-pk-rot' };
+      return { txt: txt + ' – Toleranz', cls: 'ls-pk-rot' };
+    }
+    if (now >= ab) return { txt: txt + ' fällig', cls: 'ls-pk-bald' };
     return { txt, cls: 'ls-pk-ok' };
   };
   const fzStatusVon = (ex, fz) => (ex.fahrzeugStatus || []).find((x) => norm(x.fahrzeug) === norm(fz));
@@ -387,7 +394,7 @@
           const [a, b] = doppelt[0];
           detail = '⚠ Doppelbuchung ' + kurz(Math.max(a.von, b.von)) + ': ' + [a.name, b.name].filter(Boolean).join(' / ') + (detail ? ' · ' + detail : '');
         }
-        const pk = pickerlInfo(st && st.pickerl);
+        const pk = pickerlInfo(st && st.pickerl, fz);
         return h('div', 'ls-fz-row ' + cls, [
           h('div', 'ls-fz-name', [fz]),
           h('div', 'ls-fz-info', [

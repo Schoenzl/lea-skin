@@ -72,6 +72,8 @@ globalThis.LEASKIN_CONFIG = {
   fahrtenbuchFormUrl: '',
   // Fahrzeugstatus (Tab „Fahrzeuge“: Einsatzbereit, Mangel, Pickerl) – CSV-Link nur am Pi in config.local.js
   fahrzeugeCsvUrl: '',
+  // LKW über 3,5 t: Pickerl-Begutachtung ab 3 Monate vor dem gelochten Monat, keine Toleranz danach
+  pickerlLkw: ['KLF-W', 'VFA'],
   fahrtenbuchVorschauTage: 7,
   // Schlagzeilen-Band am Ruhebildschirm (nur Titel; leere Liste = Band aus)
   schlagzeilenFeeds: [
