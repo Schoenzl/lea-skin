@@ -56,12 +56,14 @@ globalThis.LEASKIN_CONFIG = {
   lszUrl: 'https://einsatz.lsz-b.at/',
   eigeneFF: 'Deutsch Haslau',   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
   // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
-  pegel: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' },
+  // Pegel ausgeblendet (25.10.2026). Wieder einschalten: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' }
+  pegel: null,
   // Termine: öffentlicher Google-Kalender „FF Deutsch Haslau“ (iCal) ...
   kalenderIcsUrl: 'https://calendar.google.com/calendar/ical/99e2e6ed3a981ad4f7ac6eea1af12056aa7e9a6a91587923b10359adc3443447%40group.calendar.google.com/public/basic.ics',
   kalenderTage: 60,        // so weit im Voraus Termine suchen
   // ... plus optional fix eingetragene Termine: { start: '2026-11-04T18:00', titel: '...' }
   termine: [],
+  termineAnzahl: 6,        // so viele Termine am Ruhebildschirm
   // Fahrtenbuch (Google-Formular -> Google-Tabelle, Antwort-Tab „Im Web veröffentlichen“ als CSV)
   // Der CSV-Link steht nur am Pi in config.local.js (fahrtenbuchCsvUrl), nicht im Repo
   fahrzeuge: ['KLF-W', 'MTF', 'VFA'],

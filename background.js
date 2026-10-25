@@ -242,7 +242,7 @@ const refresh = async () => {
     run('Wetter', wetter, (v) => { next.wetter = v; }),
     run('WASTL', wastl, (v) => { next.wastl = v; }),
     run('LSZ', lsz, (v) => { next.lsz = v; }),
-    run('Pegel', pegel, (v) => { next.pegel = v; }),
+    C.pegel ? run('Pegel', pegel, (v) => { next.pegel = v; }) : (delete next.pegel, null),
     run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
     run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; }),
     run('Schlagzeilen', schlagzeilen, (v) => { next.schlagzeilen = v; })

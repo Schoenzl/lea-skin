@@ -278,7 +278,7 @@
       .filter((t) => !isNaN(t.d) && t.d.getTime() > now - 2 * 3600000)
       .sort((a, b) => a.d - b.d);
     const seen = new Set();
-    const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 4)
+    const termine = alle.filter((t) => { const k = t.d.getTime() + t.titel; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, C.termineAnzahl || 6)
       .map((t) => h('div', 'ls-termin', [h('div', 'ls-termin-wann', [terminZeit(t.d, t.ganztags)]), h('div', 'ls-termin-was', [ohneEmoji(t.titel)])]));
     // Termine: bis zu 4, einzeilig
 
@@ -543,7 +543,7 @@
         { titel: 'Beispiel-Schlagzeile: Sturmwarnung für das östliche Niederösterreich', quelle: 'ORF NÖ' },
         { titel: 'Beispiel-Schlagzeile: Neue Regelung für Rettungsgasse tritt in Kraft', quelle: 'ORF' }
       ],
-      kalender: [{ start: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: 'Übung APLE – Durchgang 3' }]
+      kalender: [1, 3, 6, 8, 13, 20].map((t, i) => ({ start: new Date(Date.now() + t * 864e5).toISOString().slice(0, 10) + 'T19:00', titel: ['Übung APLE – Durchgang 3', 'Fahrzeugpflege', 'Atemschutzübung', 'Kommandositzung', 'Funkübung', 'Monatsübung'][i] }))
     };
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];
   }
