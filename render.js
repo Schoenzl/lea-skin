@@ -374,7 +374,8 @@
         const st = fzStatusVon(ex, fz);
         if (st && st.bereit !== 'ja') {
           cls = st.bereit === 'nein' ? 'ls-fz-nein' : 'ls-fz-einge';
-          status = (st.bereit === 'nein' ? 'nicht einsatzbereit' : 'eingeschränkt einsatzbereit') + (jetzt ? ' · unterwegs' : '');
+          status = jetzt ? (st.bereit === 'nein' ? 'nicht einsatzbereit' : 'eingeschränkt') + ' · unterwegs bis ' + kurz(jetzt.bis)
+            : (st.bereit === 'nein' ? 'nicht einsatzbereit' : 'eingeschränkt einsatzbereit');
           detail = st.mangel || detail;
         } else if (st && st.mangel) {
           detail = '⚠ ' + st.mangel + (detail ? ' · ' + detail : '');
@@ -389,7 +390,27 @@
           pk ? h('div', 'ls-fz-pk ' + pk.cls, [pk.txt]) : null
         ]);
       });
-      fzBox = h('div', 'ls-card ls-fz', [h('div', 'ls-label', ['Fahrzeuge'])].concat(rows));
+      // QR-Code zum Formular „Fahrzeugnutzung“, zum Scannen direkt vom Bildschirm
+      let qrBox = null;
+      if (C.fahrtenbuchFormUrl && window.LEASKIN_QR) {
+        try {
+          const qr = window.LEASKIN_QR(0, 'L'); qr.addData(C.fahrtenbuchFormUrl); qr.make();
+          const n = qr.getModuleCount(), rand = 2, gr = n + 2 * rand;
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('viewBox', '0 0 ' + gr + ' ' + gr); svg.setAttribute('class', 'ls-qr-svg'); svg.setAttribute('shape-rendering', 'crispEdges');
+          const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          bg.setAttribute('width', gr); bg.setAttribute('height', gr); bg.setAttribute('fill', '#FFFFFF'); svg.appendChild(bg);
+          let d = '';
+          for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += 'M' + (c + rand) + ' ' + (r + rand) + 'h1v1h-1z';
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', d); path.setAttribute('fill', '#000000'); svg.appendChild(path);
+          qrBox = h('div', 'ls-qr', [svg, h('div', 'ls-qr-t', ['Fahrt eintragen'])]);
+        } catch (e) { qrBox = null; }
+      }
+      fzBox = h('div', 'ls-card ls-fz' + (qrBox ? ' ls-fz-mitqr' : ''), [
+        h('div', 'ls-fz-main', [h('div', 'ls-label', ['Fahrzeuge'])].concat(rows)),
+        qrBox
+      ]);
     }
 
     const flamme = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -532,6 +553,7 @@
 
   // ---------- Demo-Modus: ?demo=1 (fiktive Daten, Ort "Demodorf") ----------
   if (DEMO) {
+    C.fahrtenbuchFormUrl = C.fahrtenbuchFormUrl || 'https://docs.google.com/forms/d/e/1FAIpQLSdemoDemoDemoDemoDemoDemoDemoDemoDemoDemoDemo/viewform';
     C.elListe = [['Anna', 'Berger'], ['Max', 'Huber'], ['Paul', 'Fuchs'], ['Lena', 'Steiner']];
     const t0 = Date.now() - 6 * 60 * 1000 - 41000;
     const P = (fn, ln, fns, ans, free, dt) => ({

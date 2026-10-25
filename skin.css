@@ -255,6 +255,16 @@
 .ls-hell .ls-fz-nein .ls-fz-detail, .ls-hell .ls-fz-einge .ls-fz-detail { color: #111827; }
 .ls-hell .ls-pk-ok { color: #5B6573; border-color: #C5CCD6; }
 
+/* QR-Code „Fahrt eintragen“ im Fahrzeug-Block */
+.ls-fz.ls-fz-mitqr { flex-direction: row; align-items: stretch; gap: 24px; }
+.ls-fz-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ls-qr { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.ls-qr-svg { width: 168px; height: 168px; display: block; border-radius: 6px; }
+.ls-qr-t { font-size: 18px; font-weight: 700; letter-spacing: 1px; color: #A9B1BC; white-space: nowrap; }
+.ls-hell .ls-qr-t { color: #5B6573; }
+.ls-fz-status { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ls-fz-status > .ls-fz-dot { flex: none; }
+
 /* Alarm-Rahmen bei neuem Einsatz */
 .ls-root.ls-alarm::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 10;

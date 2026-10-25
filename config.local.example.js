@@ -14,3 +14,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
 
 // Fahrzeugstatus: Tab „Fahrzeuge“ im Web veröffentlichen (CSV)
 // globalThis.LEASKIN_CONFIG.fahrzeugeCsvUrl = 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=2001&single=true&output=csv';
+
+// QR-Code „Fahrt eintragen“ am Ruhebildschirm: Link zum Google-Formular
+// globalThis.LEASKIN_CONFIG.fahrtenbuchFormUrl = 'https://docs.google.com/forms/d/e/.../viewform';

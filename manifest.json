@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LEA Infoscreen – FF Deutsch Haslau",
   "description": "Eigene Darstellung des LEA-Infoscreens für die FF Deutsch Haslau. Liest nur mit, was die Seite selbst lädt.",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://api.open-meteo.com/*",
@@ -20,7 +20,7 @@
   "content_scripts": [
     {
       "matches": ["https://lea-screen.notrufnoe.at/*"],
-      "js": ["config.js", "config.local.js", "inject.js", "render.js"],
+      "js": ["config.js", "config.local.js", "inject.js", "lib/qrcode.js", "render.js"],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": false
