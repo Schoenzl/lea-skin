@@ -277,30 +277,40 @@ const uwz = async () => {
   const p = [C.ort.lon, C.ort.lat];
   const t = Math.floor(Date.now() / 300000);
   const stufe = async (name) => {
-    const j = await getJson('https://www.uwz.at/data/warnings/AT/AT_' + name + '.geojson?cache=' + t, 30000);
+    const j = await getJson('https://www.uwz.at/data/warnings/AT/AT_' + name + '.geojson?cache=' + t, 20000);
     let lv = -1;
     (j.features || []).forEach((f) => { if (trifft(p, f.geometry)) lv = Math.max(lv, Number(f.properties && f.properties.level) || 0); });
     return lv;
   };
   const min = C.uwzMinStufe || 0, out = [];
-  for (const tag of ['today', 'tomorrow']) {
-    const alle = await stufe(tag + '_all');
-    if (alle < min) continue;
+  const tage = ['today', 'tomorrow'], arten = Object.keys(UWZ_ARTEN);
+  // alle Dateien parallel holen (ein hängender Abruf darf den Dienst nicht blockieren)
+  const namen = [].concat(...tage.map((t) => ['all'].concat(arten).map((a) => t + '_' + a)));
+  const lv = {};
+  await Promise.all(namen.map((n) => stufe(n).then((v) => { lv[n] = v; }).catch(() => { lv[n] = -1; })));
+  for (const tag of tage) {
+    const alle = lv[tag + '_all'];
+    if (!(alle >= min)) continue;
     const vorher = out.length;
-    for (const art of Object.keys(UWZ_ARTEN)) {
-      const lv = await stufe(tag + '_' + art).catch(() => -1);
-      if (lv >= min) out.push({ tag: tag === 'today' ? 'heute' : 'morgen', art: UWZ_ARTEN[art], stufe: lv });
-    }
+    for (const art of arten) if (lv[tag + '_' + art] >= min) out.push({ tag: tag === 'today' ? 'heute' : 'morgen', art: UWZ_ARTEN[art], stufe: lv[tag + '_' + art] });
     if (out.length === vorher) out.push({ tag: tag === 'today' ? 'heute' : 'morgen', art: 'Unwetter', stufe: alle });
   }
   return out.sort((a, b) => (a.tag === b.tag ? b.stufe - a.stufe : a.tag === 'heute' ? -1 : 1));
 };
 
-const refresh = async () => {
+let laeuft = null;
+const refresh = () => laeuft || (laeuft = refreshIntern().finally(() => { laeuft = null; }));
+const refreshIntern = async () => {
   const prev = (await chrome.storage.local.get('extra')).extra || {};
   const next = { ...prev, at: Date.now(), version: chrome.runtime.getManifest().version, status: {} };
-  const run = (name, fn, set) => fn().then((v) => { set(v); next.status[name] = { ok: true, at: Date.now(), n: Array.isArray(v) ? v.length : undefined }; })
-    .catch((e) => { next.status[name] = { ok: false, at: Date.now(), fehler: String((e && e.message) || e).slice(0, 80) }; });
+  let speichern = Promise.resolve();
+  const sichern = () => { speichern = speichern.then(() => chrome.storage.local.set({ extra: next })).catch(() => {}); return speichern; };
+  // jede Quelle für sich: max. 45 s, Ergebnis sofort speichern -> eine hängende Quelle bremst die anderen nicht
+  const run = (name, fn, set) => Promise.race([
+    fn(), new Promise((_, rej) => setTimeout(() => rej(new Error('Zeitüberschreitung')), 45000))
+  ]).then((v) => { set(v); next.status[name] = { ok: true, at: Date.now(), n: Array.isArray(v) ? v.length : undefined }; })
+    .catch((e) => { next.status[name] = { ok: false, at: Date.now(), fehler: String((e && e.message) || e).slice(0, 80) }; })
+    .then(sichern);
   await Promise.all([
     run('Wetter', wetter, (v) => { next.wetter = v; }),
     run('WASTL', wastl, (v) => { next.wastl = v; }),
