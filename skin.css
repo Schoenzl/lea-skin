@@ -235,3 +235,8 @@
 @media print {
   .ls-root { display: none !important; }
 }
+
+/* Kopfzeile auf hellem Hintergrund (z. B. gelb): dunkle Schrift */
+.ls-band.ls-band-hell { color: #111827; }
+.ls-band-hell .ls-stufe, .ls-band-hell .ls-multi { background: rgba(0,0,0,0.12); }
+.ls-band-hell .ls-sep { background: rgba(0,0,0,0.3); }

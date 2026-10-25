@@ -32,6 +32,15 @@
   const listOf = (d) => (Array.isArray(d) ? d : (d && (d.events || d.data || d.items)) || []);
   const bandColor = (t) => { const f = C.farben || {}; return f[String(t || '').charAt(0).toUpperCase()] || f.default || '#4B5563'; };
 
+  // helle Hintergründe (z. B. gelb) bekommen dunkle Schrift
+  const istHellFarbe = (hex) => {
+    const m = String(hex || '').replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return false;
+    const [r, g, b] = m.slice(1).map((x) => parseInt(x, 16));
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+  };
+  const chipStil = (t) => { const c = bandColor(t); return istHellFarbe(c) ? { background: c, color: '#111827' } : { background: c }; };
+
   const fnKeys = Object.keys(C.funktionen || {});
   const fnStyle = (short) => { const k = fnKeys.find((x) => norm(x) === norm(short)); return k ? C.funktionen[k] : null; };
   const fnOrder = (short) => { const i = fnKeys.findIndex((x) => norm(x) === norm(short)); return i < 0 ? 99 : i; };
@@ -155,6 +164,7 @@
       h('div', 'ls-sep'),
       refs.clock
     ], { background: color });
+    if (istHellFarbe(color)) band.classList.add('ls-band-hell');
 
     // links: wohin, was, wer ist mitalarmiert, Karte
     const map = h('div', 'ls-map ls-map-big');
@@ -258,7 +268,7 @@
       const where = [[loc.street, loc.housenumber].filter(Boolean).join(' '), loc.city].filter(Boolean).join(', ') || loc.objectname || '';
       return h('div', 'ls-hist', [
         h('div', 'ls-hist-date', [ev.alarmtime ? ddmm(ev.alarmtime) + ' ' + hhmm(ev.alarmtime) : '']),
-        h('div', 'ls-hist-code', [ev.eventtype || '–'], { background: bandColor(ev.eventtype) }),
+        h('div', 'ls-hist-code', [ev.eventtype || '–'], chipStil(ev.eventtype)),
         h('div', 'ls-hist-main', [h('div', 'ls-hist-title', [ev.eventtypetext || '']), h('div', 'ls-hist-where', [where])])
       ]);
     });
@@ -281,7 +291,7 @@
       return u ? u[1].replace(/\s+/g, ' ') + ' Std.' : '';
     };
     const wRow = (e) => h('div', 'ls-w-row', [
-      h('div', 'ls-w-chip', [e.stufe || '–'], { background: bandColor(e.stufe) }),
+      h('div', 'ls-w-chip', [e.stufe || '–'], chipStil(e.stufe)),
       h('div', 'ls-w-main', [h('div', 'ls-w-ort', [e.ort || e.name || '']), h('div', 'ls-w-text', [e.text || ''])]),
       h('div', 'ls-w-zeit', [kurzZeit(e.zeit)])
     ]);
@@ -304,7 +314,7 @@
             h('div', 'ls-wastl-t', [ffs.length === 1 ? 'Feuerwehr im Einsatz' : 'Feuerwehren im Einsatz'])
           ])
         ].concat(ffs.slice(0, zeigen).map((f) => h('div', 'ls-w-ffrow' + (eigen(f.name) ? ' ls-w-own' : ''), [
-          h('div', 'ls-w-chip', [f.stufe || '–'], { background: bandColor(f.stufe) }),
+          h('div', 'ls-w-chip', [f.stufe || '–'], chipStil(f.stufe)),
           h('div', 'ls-w-ffname', [f.name]),
           h('div', 'ls-w-text', [f.text || '']),
           h('div', 'ls-w-bez', [f.bezirk || '']),

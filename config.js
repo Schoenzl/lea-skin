@@ -37,7 +37,8 @@ globalThis.LEASKIN_CONFIG = {
   },
 
   // Farbe des Alarmbands nach erstem Buchstaben der Alarmstufe
-  farben: { B: '#B3122E', T: '#1D4ED8', S: '#C2410C', default: '#4B5563' },
+  // Kopfzeile nach Alarmstufe: B rot, T blau, S grün, alles andere gelb
+  farben: { B: '#B3122E', T: '#1D4ED8', S: '#15803D', default: '#FACC15' },
 
   einsatzWechselSek: 15,   // mehrere Einsätze gleichzeitig: Wechselintervall
   datenTimeoutSek: 45,     // keine neuen Daten so lange -> Original-Infoscreen zeigen
