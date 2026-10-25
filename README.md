@@ -52,3 +52,12 @@ git clone https://github.com/Schoenzl/lea-skin.git ~/lea-skin
 ~/lea-skin/install.sh
 ```
 Danach `config.local.js` vom ersten Pi übernehmen (EL-Liste, Fahrtenbuch) und `~/lea-skin/update.sh`.
+
+## Buchungsseite mit Prüfung auf Doppelbuchung (apps-script/, ab v0.16.0)
+Ersetzt das Google-Formular „Fahrzeugnutzung“: eigene Seite als Google-Apps-Script an der Tabelle, prüft vor dem Speichern auf Überschneidungen und schreibt in denselben Tab („Formularantworten 1“).
+1. Tabelle öffnen → Erweiterungen → Apps Script
+2. `Code.gs` ersetzen durch `apps-script/Code.gs`; neue HTML-Datei `Buchung` mit `apps-script/Buchung.html`
+3. Projekteinstellungen → Zeitzone **Europe/Vienna**
+4. Bereitstellen → Neue Bereitstellung → Web-App, Ausführen als „Ich“, Zugriff „Jeder“
+5. Adresse der Web-App am Pi als `fahrtenbuchFormUrl` eintragen (QR-Code am Schirm)
+Der Infoscreen markiert zusätzlich Doppelbuchungen, die direkt in der Tabelle entstehen.

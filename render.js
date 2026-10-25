@@ -380,6 +380,13 @@
         } else if (st && st.mangel) {
           detail = '⚠ ' + st.mangel + (detail ? ' · ' + detail : '');
         }
+        // Doppelbuchung (z. B. direkt in der Tabelle eingetragen)
+        const doppelt = [];
+        mine.forEach((a, i) => mine.slice(i + 1).forEach((b) => { if (a.von < b.bis && b.von < a.bis && a.bis >= now) doppelt.push([a, b]); }));
+        if (doppelt.length) {
+          const [a, b] = doppelt[0];
+          detail = '⚠ Doppelbuchung ' + kurz(Math.max(a.von, b.von)) + ': ' + [a.name, b.name].filter(Boolean).join(' / ') + (detail ? ' · ' + detail : '');
+        }
         const pk = pickerlInfo(st && st.pickerl);
         return h('div', 'ls-fz-row ' + cls, [
           h('div', 'ls-fz-name', [fz]),

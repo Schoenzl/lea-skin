@@ -286,3 +286,11 @@
 /* Einsatzansicht: Karte schrumpft, wenn Unwetter-/Fahrzeug-Hinweise dazukommen */
 .ls-map-big { min-height: 160px; }
 .ls-left { overflow: hidden; }
+
+/* Fahrzeugzeile: zweite Zeile (Detail) darf unter dem Pickerl durchlaufen */
+.ls-fz-row { grid-template-columns: 130px minmax(0, 1fr) auto; row-gap: 2px; column-gap: 16px; }
+.ls-fz-info { display: contents; }
+.ls-fz-name { grid-column: 1; grid-row: 1 / span 2; }
+.ls-fz-status { grid-column: 2; grid-row: 1; }
+.ls-fz-detail { grid-column: 2 / span 2; grid-row: 2; }
+.ls-fz-pk { grid-column: 3; grid-row: 1; margin-top: 0; align-self: center; }
