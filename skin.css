@@ -232,6 +232,9 @@
 .ls-nw-quelle { flex: none; font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #A9B1BC; }
 .ls-hell .ls-nw { background: #FFFFFF; box-shadow: 0 1px 3px rgba(17,24,39,0.08), 0 0 0 1px #DDE2E9; }
 .ls-hell .ls-nw-quelle { color: #5B6573; }
+/* Warnband (UWZ): kräftiger Rahmen in der Stufenfarbe über das Label */
+.ls-nw.ls-nw-warn .ls-nw-text { font-weight: 700; }
+.ls-uwz-chip { font-weight: 700; }
 /* mit Band etwas kompakter, damit 3 Feuerwehren + „weitere“ Platz haben */
 .ls-mit-nw .ls-ruhe-right { gap: 22px; }
 .ls-mit-nw .ls-wastl .ls-wastl-n { font-size: 56px; }

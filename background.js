@@ -233,6 +233,36 @@ const schlagzeilen = async () => {
   return out;
 };
 
+// Unwetterwarnungen der UWZ (uwz.at): Warngebiete je Tag und Art als GeoJSON -> liegt Deutsch Haslau drin?
+// Stufen: 0 Vorwarnung, 1 Gelb (markant), 2 Orange (Unwetter), 3 Rot (schweres Unwetter), 4 Violett (extrem)
+const UWZ_ARTEN = { storm: 'Wind', rain: 'Regen', thunderstorm: 'Gewitter/Hagel', snowfall: 'Schneefall', freezingRain: 'Gefrierender Regen' };
+const imRing = (p, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if (((yi > p[1]) !== (yj > p[1])) && (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi)) c = !c; } return c; };
+const imPoly = (p, poly) => imRing(p, poly[0]) && !poly.slice(1).some((h) => imRing(p, h));
+const trifft = (p, g) => !!g && (g.type === 'Polygon' ? imPoly(p, g.coordinates) : g.type === 'MultiPolygon' ? g.coordinates.some((pl) => imPoly(p, pl)) : false);
+const uwz = async () => {
+  if (!C.uwz || !C.ort) return null;
+  const p = [C.ort.lon, C.ort.lat];
+  const t = Math.floor(Date.now() / 300000);
+  const stufe = async (name) => {
+    const j = await getJson('https://www.uwz.at/data/warnings/AT/AT_' + name + '.geojson?cache=' + t, 30000);
+    let lv = -1;
+    (j.features || []).forEach((f) => { if (trifft(p, f.geometry)) lv = Math.max(lv, Number(f.properties && f.properties.level) || 0); });
+    return lv;
+  };
+  const min = C.uwzMinStufe || 0, out = [];
+  for (const tag of ['today', 'tomorrow']) {
+    const alle = await stufe(tag + '_all');
+    if (alle < min) continue;
+    const vorher = out.length;
+    for (const art of Object.keys(UWZ_ARTEN)) {
+      const lv = await stufe(tag + '_' + art).catch(() => -1);
+      if (lv >= min) out.push({ tag: tag === 'today' ? 'heute' : 'morgen', art: UWZ_ARTEN[art], stufe: lv });
+    }
+    if (out.length === vorher) out.push({ tag: tag === 'today' ? 'heute' : 'morgen', art: 'Unwetter', stufe: alle });
+  }
+  return out.sort((a, b) => (a.tag === b.tag ? b.stufe - a.stufe : a.tag === 'heute' ? -1 : 1));
+};
+
 const refresh = async () => {
   const prev = (await chrome.storage.local.get('extra')).extra || {};
   const next = { ...prev, at: Date.now(), version: chrome.runtime.getManifest().version, status: {} };
@@ -245,7 +275,8 @@ const refresh = async () => {
     C.pegel ? run('Pegel', pegel, (v) => { next.pegel = v; }) : (delete next.pegel, null),
     run('Kalender', kalender, (v) => { next.kalender = v; next.kalenderAt = Date.now(); }),
     run('Fahrtenbuch', fahrtenbuch, (v) => { next.fahrtenbuch = v; }),
-    run('Schlagzeilen', schlagzeilen, (v) => { next.schlagzeilen = v; })
+    run('Schlagzeilen', schlagzeilen, (v) => { next.schlagzeilen = v; }),
+    run('UWZ', uwz, (v) => { next.uwz = v; })
   ]);
   await chrome.storage.local.set({ extra: next });
 };

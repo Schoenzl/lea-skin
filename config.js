@@ -75,6 +75,9 @@ globalThis.LEASKIN_CONFIG = {
     { name: 'ORF NÖ', url: 'https://rss.orf.at/noe.xml' }
   ],
   schlagzeilenAnzahl: 8,
+  // Unwetterwarnungen der UWZ für den Ort (ersetzt bei aktiver Warnung das Nachrichten-Band)
+  uwz: true,
+  uwzMinStufe: 0,          // 0 = ab Vorwarnung, 1 = ab Gelb
   schlagzeilenWechselSek: 8,   // nächste Nutzung so weit im Voraus anzeigen
   aktualisierenMin: 5,     // Wetter/WASTL/Kalender alle 5 Minuten neu holen
   // Selbstheilung: kommen so lange keine LEA-Daten, wird die Seite neu geladen

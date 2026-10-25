@@ -41,6 +41,11 @@
   };
   const chipStil = (t) => { const c = bandColor(t); return istHellFarbe(c) ? { background: c, color: '#111827' } : { background: c }; };
 
+  // UWZ-Warnstufen
+  const UWZ_FARBE = ['#94A3B8', '#FACC15', '#F97316', '#DC2626', '#9333EA'];
+  const UWZ_NAME = ['Vorwarnung', 'Gelb – markantes Wetter', 'Orange – Unwetter', 'Rot – schweres Unwetter', 'Violett – extremes Unwetter'];
+  const uwzStil = (lv) => { const c = UWZ_FARBE[Math.max(0, Math.min(4, lv))]; return istHellFarbe(c) ? { background: c, color: '#111827' } : { background: c, color: '#FFFFFF' }; };
+
   const fnKeys = Object.keys(C.funktionen || {});
   const fnStyle = (short) => { const k = fnKeys.find((x) => norm(x) === norm(short)); return k ? C.funktionen[k] : null; };
   const fnOrder = (short) => { const i = fnKeys.findIndex((x) => norm(x) === norm(short)); return i < 0 ? 99 : i; };
@@ -168,11 +173,14 @@
 
     // links: wohin, was, wer ist mitalarmiert, Karte
     const map = h('div', 'ls-map ls-map-big');
+    const uwzHeute = ((state.extra || {}).uwz || []).filter((w) => w.tag === 'heute');
     const groups = (ev.alarmedalarmgroups || []).map((g) => h('span', 'ls-chip', [String(g.name || g.id).replace(/\s*-\s*Sammelruf$/i, '')]));
     const links = h('section', 'ls-left', [
       h('div', 'ls-ort', [h('div', 'ls-label', ['Einsatzort']), h('div', 'ls-strasse', [strasse]), ort ? h('div', 'ls-stadt', [ort]) : null]),
       h('div', 'ls-card ls-melde', [h('div', 'ls-label', ['Meldebild']), h('div', 'ls-melde-text', [meldebild(ev)]), extra ? h('div', 'ls-melde-extra', [extra]) : null]),
       groups.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Mitalarmiert'])].concat([h('div', 'ls-chips', groups)])) : null,
+      uwzHeute.length ? h('div', 'ls-groups-row', [h('div', 'ls-label', ['Unwetter']), h('div', 'ls-chips',
+        uwzHeute.map((w) => h('span', 'ls-chip ls-uwz-chip', ['⚠ ' + w.art + ' · ' + UWZ_NAME[Math.max(0, Math.min(4, w.stufe))].split(' – ')[0]], uwzStil(w.stufe))))]) : null,
       map
     ]);
 
@@ -371,13 +379,18 @@
       Object.keys(st).map((k) => h('span', st[k].ok ? 'ls-st-ok' : 'ls-st-err', [' · ' + k + (st[k].ok ? (st[k].n != null ? ' ' + st[k].n : ' ✓') : ' ✗ ' + (st[k].fehler || '')) ]))));
 
     // Schlagzeilen-Band (wechselt alle paar Sekunden, siehe tick)
-    const news = ex.schlagzeilen || [];
-    refs.news = news; refs.newsText = null; refs.newsQuelle = null;
+    // Bei aktiver UWZ-Warnung ersetzt das Warnband die Nachrichten
+    const warn = ex.uwz || [];
+    const news = warn.length
+      ? warn.map((w) => ({ titel: (w.tag === 'heute' ? 'Heute' : 'Morgen') + ' · ' + w.art + ' · ' + UWZ_NAME[Math.max(0, Math.min(4, w.stufe))], quelle: 'UWZ', stufe: w.stufe }))
+      : (ex.schlagzeilen || []);
+    refs.news = news; refs.newsText = null; refs.newsQuelle = null; refs.newsLabel = null;
     let newsBand = null;
     if (news.length) {
       refs.newsText = h('div', 'ls-nw-text', [news[0].titel]);
       refs.newsQuelle = h('div', 'ls-nw-quelle', [news[0].quelle]);
-      newsBand = h('div', 'ls-nw', [h('div', 'ls-nw-label', ['Nachrichten']), refs.newsText, refs.newsQuelle]);
+      refs.newsLabel = h('div', 'ls-nw-label', [warn.length ? 'Unwetterwarnung' : 'Nachrichten'], warn.length ? uwzStil(news[0].stufe) : null);
+      newsBand = h('div', 'ls-nw' + (warn.length ? ' ls-nw-warn' : ''), [refs.newsLabel, refs.newsText, refs.newsQuelle]);
     }
 
     stage.appendChild(h('div', 'ls-ruhe' + (newsBand ? ' ls-mit-nw' : ''), [
@@ -458,7 +471,10 @@
     if (!evs.length && refs.newsText && refs.news.length > 1) {
       const i = Math.floor(now / ((C.schlagzeilenWechselSek || 8) * 1000)) % refs.news.length;
       const n = refs.news[i];
-      if (refs.newsText.textContent !== n.titel) { refs.newsText.textContent = n.titel; refs.newsQuelle.textContent = n.quelle; }
+      if (refs.newsText.textContent !== n.titel) {
+        refs.newsText.textContent = n.titel; refs.newsQuelle.textContent = n.quelle;
+        if (n.stufe != null && refs.newsLabel) Object.assign(refs.newsLabel.style, uwzStil(n.stufe));
+      }
     }
     if (refs.timer && evs[state.idx]) refs.timer.textContent = elapsed(evs[state.idx].alarmtime);
   };
@@ -539,6 +555,7 @@
         at: Date.now()
       },
       lsz: { feuerwehren: [{ name: 'Neusiedl am See', code: 'T1-BOOT', stufe: 'T1', text: 'T1-BOOT', alarm: '20:16', dauer: '1:33 h', bezirk: 'ND' }], at: Date.now() },
+      uwz: /[?&]uwz=1\b/.test(location.search) ? [{ tag: 'heute', art: 'Wind', stufe: 2 }, { tag: 'morgen', art: 'Regen', stufe: 1 }] : [],
       schlagzeilen: [
         { titel: 'Beispiel-Schlagzeile: Sturmwarnung für das östliche Niederösterreich', quelle: 'ORF NÖ' },
         { titel: 'Beispiel-Schlagzeile: Neue Regelung für Rettungsgasse tritt in Kraft', quelle: 'ORF' }
