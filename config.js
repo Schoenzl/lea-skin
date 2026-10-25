@@ -7,7 +7,7 @@ globalThis.LEASKIN_CONFIG = {
   // true = eigener Ruhebildschirm, false = LEA-Original, wenn kein Einsatz läuft
   ruheAnsicht: true,
   // Darstellung: 'dunkel', 'hell' oder 'auto' (tagsüber hell, abends/nachts dunkel)
-  design: 'dunkel',
+  design: 'hell',
   hellAb: 7,
   dunkelAb: 19,
 
