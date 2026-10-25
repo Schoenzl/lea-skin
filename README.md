@@ -44,3 +44,11 @@ Holt den Code, beendet Chromium, leert den Service-Worker-Zwischenspeicher (sons
 
 ## Alarm-Rahmen
 Bei einem neuen Einsatz pulsiert 30 Sekunden lang ein Rahmen in der Farbe der Alarmstufe (`alarmRahmenSek`).
+
+## Weiteren Pi einrichten (ab v0.11.3)
+Voraussetzung: Der LEA-Kiosk läuft dort schon mit eigenem LEA-Zugang und startet über `~/start-kiosk.sh`.
+```bash
+git clone https://github.com/Schoenzl/lea-skin.git ~/lea-skin
+~/lea-skin/install.sh
+```
+Danach `config.local.js` vom ersten Pi übernehmen (EL-Liste, Fahrtenbuch) und `~/lea-skin/update.sh`.

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LEA Infoscreen – FF Deutsch Haslau",
   "description": "Eigene Darstellung des LEA-Infoscreens für die FF Deutsch Haslau. Liest nur mit, was die Seite selbst lädt.",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://api.open-meteo.com/*",
