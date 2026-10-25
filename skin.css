@@ -197,6 +197,32 @@
 .ls-pmain .ls-name { font-size: 28px; }
 .ls-pmain .ls-free { width: auto; text-align: left; font-size: 20px; color: #A9B1BC; }
 
+/* ---------- Helles Design (.ls-hell) ---------- */
+.ls-root.ls-hell, .ls-hell .ls-stage { background: #EEF1F5; color: #111827; }
+.ls-hell .ls-label, .ls-hell .ls-empty, .ls-hell .ls-map-empty, .ls-hell .ls-count-hint, .ls-hell .ls-hist-where,
+.ls-hell .ls-wastl-row, .ls-hell .ls-w-text, .ls-hell .ls-w-count, .ls-hell .ls-w-more, .ls-hell .ls-fz-detail,
+.ls-hell .ls-pmain .ls-free, .ls-hell .ls-w-bez { color: #5B6573; }
+.ls-hell .ls-stadt, .ls-hell .ls-melde-extra, .ls-hell .ls-free, .ls-hell .ls-status, .ls-hell .ls-date, .ls-hell .ls-wx-sub,
+.ls-hell .ls-hist-date, .ls-hell .ls-pegel-stufe, .ls-hell .ls-pegel-pval, .ls-hell .ls-w-zeit { color: #374151; }
+.ls-hell .ls-card, .ls-hell .ls-chip, .ls-hell .ls-hist, .ls-hell .ls-person {
+  background: #FFFFFF; border-color: #FFFFFF; box-shadow: 0 1px 3px rgba(17,24,39,0.08), 0 0 0 1px #DDE2E9; }
+.ls-hell .ls-person.ls-lead { background: #FFF1E6; border-color: #EA580C; box-shadow: none; }
+.ls-hell .ls-rank { color: #C2410C; }
+.ls-hell .ls-map { background: #E3E7ED; box-shadow: 0 0 0 1px #DDE2E9; }
+.ls-hell .ls-tile { filter: none; }
+.ls-hell .ls-ok, .ls-hell .ls-fz-frei .ls-fz-status { color: #15803D; }
+.ls-hell .ls-warn, .ls-hell .ls-fz-weg .ls-fz-status { color: #B45309; }
+.ls-hell .ls-bad, .ls-hell .ls-st-err, .ls-hell .ls-termin-wann { color: #B91C1C; }
+.ls-hell .ls-dot, .ls-hell .ls-fz-dot { background: #16A34A; }
+.ls-hell .ls-fz-weg .ls-fz-dot { background: #D97706; }
+.ls-hell .ls-w-row { border-top-color: #E1E5EB; }
+.ls-hell .ls-w-ff { background: #E5E9EF; }
+.ls-hell .ls-w-ff.ls-w-own { background: #EA580C; color: #FFFFFF; }
+.ls-hell .ls-w-ffrow { background: #FFFFFF; border-color: #FFFFFF; box-shadow: 0 0 0 1px #DDE2E9; }
+.ls-hell .ls-w-ffrow.ls-w-own { background: #FFF1E6; border-color: #EA580C; box-shadow: none; }
+.ls-hell .ls-w-bez { border-color: #C5CCD6; }
+.ls-hell .ls-statusline { color: #8A94A3; }
+
 /* Alarm-Rahmen bei neuem Einsatz */
 .ls-root.ls-alarm::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 10;

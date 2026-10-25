@@ -228,7 +228,7 @@
     // Pegel (höchstens 60 min alt). Warnklassen Wasserstand laut NÖ: 1 < MW, 2 > MW, 3 > HW1, 4 > HW5, 5 > HW30, 6 > HW100
     const pg = ex.pegel && now - ex.pegel.at < 60 * 60000 ? ex.pegel : null;
     const PSTUFE = { 1: 'unter Mittelwasser', 2: 'über Mittelwasser', 3: 'über HW1', 4: 'über HW5', 5: 'über HW30', 6: 'über HW100' };
-    const PFARBE = { 3: '#FACC15', 4: '#FB923C', 5: '#F87171', 6: '#E879F9' };
+    const PFARBE = istHell() ? { 3: '#A16207', 4: '#C2410C', 5: '#B91C1C', 6: '#A21CAF' } : { 3: '#FACC15', 4: '#FB923C', 5: '#F87171', 6: '#E879F9' };
     let pegelBox = null;
     if (C.pegel) {
       const titel = (C.pegel.name || 'Pegel') + ' · ' + (C.pegel.ort || '');
@@ -381,6 +381,15 @@
     ]));
   };
 
+  // ---------- Hell/Dunkel: config design 'dunkel' | 'hell' | 'auto' (hell zwischen hellAb und dunkelAb) ----------
+  const istHell = () => {
+    const q = location.search.match(/[?&]hell=([01])\b/);
+    if (q) return q[1] === '1';
+    const d = C.design || 'dunkel';
+    if (d === 'auto') { const hNow = new Date().getHours(); return hNow >= (C.hellAb || 7) && hNow < (C.dunkelAb || 19); }
+    return d === 'hell';
+  };
+
   // ---------- Alarm-Rahmen: neuer Einsatz -> Rand pulsiert ----------
   state.seen = {};
   const alarmRahmen = (evs, now) => {
@@ -420,6 +429,8 @@
     }
     state.key = key;
     root.classList.remove('ls-hidden');
+    const hell = istHell();
+    if (hell !== root.classList.contains('ls-hell')) { root.classList.toggle('ls-hell', hell); state.key = ''; }
     alarmRahmen(evs, now);
     if (refs.clock) refs.clock.textContent = hhmm(now);
     if (refs.timer && evs[state.idx]) refs.timer.textContent = elapsed(evs[state.idx].alarmtime);

@@ -6,6 +6,10 @@ globalThis.LEASKIN_CONFIG = {
 
   // true = eigener Ruhebildschirm, false = LEA-Original, wenn kein Einsatz läuft
   ruheAnsicht: true,
+  // Darstellung: 'dunkel', 'hell' oder 'auto' (tagsüber hell, abends/nachts dunkel)
+  design: 'dunkel',
+  hellAb: 7,
+  dunkelAb: 19,
 
   // Einsatzleiter-Reihung: steht in config.local.js (nur am Pi, nicht im Repo)
   elListe: [],
