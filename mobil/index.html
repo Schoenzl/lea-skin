@@ -93,6 +93,12 @@ main { padding: 12px; display: grid; gap: 12px; }
 .eigen { color: #FDBA74; font-weight: 700; }
 .knopf { display: block; text-align: center; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border-radius: 10px; border: 0; background: #B3122E; color: #fff; text-decoration: none; width: 100%; }
 .knopf.grau { background: #2A3340; }
+.da-wahl { display: grid; gap: 8px; margin-top: 10px; }
+.da-wahl button { text-align: left; font: inherit; font-size: 15px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
+.da-wahl button small { display: block; color: var(--grau); font-size: 12px; margin-top: 2px; }
+.da-wahl select { font: inherit; padding: 11px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
+.da-ok { color: #4ADE80; font-weight: 700; margin-top: 10px; }
+.da-fehler { color: #FCA5A5; font-weight: 600; margin-top: 10px; }
 
 /* Fahrzeuge */
 .fzk .k { display: flex; align-items: baseline; gap: 10px; }
@@ -357,11 +363,54 @@ main { padding: 12px; display: grid; gap: 12px; }
     app.append(kopf, h('main', null, [
       warn.length ? h('div', 'chips', warn) : null,
       h('div', 'card', [status].concat(hist.length ? [h('div', 'lab', ['Letzter Einsatz'], { marginTop: '12px' }), histZeile(hist[0])] : [])),
+      daKarte(),
       h('div', 'card', [h('div', 'lab', ['Ausgerückt im Bezirk'])].concat(bezirk)),
       fahrzeugKurz(),
       pg ? h('div', 'card', [h('div', 'lab', ['Pegel ' + ((cfg().pegel && cfg().pegel.name) || '')]), h('div', 'mb', [Math.round(pg.wert) + ' cm' + (pg.prognose != null ? ' · Prognose ' + Math.round(pg.prognose) + ' cm' : '')])]) : null,
       h('div', 'card', [h('div', 'lab', ['Nächste Termine'])].concat(termine.length ? termine : [h('div', 'leer', ['keine Termine'])]))
     ]));
+  };
+
+  // ---------- „Ich bin da“ (über den Pi an die Anwesenheit) ----------
+  // Die Karte bleibt beim Neuzeichnen erhalten, damit eine laufende Auswahl nicht verschwindet.
+  let daBox = null;
+  const daKarte = () => {
+    if (daBox) return daBox;
+    daBox = h('div', 'card');
+    const inhalt = h('div');
+    const zeig = (...kids) => { inhalt.textContent = ''; kids.forEach((k) => k && inhalt.appendChild(k)); };
+    const senden = (wahl) => {
+      zeig(h('div', 'leer', ['Wird eingetragen …']));
+      fetch('/da', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(wahl) })
+        .then((r) => r.json()).then((r) => {
+          const ok = h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? '✓ ' + r.text : r.fehler]);
+          const zur = h('button', 'knopf grau', ['Fertig'], { marginTop: '10px' }); zur.type = 'button'; zur.onclick = start;
+          zeig(ok, zur);
+        }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
+    };
+    const auswahl = () => {
+      zeig(h('div', 'leer', ['Termine werden geladen …']));
+      fetch('/da/start').then((r) => r.json()).then((d) => {
+        if (!d.ok) return zeig(h('div', 'da-fehler', [d.fehler]));
+        const liste = h('div', 'da-wahl');
+        d.termine.forEach((t) => {
+          const b = h('button', null, [t.titel, h('small', null, [t.text + (t.anzahl ? ' · ' + t.anzahl + ' da' : '')])]); b.type = 'button';
+          b.onclick = () => senden({ termin: t.id }); liste.appendChild(b);
+        });
+        const sel = h('select'); [''].concat(d.arten).forEach((a) => { const o = h('option', null, [a || (d.termine.length ? 'Etwas anderes …' : 'Was machst du?')]); o.value = a; sel.appendChild(o); });
+        sel.onchange = () => { if (sel.value) senden({ art: sel.value }); };
+        liste.appendChild(sel);
+        const ab = h('button', null, ['Abbrechen']); ab.type = 'button'; ab.onclick = start; liste.appendChild(ab);
+        zeig(liste);
+      }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
+    };
+    function start() {
+      const b = h('button', 'knopf', ['Ich bin da ✓']); b.type = 'button'; b.onclick = auswahl;
+      zeig(b);
+    }
+    daBox.append(h('div', 'lab', ['Anwesenheit']), inhalt);
+    start();
+    return daBox;
   };
 
   // ---------- Fahrzeuge ----------

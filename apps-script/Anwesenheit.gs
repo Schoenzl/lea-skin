@@ -292,3 +292,19 @@ function pushTest() {
   console.log(code === 200 ? 'ntfy hat die Testnachricht angenommen (Kanal „' + topic + '“). Kommt sie nicht an, liegt es an der App.'
     : 'ntfy hat NICHT angenommen (Antwort ' + code + '), Details in der Zeile darüber.');
 }
+
+// ---------- „Ich bin da“ aus der Handy-Ansicht am Pi (mobil/server.py ruft das per POST auf) ----------
+// Skripteigenschaft DA_KEY = geheimer Schlüssel, derselbe steht am Pi in ~/lea-skin/mobil/da.json. Ohne DA_KEY ist das aus.
+function doPost(e) {
+  const antwort = (o) => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  try {
+    const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const soll = (PropertiesService.getScriptProperties().getProperty('DA_KEY') || '').trim();
+    if (!soll || String(d.key || '') !== soll) return antwort({ ok: false, fehler: 'Schlüssel falsch oder DA_KEY nicht eingerichtet.' });
+    if (d.aktion === 'start') { const s = daStart(); return antwort({ ok: true, termine: s.termine, arten: s.arten }); }
+    if (d.aktion === 'einchecken') return antwort(daEinchecken({ name: d.name, termin: d.termin, art: d.art, titel: d.titel }));
+    return antwort({ ok: false, fehler: 'Unbekannte Aktion.' });
+  } catch (err) {
+    return antwort({ ok: false, fehler: err.message });
+  }
+}

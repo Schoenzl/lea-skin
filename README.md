@@ -103,3 +103,9 @@ Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird 
 - **Push „… ist im Feuerwehrhaus“** bei jedem Einchecken per QR (nicht bei Nachtragen) über ntfy.sh: Skripteigenschaft
   `NTFY_TOPIC` (geheimer Kanalname, nicht ins Repo) und `NTFY_TOKEN` (Zugangstoken eines kostenlosen ntfy.sh-Kontos, sonst 429), einmal ▶ `pushTest` ausführen (erlaubt Versand nach außen).
   Abonnieren: App „ntfy“ → + → Kanalname. Tippen auf die Nachricht öffnet die Anwesenheit.
+
+### „Ich bin da“ in der Handy-Ansicht (nur Pi mit mobilPush)
+Reiter „Lage“ → Karte „Anwesenheit“ → „Ich bin da“ → Termin antippen. Weg: Handy → `mobil/server.py` (`/da/start`, `/da`) →
+Apps Script `doPost` (Anwesenheit.gs). Schutz: Skripteigenschaft `DA_KEY`, derselbe Schlüssel samt Name und Web-App-Adresse
+nur am Pi in `mobil/da.json` (nicht im Repo):
+`{"url":"https://script.google.com/macros/s/…/exec","key":"…","name":"Vorname Nachname"}`
