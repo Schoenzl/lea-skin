@@ -150,7 +150,7 @@
   #kommando .anw-knoepfe .weg2 { color: #991B1B; border-color: #E5A3A3; margin-left: auto; }
 </style>
 </head>
-<body>
+<body data-start="<?= start ?>">
 <header>
   <div class="titel"><h1>FF Deutsch Haslau</h1><p>Fahrzeuge · Anwesenheit</p></div>
   <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-anwesenheit">Anwesenheit</button><button type="button" id="tab-kommando">Kommando</button></nav>
@@ -300,7 +300,13 @@
   $('tab-buchen').onclick = () => reiter('buchen');
   $('tab-kommando').onclick = () => reiter('kommando');
   $('tab-anwesenheit').onclick = () => reiter('anwesenheit');
-  window.addEventListener('load', () => { const s = '<?= start ?>'; if (s === 'kommando' || s === 'anwesenheit') reiter(s); });
+  // Start-Reiter: ?seite=da → Anwesenheit, ?seite=status → Kommando.
+  // Apps Script setzt Werte in <script> mit Anführungszeichen ein, daher über ein data-Attribut und zusätzlich aus der Adresse.
+  const startReiter = (s) => { s = String(s || '').replace(/["']/g, ''); if (s === 'da') s = 'anwesenheit'; if (s === 'status') s = 'kommando'; if (s === 'kommando' || s === 'anwesenheit') reiter(s); };
+  window.addEventListener('load', () => {
+    startReiter(document.body.dataset.start);
+    try { google.script.url.getLocation((l) => { if (l && l.parameter && l.parameter.seite) startReiter(l.parameter.seite); }); } catch (e) {}
+  });
 </script>
 <script>
 (() => {
