@@ -12,6 +12,11 @@
     if (e.source !== window || !e.data || e.data.type !== 'leaskin:alive') return;
     chrome.storage.local.set({ leaAlive: Date.now() }).catch(() => {});
   });
+  // Handy-Ansicht: LEA-Stand an den Hintergrund-Dienst weiterreichen (nur wenn mobilPush gesetzt)
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.type !== 'leaskin:mobil') return;
+    try { chrome.runtime.sendMessage({ mobil: e.data.json }); } catch (err) {}
+  });
   pull();
   setTimeout(pull, 2000);
   setInterval(pull, 60000);

@@ -17,3 +17,7 @@ globalThis.LEASKIN_CONFIG.elListe = [
 
 // QR-Code „Fahrt eintragen“ am Ruhebildschirm: Link zum Google-Formular
 // globalThis.LEASKIN_CONFIG.fahrtenbuchFormUrl = 'https://docs.google.com/forms/d/e/.../viewform';
+
+// Handy-Ansicht (mobil/): nur auf EINEM Pi setzen. Gibt den Stand an den Server am Pi weiter (127.0.0.1:8787),
+// erreichbar nur über Tailscale. Einrichten: ~/lea-skin/mobil/install-mobil.sh
+// globalThis.LEASKIN_CONFIG.mobilPush = true;

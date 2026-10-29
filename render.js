@@ -633,6 +633,16 @@
     if (/[?&]ruhe=1\b/.test(location.search)) state.events = [];
   }
 
+  // Handy-Ansicht (mobil/): LEA-Stand an den Hintergrund-Dienst, der ihn an den Server am Pi weitergibt.
+  // Nur wenn mobilPush in config.local.js gesetzt ist, nie im Demo-Modus. Daten bleiben am Pi.
+  if (C.mobilPush && !DEMO) {
+    setInterval(() => {
+      const frisch = state.events && Date.now() - state.lastData < (C.datenTimeoutSek || 45) * 1000;
+      const lea = { at: frisch ? state.lastData : 0, events: frisch ? listOf(state.events) : null, history: listOf(state.history).slice(0, 5) };
+      window.postMessage({ type: 'leaskin:mobil', json: JSON.stringify(lea) }, location.origin);
+    }, 5000);
+  }
+
   setInterval(tick, 1000);
   document.addEventListener('DOMContentLoaded', tick);
 })();

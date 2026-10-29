@@ -370,4 +370,25 @@ chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'leaskin-refresh') refresh();
   if (a.name === 'leaskin-watch') watch();
 });
-chrome.runtime.onMessage.addListener((m) => { if (m === 'leaskin-refresh') refresh(); });
+chrome.runtime.onMessage.addListener((m) => {
+  if (m === 'leaskin-refresh') refresh();
+  else if (m && m.mobil && C.mobilPush) mobilSenden(m.mobil);
+});
+
+// ---------- Handy-Ansicht: Stand an den Server am Pi (mobil/server.py, nur 127.0.0.1) ----------
+const MOBIL_CFG = ['feuerwehr', 'elListe', 'funktionen', 'fahrzeug', 'farben', 'fahrzeuge', 'pickerlLkw', 'eigeneFF',
+  'termine', 'termineAnzahl', 'karteUrl', 'karteZoom', 'ort', 'datenTimeoutSek', 'pegel', 'fahrtenbuchFormUrl'];
+const MOBIL_EXTRA = ['wetter', 'wastl', 'lsz', 'pegel', 'kalender', 'fahrtenbuch', 'fahrzeugStatus', 'uwz', 'status', 'version', 'at'];
+const mobilSenden = async (leaJson) => {
+  try {
+    const ex = (await chrome.storage.local.get('extra')).extra || {};
+    const cfg = {}, extra = {};
+    MOBIL_CFG.forEach((k) => { if (C[k] !== undefined) cfg[k] = C[k]; });
+    MOBIL_EXTRA.forEach((k) => { if (ex[k] !== undefined) extra[k] = ex[k]; });
+    const body = '{"at":' + Date.now() + ',"lea":' + leaJson + ',"extra":' + JSON.stringify(extra) + ',"cfg":' + JSON.stringify(cfg) + '}';
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    await fetch(C.mobilUrl || 'http://127.0.0.1:8787/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: ctl.signal })
+      .finally(() => clearTimeout(t));
+  } catch (e) { /* Server läuft nicht -> egal, Infoscreen läuft weiter */ }
+};

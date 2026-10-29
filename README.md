@@ -53,6 +53,20 @@ git clone https://github.com/Schoenzl/lea-skin.git ~/lea-skin
 ```
 Danach `config.local.js` vom ersten Pi übernehmen (EL-Liste, Fahrtenbuch) und `~/lea-skin/update.sh`.
 
+## Handy-Ansicht nur für mich (mobil/, ab v0.17.0)
+Einsatzmonitor fürs Handy (Hochformat): Reiter **Einsatz** (Alarmband mit Timer, Adresse, Karte mit Navigation, Meldebild,
+KLF-W-Ampel, Zusagen gereiht nach EL-Liste, Absagen, ohne Rückmeldung), **Lage** (Uhr, Wetter, Unwetter, letzter Einsatz,
+ausgerückt im Bezirk, Fahrzeuge, Termine) und **Fahrzeuge** (Status, Buchungen, Mängel, Pickerl). Bei neuem Alarm springt die
+Seite auf „Einsatz“.
+- **Datenweg:** `render.js` → `bridge.js` → `background.js` schickt alle 5 s den Stand an `mobil/server.py` am selben Pi
+  (`127.0.0.1:8787`, nur im Arbeitsspeicher, nichts auf Platte). Erreichbar ist die Seite nur über **Tailscale**
+  (`tailscale serve` → `https://<pi>.<tailnet>.ts.net`), also nur von Geräten im eigenen Tailnet. Kein fremder Server.
+- Schreiben (`POST /push`) nur direkt von 127.0.0.1, nicht über Tailscale.
+- **Einrichten (nur ein Pi):** `~/lea-skin/mobil/install-mobil.sh` – legt den Dienst `lea-mobil` an, setzt `mobilPush` in
+  `config.local.js`, installiert Tailscale und startet den Kiosk neu. Am Handy die Tailscale-App mit demselben Konto, dann die
+  angezeigte Adresse öffnen und „Zum Home-Bildschirm“.
+- Kein Push bei Alarm (dafür die LEA-App); die Seite aktualisiert sich alle 5 s, solange sie offen ist.
+
 ## Buchungsseite mit Prüfung auf Doppelbuchung (apps-script/, ab v0.16.0)
 Ersetzt das Google-Formular „Fahrzeugnutzung“: eigene Seite als Google-Apps-Script an der Tabelle, prüft vor dem Speichern auf Überschneidungen und schreibt in denselben Tab („Formularantworten 1“).
 1. Tabelle öffnen → Erweiterungen → Apps Script

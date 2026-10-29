@@ -7,7 +7,9 @@ P="$HOME/.config/chromium/Default"
 
 touch /tmp/leaskin-update
 cd "$D" && git pull
-chmod +x "$D"/*.sh
+chmod +x "$D"/*.sh "$D"/mobil/*.sh 2>/dev/null
+# Handy-Ansicht: Server neu starten, falls eingerichtet
+systemctl list-unit-files lea-mobil.service >/dev/null 2>&1 && sudo -n systemctl restart lea-mobil 2>/dev/null && echo "Handy-Ansicht neu gestartet"
 echo "Version: $(grep '"version"' "$D/manifest.json" | head -1)"
 
 pkill -f chromium
