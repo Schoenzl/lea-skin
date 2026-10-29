@@ -61,3 +61,11 @@ Ersetzt das Google-Formular „Fahrzeugnutzung“: eigene Seite als Google-Apps-
 4. Bereitstellen → Neue Bereitstellung → Web-App, Ausführen als „Ich“, Zugriff „Jeder“
 5. Adresse der Web-App am Pi als `fahrtenbuchFormUrl` eintragen (QR-Code am Schirm)
 Der Infoscreen markiert zusätzlich Doppelbuchungen, die direkt in der Tabelle entstehen.
+
+### Fahrzeugstatus fürs Kommando (`apps-script/Status.html`)
+Gleiche Web-App wie die Buchungsseite, Adresse mit `?seite=status` (z. B. `…/exec?seite=status`).
+Zeigt pro Fahrzeug „frei“ / „unterwegs“ mit Name, Zweck, Rückkehrzeit, Einsatzbereitschaft und Pickerl,
+dazu eine Zeitleiste (heute & morgen) und die Buchungen der nächsten 7 Tage. Aktualisiert jede Minute.
+- Geschützt mit PIN: Apps Script → Projekteinstellungen → Skripteigenschaften → `STATUS_PIN` (mind. 6 Ziffern).
+  Ohne richtige PIN liefert der Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre.
+- Einrichten: neue HTML-Datei `Status` anlegen, `Code.gs` ersetzen, dann Bereitstellungen verwalten → Bearbeiten → Version „Neu“.

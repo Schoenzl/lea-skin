@@ -8,9 +8,10 @@ const FAHRZEUGE = ['KLF-W', 'MTF', 'VFA'];
 const ABGESAGT = /abgesagt|storniert|storno|entf(ä|ae)llt|f(ä|ae)llt aus/i;
 const MAX_TAGE = 7;                              // längste Buchung
 
-function doGet() {
-  return HtmlService.createTemplateFromFile('Buchung').evaluate()
-    .setTitle('Fahrzeug buchen – FF Deutsch Haslau')
+function doGet(e) {
+  const status = e && e.parameter && e.parameter.seite === 'status';
+  return HtmlService.createTemplateFromFile(status ? 'Status' : 'Buchung').evaluate()
+    .setTitle(status ? 'Fahrzeugstatus – FF Deutsch Haslau' : 'Fahrzeug buchen – FF Deutsch Haslau')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -124,4 +125,60 @@ function absagen(zeile, name) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ---------- Statusseite fürs Kommando (…/exec?seite=status), mit PIN geschützt ----------
+// PIN einrichten: Projekteinstellungen → Skripteigenschaften → STATUS_PIN (mind. 6 Ziffern).
+// Ohne richtige PIN liefert der Server keine Daten. Nach 10 Fehlversuchen ist 15 Minuten gesperrt.
+const FEHL_MAX = 10, SPERRE_S = 900;
+
+function pinOk_(pin) {
+  const soll = PropertiesService.getScriptProperties().getProperty('STATUS_PIN');
+  if (!soll || String(soll).length < 6) throw new Error('Die Statusseite ist noch nicht eingerichtet (STATUS_PIN fehlt).');
+  const cache = CacheService.getScriptCache();
+  const fehl = +(cache.get('status-fehl') || 0);
+  if (fehl >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
+  if (String(pin || '').trim() === String(soll).trim()) return true;
+  cache.put('status-fehl', String(fehl + 1), SPERRE_S);
+  Utilities.sleep(800);                          // bremst Durchprobieren
+  return false;
+}
+
+function zustand_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
+  const erg = {};
+  if (!sh) return erg;
+  const w = sh.getDataRange().getDisplayValues();
+  const k = w[0].map((x) => String(x).toLowerCase());
+  const f = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
+  const c = { fz: f('fahrzeug'), bereit: f('einsatzbereit'), mangel: f('mangel'), pickerl: f('pickerl') };
+  w.slice(1).forEach((r) => {
+    const fz = String(r[c.fz] || '').trim(); if (!fz) return;
+    erg[fz] = {
+      bereit: String(r[c.bereit] || '').trim().toLowerCase(),
+      mangel: c.mangel >= 0 ? String(r[c.mangel] || '').trim() : '',
+      pickerl: c.pickerl >= 0 ? String(r[c.pickerl] || '').trim() : ''
+    };
+  });
+  return erg;
+}
+
+function statusdaten(pin) {
+  if (!pinOk_(pin)) return { ok: false, fehler: 'PIN falsch.' };
+  const jetzt = Date.now(), alle = buchungen_(), zst = zustand_();
+  const fahrzeuge = FAHRZEUGE.map((fz) => {
+    const eigene = alle.filter((b) => gleich_(b.fahrzeug, fz)).sort((a, b) => a.von - b.von);
+    const zeige = (b) => b && { name: b.name, zweck: b.zweck, von: b.von, bis: b.bis, text: fmt_(b.von) + ' – ' + fmt_(b.bis) };
+    const z = Object.keys(zst).find((x) => gleich_(x, fz));
+    return {
+      fahrzeug: fz,
+      unterwegs: zeige(eigene.find((b) => b.von <= jetzt && jetzt < b.bis)),
+      naechste: zeige(eigene.find((b) => b.von > jetzt)),
+      zuletzt: zeige(eigene.filter((b) => b.bis <= jetzt).pop()),
+      zustand: z ? zst[z] : null,
+      // für die Zeitleiste: alles, was die nächsten 7 Tage oder die letzten 24 h berührt
+      fahrten: eigene.filter((b) => b.bis > jetzt - 864e5 && b.von < jetzt + 7 * 864e5).map(zeige)
+    };
+  });
+  return { ok: true, jetzt, fahrzeuge };
 }

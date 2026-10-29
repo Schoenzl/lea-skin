@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --rot: #B3122E; --text: #111827; --grau: #5B6573; --linie: #DDE2E9; --bg: #EEF1F5;
+          --gruen: #16A34A; --gruen-bg: #E8F7EE; --gelb: #D97706; --gelb-bg: #FEF3C7; --rot-bg: #FDECEC; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  header { background: var(--rot); color: #fff; padding: 16px; display: flex; align-items: center; gap: 12px; }
+  header h1 { margin: 0; font-size: 20px; } header p { margin: 2px 0 0; opacity: .85; font-size: 14px; }
+  header .r { margin-left: auto; text-align: right; font-size: 13px; opacity: .9; }
+  header button { font: inherit; font-size: 12px; margin-top: 4px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.5); border-radius: 6px; background: transparent; color: #fff; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
+
+  /* PIN */
+  #pinbox { max-width: 360px; margin: 40px auto; text-align: center; }
+  #pin { width: 100%; font: inherit; font-size: 28px; letter-spacing: 8px; text-align: center; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; }
+  .los { width: 100%; margin-top: 14px; font: inherit; font-weight: 700; font-size: 18px; padding: 14px; border: 0; border-radius: 10px; background: var(--rot); color: #fff; }
+  .meldung { white-space: pre-line; margin-top: 14px; padding: 12px; border-radius: 8px; font-weight: 600; background: var(--rot-bg); color: #991B1B; box-shadow: inset 4px 0 0 #DC2626; text-align: left; }
+
+  /* Fahrzeugkarten */
+  .fzs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .fz { background: #fff; border-radius: 12px; box-shadow: 0 0 0 1px var(--linie); overflow: hidden; display: flex; flex-direction: column; }
+  .fz .kopf { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
+  .fz .name { font-size: 24px; font-weight: 800; letter-spacing: .5px; }
+  .fz .pille { margin-left: auto; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 4px 10px; border-radius: 999px; }
+  .frei .pille { background: var(--gruen-bg); color: var(--gruen); }
+  .unterwegs .pille { background: var(--gelb-bg); color: #92400E; }
+  .fz .band { height: 6px; }
+  .frei .band { background: var(--gruen); } .unterwegs .band { background: var(--gelb); }
+  .fz .koerper { padding: 0 14px 14px; flex: 1; }
+  .fz .wer { font-size: 18px; font-weight: 700; }
+  .fz .klein { font-size: 14px; color: var(--grau); }
+  .fz .rest { margin-top: 6px; font-weight: 700; color: #92400E; }
+  .fz .zst { margin: 0 14px 14px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .zst.ja { background: #F3F5F8; color: var(--grau); }
+  .zst.eing { background: var(--gelb-bg); color: #92400E; }
+  .zst.nein { background: var(--rot-bg); color: #991B1B; }
+  .unterwegs .wer::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gelb); margin-right: 8px; animation: puls 1.6s infinite; vertical-align: 1px; }
+  @keyframes puls { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+  /* Zeitleiste */
+  .tl { position: relative; }
+  .tl .zeile { display: grid; grid-template-columns: 54px 1fr; align-items: center; gap: 8px; height: 38px; }
+  .tl .lab { font-weight: 800; font-size: 14px; }
+  .tl .spur { position: relative; height: 28px; background: #F3F5F8; border-radius: 6px; overflow: hidden; }
+  .tl .balken { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: #93A3B8; color: #fff; font-size: 11px; font-weight: 700; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 22px; }
+  .tl .balken.jetzt { background: var(--gelb); }
+  .tl .balken.spaeter { background: #3B6FB6; }
+  .tl .achse { display: grid; grid-template-columns: 54px 1fr; gap: 8px; }
+  .tl .ticks { position: relative; height: 18px; font-size: 11px; color: var(--grau); }
+  .tl .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .tl .ticks span.tag { font-weight: 800; color: var(--text); }
+  .tl .nl { position: absolute; top: 0; bottom: 18px; width: 2px; background: var(--rot); z-index: 2; }
+  .tl .nl::after { content: 'jetzt'; position: absolute; top: -16px; left: -12px; font-size: 10px; font-weight: 800; color: var(--rot); }
+  .tl .gitter { position: absolute; top: 0; bottom: 18px; width: 1px; background: var(--linie); }
+  .legende { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--grau); }
+  .legende i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  /* Liste */
+  .b { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--linie); font-size: 14px; }
+  .b:first-child { border-top: 0; }
+  .b .fzk { flex: none; width: 54px; font-weight: 800; }
+  .b .info span { color: var(--grau); }
+  .leer { color: var(--grau); font-size: 14px; }
+  .fuss { text-align: center; font-size: 12px; color: var(--grau); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Fahrzeugstatus</h1><p>FF Deutsch Haslau · nur Kommando</p></div>
+  <div class="r" id="kopfr" hidden><div id="stand"></div><button id="abmelden">Abmelden</button></div>
+</header>
+<main>
+  <div id="pinbox" class="karte">
+    <h2>PIN eingeben</h2>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12">
+    <button class="los" id="los">Anzeigen</button>
+    <div class="meldung" id="meldung" hidden></div>
+  </div>
+
+  <div id="inhalt" hidden>
+    <div class="fzs" id="fzs"></div>
+    <div class="karte">
+      <h2>Zeitleiste · heute &amp; morgen</h2>
+      <div class="tl" id="tl"></div>
+      <div class="legende"><span><i style="background:var(--gelb)"></i>unterwegs</span><span><i style="background:#3B6FB6"></i>gebucht</span><span><i style="background:#93A3B8"></i>vorbei</span></div>
+    </div>
+    <div class="karte">
+      <h2>Gebucht · nächste 7 Tage</h2>
+      <div id="liste"></div>
+    </div>
+    <div class="fuss">Aktualisiert sich jede Minute von selbst.</div>
+  </div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const pad = (n) => String(n).padStart(2, '0');
+  const uhr = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const tag = (t) => { const d = new Date(t); return WT[d.getDay()] + ' ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; };
+  const heute = (t) => new Date(t).toDateString() === new Date().toDateString();
+  const wann = (t) => (heute(t) ? 'heute' : tag(t)) + ' ' + uhr(t);
+  const dauer = (ms) => { const m = Math.round(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h < 48 ? h + ' h ' + pad(m % 60) + ' min' : Math.round(h / 24) + ' Tage'; };
+  let pin = '', daten = null, timer = null;
+  try { pin = localStorage.getItem('fz-status-pin') || ''; } catch (e) {}
+
+  function laden() {
+    if (!pin) return;
+    const fertig = (d) => {
+      if (!d.ok) { abmelden(); fehler(d.fehler); return; }
+      try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
+      daten = d; zeigen();
+    };
+    if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fehler(e.message)).statusdaten(pin);
+    else fertig(demo());
+  }
+  function fehler(t) { $('meldung').textContent = t; $('meldung').hidden = false; }
+  function abmelden() {
+    pin = ''; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
+    clearInterval(timer); timer = null;
+    $('inhalt').hidden = true; $('kopfr').hidden = true; $('pinbox').hidden = false; $('pin').value = '';
+  }
+  $('los').onclick = () => { pin = $('pin').value.trim(); $('meldung').hidden = true; laden(); };
+  $('pin').onkeydown = (e) => { if (e.key === 'Enter') $('los').click(); };
+  $('abmelden').onclick = abmelden;
+
+  function zeigen() {
+    $('pinbox').hidden = true; $('inhalt').hidden = false; $('kopfr').hidden = false;
+    $('stand').textContent = 'Stand ' + uhr(Date.now());
+    if (!timer) timer = setInterval(laden, 60000);
+    const jetzt = Date.now();
+
+    // Karten
+    $('fzs').textContent = '';
+    daten.fahrzeuge.forEach((f) => {
+      const u = f.unterwegs;
+      const k = el('div', 'fz ' + (u ? 'unterwegs' : 'frei'));
+      k.appendChild(el('div', 'band'));
+      const kopf = el('div', 'kopf'); kopf.appendChild(el('div', 'name', f.fahrzeug)); kopf.appendChild(el('div', 'pille', u ? 'unterwegs' : 'frei'));
+      k.appendChild(kopf);
+      const kp = el('div', 'koerper');
+      if (u) {
+        kp.appendChild(el('div', 'wer', u.name || '–'));
+        kp.appendChild(el('div', 'klein', (u.zweck || 'ohne Zweck') + ' · seit ' + wann(u.von)));
+        kp.appendChild(el('div', 'rest', 'zurück bis ' + wann(u.bis) + ' (noch ' + dauer(u.bis - jetzt) + ')'));
+        if (f.naechste) kp.appendChild(el('div', 'klein', 'danach: ' + wann(f.naechste.von) + ' · ' + f.naechste.name));
+      } else {
+        kp.appendChild(el('div', 'wer', 'in der Halle'));
+        kp.appendChild(el('div', 'klein', f.naechste ? 'nächste Fahrt ' + wann(f.naechste.von) + ' · ' + f.naechste.name + (f.naechste.zweck ? ' · ' + f.naechste.zweck : '') : 'keine Fahrt geplant'));
+        if (f.zuletzt) kp.appendChild(el('div', 'klein', 'zuletzt ' + wann(f.zuletzt.bis) + ' · ' + f.zuletzt.name));
+      }
+      k.appendChild(kp);
+      const z = f.zustand;
+      if (z) {
+        const b = z.bereit;
+        const cls = b === 'nein' ? 'nein' : b.indexOf('einge') === 0 ? 'eing' : 'ja';
+        const t = (cls === 'nein' ? '⛔ nicht einsatzbereit' : cls === 'eing' ? '⚠ eingeschränkt einsatzbereit' : '✓ einsatzbereit') +
+          (z.mangel && cls !== 'ja' ? ': ' + z.mangel : '') + (z.pickerl ? ' · Pickerl ' + z.pickerl : '');
+        k.appendChild(el('div', 'zst ' + cls, t));
+      }
+      $('fzs').appendChild(k);
+    });
+
+    // Zeitleiste: heute 0 Uhr −6 h bis +48 h
+    const a0 = new Date(); a0.setHours(0, 0, 0, 0);
+    const start = a0.getTime() - 6 * 3600e3, ende = a0.getTime() + 48 * 3600e3, span = ende - start;
+    const x = (t) => Math.max(0, Math.min(100, (t - start) / span * 100));
+    const tl = $('tl'); tl.textContent = '';
+    const flaeche = el('div'); flaeche.style.position = 'relative';
+    daten.fahrzeuge.forEach((f) => {
+      const z = el('div', 'zeile'); z.appendChild(el('div', 'lab', f.fahrzeug));
+      const s = el('div', 'spur');
+      f.fahrten.filter((b) => b.bis > start && b.von < ende).forEach((b) => {
+        const art = b.von <= jetzt && jetzt < b.bis ? 'jetzt' : b.von > jetzt ? 'spaeter' : '';
+        const bk = el('div', 'balken ' + art, b.name);
+        bk.style.left = x(b.von) + '%'; bk.style.width = Math.max(1.2, x(b.bis) - x(b.von)) + '%';
+        bk.title = b.text + ' · ' + b.name + (b.zweck ? ' · ' + b.zweck : '');
+        s.appendChild(bk);
+      });
+      z.appendChild(s); flaeche.appendChild(z);
+    });
+    // Achse
+    const achse = el('div', 'achse'); achse.appendChild(el('div'));
+    const ticks = el('div', 'ticks');
+    for (let t = a0.getTime(); t < ende; t += 6 * 3600e3) {
+      const d = new Date(t), mitternacht = d.getHours() === 0;
+      const sp = el('span', mitternacht ? 'tag' : '', mitternacht ? (heute(t) ? 'heute' : WT[d.getDay()] + ' ' + pad(d.getDate()) + '.') : pad(d.getHours()) + 'h');
+      sp.style.left = x(t) + '%'; ticks.appendChild(sp);
+    }
+    achse.appendChild(ticks); flaeche.appendChild(achse);
+    // Gitter + Jetzt-Linie über die Spuren legen (Spalte 2 der Zeilen)
+    const ueber = el('div'); ueber.style.cssText = 'position:absolute;top:0;bottom:0;left:62px;right:0;pointer-events:none';
+    for (let t = a0.getTime(); t < ende; t += 24 * 3600e3) { const g = el('div', 'gitter'); g.style.left = x(t) + '%'; ueber.appendChild(g); }
+    const nl = el('div', 'nl'); nl.style.left = x(jetzt) + '%'; ueber.appendChild(nl);
+    flaeche.appendChild(ueber);
+    tl.appendChild(flaeche);
+
+    // Liste
+    const alle = [];
+    daten.fahrzeuge.forEach((f) => f.fahrten.forEach((b) => { if (b.bis > jetzt) alle.push(Object.assign({ fahrzeug: f.fahrzeug }, b)); }));
+    alle.sort((a, b) => a.von - b.von);
+    $('liste').textContent = '';
+    if (!alle.length) $('liste').appendChild(el('div', 'leer', 'Keine Buchungen.'));
+    alle.forEach((b) => {
+      const r = el('div', 'b'); r.appendChild(el('div', 'fzk', b.fahrzeug));
+      const i = el('div', 'info'); i.appendChild(document.createTextNode(b.name + ' '));
+      i.appendChild(el('span', '', wann(b.von) + ' – ' + (heute(b.bis) || new Date(b.bis).toDateString() === new Date(b.von).toDateString() ? uhr(b.bis) : wann(b.bis)) + (b.zweck ? ' · ' + b.zweck : '')));
+      r.appendChild(i); $('liste').appendChild(r);
+    });
+  }
+
+  // Vorschau ohne Google (nur lokal zum Testen)
+  function demo() {
+    const n = Date.now(), h = 3600e3, b = (name, zweck, von, bis) => ({ name, zweck, von: n + von * h, bis: n + bis * h, text: '' });
+    const fz = (fahrzeug, fahrten, zustand) => ({ fahrzeug, zustand, fahrten,
+      unterwegs: fahrten.find((x) => x.von <= n && n < x.bis), naechste: fahrten.find((x) => x.von > n), zuletzt: fahrten.filter((x) => x.bis <= n).pop() });
+    return { ok: true, jetzt: n, fahrzeuge: [
+      fz('KLF-W', [b('Christoph Schmid', 'Übung', -20, -17), b('Max Mustermann', 'Fahrtraining', 30, 33)], { bereit: 'ja', mangel: '', pickerl: '03/2027' }),
+      fz('MTF', [b('Raphael Schön', 'Besorgung', -1.2, 1.5), b('Anna Huber', 'Jugend', 8, 12)], { bereit: 'ja', mangel: '', pickerl: '10/2027' }),
+      fz('VFA', [b('Lukas Bauer', 'Werkstatt/Service', 20, 26)], { bereit: 'eingeschränkt', mangel: 'Rückfahrkamera defekt', pickerl: '06/2027' })
+    ] };
+  }
+  if (pin) laden();
+</script>
+</body>
+</html>
