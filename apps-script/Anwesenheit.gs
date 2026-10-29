@@ -272,14 +272,18 @@ function hausPush_(name, titel, anzahl) {
     const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
     const klick = id ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=da#' + id : '';
     const q = 'title=' + encodeURIComponent(name + ' ist im Feuerwehrhaus') + '&tags=fire_engine' + (klick ? '&click=' + encodeURIComponent(klick) : '');
-    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?' + q, {
+    const r = UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?' + q, {
       method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true
     });
-  } catch (e) { console.log('Push fehlgeschlagen: ' + e.message); }   // Einchecken klappt trotzdem
+    const code = r.getResponseCode();
+    if (code !== 200) console.log('ntfy antwortet ' + code + ': ' + r.getContentText().slice(0, 300));
+    return code;
+  } catch (e) { console.log('Push fehlgeschlagen: ' + e.message); return -1; }   // Einchecken klappt trotzdem
 }
 function pushTest() {
   const topic = PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC');
   if (!topic) { console.log('NTFY_TOPIC fehlt: Projekteinstellungen → Skripteigenschaften → NTFY_TOPIC anlegen.'); return; }
-  hausPush_('Test', 'Testnachricht vom Anwesenheits-Skript', 1);
-  console.log('Testnachricht an Kanal „' + topic + '“ geschickt. Kommt sie in der ntfy-App an?');
+  const code = hausPush_('Test', 'Testnachricht vom Anwesenheits-Skript', 1);
+  console.log(code === 200 ? 'ntfy hat die Testnachricht angenommen (Kanal „' + topic + '“). Kommt sie nicht an, liegt es an der App.'
+    : 'ntfy hat NICHT angenommen (Antwort ' + code + '), Details in der Zeile darüber.');
 }
