@@ -109,3 +109,9 @@ Reiter „Lage“ → Karte „Anwesenheit“ → „Ich bin da“ → Termin an
 Apps Script `doPost` (Anwesenheit.gs). Schutz: Skripteigenschaft `DA_KEY`, derselbe Schlüssel samt Name und Web-App-Adresse
 nur am Pi in `mobil/da.json` (nicht im Repo):
 `{"url":"https://script.google.com/macros/s/…/exec","key":"…","name":"Vorname Nachname"}`
+
+## Hydranten (hydranten.js, ab v0.18.0)
+17 Hydranten aus wasserkarte.info (Export 30.10.2026). Am Infoscreen erscheinen sie als nummerierte Punkte auf der Einsatzkarte
+(grau = nicht ganzjährig) mit Kasten „Nächste Hydranten“ (Entfernung, Anschlüsse); in der Handy-Ansicht ebenso, die Liste
+darunter öffnet die Navigation zum Hydranten. Änderungen direkt in `hydranten.js`, dann `update.sh`.
+Offen: Nr. 2 und 3 haben laut Export dieselbe Position (vor Ort prüfen); Druck/Nennweite sind in wasserkarte.info nicht erfasst.

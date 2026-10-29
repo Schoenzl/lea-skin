@@ -118,6 +118,16 @@
     return { rows: rows.concat([total]), status };
   };
 
+  // ---------- Hydranten (hydranten.js) ----------
+  const HYD = globalThis.LEASKIN_HYDRANTEN || [];
+  const meter = (la1, lo1, la2, lo2) => {
+    const R = 6371000, r = Math.PI / 180, dLa = (la2 - la1) * r, dLo = (lo2 - lo1) * r;
+    const q = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dLo / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(q));
+  };
+  const naechsteHydranten = (lat, lon, n) => HYD.map((x) => Object.assign({ m: meter(lat, lon, x.lat, x.lon) }, x))
+    .sort((a, b) => a.m - b.m).slice(0, n);
+
   // ---------- Karte (Kacheln wie im LEA-Original) ----------
   const drawMap = (box, ev) => {
     const loc = ev.location || {};
@@ -144,7 +154,20 @@
           box.appendChild(img);
         }
       }
+      // Hydranten im Kartenausschnitt
+      const proj = (la, lo) => { const rr = (la * Math.PI) / 180;
+        return [((lo + 180) / 360) * scale - px + w / 2, ((1 - Math.log(Math.tan(rr) + 1 / Math.cos(rr)) / Math.PI) / 2) * scale - py + ht / 2]; };
+      HYD.forEach((x) => {
+        const [sx, sy] = proj(x.lat, x.lon);
+        if (sx < -20 || sy < -20 || sx > w + 20 || sy > ht + 20) return;
+        box.appendChild(h('div', 'ls-hyd' + (x.ganzjaehrig ? '' : ' ls-hyd-winter'), [String(x.nr)], { left: Math.round(sx) + 'px', top: Math.round(sy) + 'px' }));
+      });
       box.appendChild(h('div', 'ls-marker'));
+      const nah = naechsteHydranten(lat, lon, 3).filter((x) => x.m < 1500);
+      if (nah.length) {
+        box.appendChild(h('div', 'ls-hyd-liste', [h('div', 'ls-hyd-titel', ['Nächste Hydranten'])].concat(nah.map((x) =>
+          h('div', 'ls-hyd-zeile', [h('span', 'ls-hyd-nr', [String(x.nr)], x.ganzjaehrig ? null : { background: '#64748B' }), Math.round(x.m / 10) * 10 + ' m · ' + x.anschluesse + (x.ganzjaehrig ? '' : ' · nicht ganzjährig')])))));
+      }
     });
   };
 

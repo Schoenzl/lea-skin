@@ -53,6 +53,15 @@ main { padding: 12px; display: grid; gap: 12px; }
 .karte img { position: absolute; width: 256px; height: 256px; }
 .karte .pin { position: absolute; left: 50%; top: 50%; width: 30px; height: 40px; transform: translate(-50%, -100%); }
 .karte .nav { position: absolute; right: 8px; bottom: 8px; background: #fff; color: #111; font-weight: 700; font-size: 14px; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.35); text-decoration: none; }
+.karte .hyd { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #1D4ED8; color: #fff; border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45); font: 700 11px/18px BC, sans-serif; text-align: center; }
+.karte .hyd.winter { background: #64748B; }
+.hyd-liste { margin-top: 10px; display: grid; gap: 6px; }
+.hyd-z { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+.hyd-z .n { flex: none; min-width: 24px; text-align: center; border-radius: 5px; background: #1D4ED8; color: #fff; font: 700 13px/20px BC, sans-serif; }
+.hyd-z .w { flex: 1; min-width: 0; }
+.hyd-z .w small { display: block; color: var(--grau); font-size: 12px; }
+.hyd-z .m { flex: none; font-family: BC; font-weight: 700; font-size: 16px; }
 .karte .keine { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; font-size: 14px; }
 .mb { font-size: 15px; color: #DDE2E8; line-height: 1.4; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -214,6 +223,12 @@ main { padding: 12px; display: grid; gap: 12px; }
     const py = ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * scale;
     requestAnimationFrame(() => {
       const w = box.clientWidth || 360, ht = box.clientHeight || 200;
+      (cfg().hydranten || []).forEach((x) => {
+        const rr = (x.lat * Math.PI) / 180;
+        const sx = ((x.lon + 180) / 360) * scale - px + w / 2, sy = ((1 - Math.log(Math.tan(rr) + 1 / Math.cos(rr)) / Math.PI) / 2) * scale - py + ht / 2;
+        if (sx < -12 || sy < -12 || sx > w + 12 || sy > ht + 12) return;
+        box.appendChild(h('div', 'hyd' + (x.ganzjaehrig ? '' : ' winter'), [String(x.nr)], { left: Math.round(sx) + 'px', top: Math.round(sy) + 'px' }));
+      });
       for (let tx = Math.floor((px - w / 2) / size); tx <= Math.floor((px + w / 2) / size); tx++) {
         for (let ty = Math.floor((py - ht / 2) / size); ty <= Math.floor((py + ht / 2) / size); ty++) {
           const img = document.createElement('img'); img.alt = ''; img.referrerPolicy = 'no-referrer';
@@ -231,6 +246,19 @@ main { padding: 12px; display: grid; gap: 12px; }
     const a = h('a', 'nav', ['Navigation ↗']); a.href = navLink(k); a.target = '_blank'; a.rel = 'noopener';
     box.appendChild(a);
     return box;
+  };
+
+  // Nächste Hydranten zur Einsatzadresse
+  const meter = (la1, lo1, la2, lo2) => { const R = 6371000, r = Math.PI / 180, a = Math.sin((la2 - la1) * r / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin((lo2 - lo1) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(a)); };
+  const hydrantenListe = (ev) => {
+    const k = koord(ev); if (!k) return null;
+    const nah = (cfg().hydranten || []).map((x) => Object.assign({ m: meter(k.lat, k.lon, x.lat, x.lon) }, x)).sort((a, b) => a.m - b.m).slice(0, 3).filter((x) => x.m < 1500);
+    if (!nah.length) return null;
+    return h('div', 'hyd-liste', [h('div', 'lab', ['Nächste Hydranten'], { margin: '4px 0 0' })].concat(nah.map((x) => {
+      const z = h('a', 'hyd-z', [h('span', 'n', [String(x.nr)], x.ganzjaehrig ? null : { background: '#64748B' }), h('span', 'w', [x.name, h('small', null, [x.typ + ' · ' + x.anschluesse + (x.ganzjaehrig ? '' : ' · nicht ganzjährig')])]), h('span', 'm', [Math.round(x.m / 10) * 10 + ' m'])]);
+      z.href = navLink({ lat: x.lat, lon: x.lon }); z.target = '_blank'; z.rel = 'noopener'; z.style.color = 'inherit'; z.style.textDecoration = 'none';
+      return z;
+    })));
   };
 
   // ---------- Ansicht: Einsatz ----------
@@ -281,7 +309,7 @@ main { padding: 12px; display: grid; gap: 12px; }
 
     app.append(band, h('main', null, [
       h('div', 'card', [h('div', 'lab', ['Wohin']), h('div', 'strasse cond', [strasse]), ort ? h('div', 'stadt', [ort]) : null,
-        zusatz ? h('div', 'zusatz', ['⚠ ' + zusatz]) : null, karte(ev)]),
+        zusatz ? h('div', 'zusatz', ['⚠ ' + zusatz]) : null, karte(ev), hydrantenListe(ev)]),
       h('div', 'card', [h('div', 'lab', ['Was']), h('div', 'mb', [meldebild(ev)]),
         gruppen.length ? h('div', 'mb', [h('span', null, ['Mitalarmiert: ' + gruppen.join(', ')], { color: 'var(--grau)' })]) : null,
         warn.length ? h('div', 'chips', warn) : null]),

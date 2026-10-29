@@ -46,6 +46,15 @@
 .ls-tile { position: absolute; width: 256px; height: 256px; max-width: none; filter: brightness(0.92); }
 .ls-marker { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
   background: #DC2626; border: 5px solid #FFFFFF; box-shadow: 0 0 0 6px rgba(220,38,38,0.35); }
+.ls-hyd { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #1D4ED8; color: #fff;
+  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); font: 700 14px/24px 'LS Barlow Condensed', sans-serif; text-align: center; z-index: 2; }
+.ls-hyd-winter { background: #64748B; }
+.ls-hyd-liste { position: absolute; right: 10px; top: 10px; max-width: 46%; background: rgba(11,14,19,.82); color: #F2F4F7;
+  border-radius: 10px; padding: 6px 10px; z-index: 3; font-size: 17px; line-height: 1.4; }
+.ls-hyd-titel { font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9B1BC; margin-bottom: 2px; }
+.ls-marker { z-index: 4; }
+.ls-hyd-zeile { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-hyd-nr { display: inline-block; min-width: 26px; margin-right: 8px; padding: 0 4px; border-radius: 6px; background: #1D4ED8; text-align: center; font-weight: 700; }
 .ls-map-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #A9B1BC; }
 .ls-groups { width: 320px; flex: none; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 .ls-chip { background: #161B23; border-radius: 10px; padding: 12px 16px; font-size: 24px; font-weight: 600; line-height: 1.2; }

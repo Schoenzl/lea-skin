@@ -4,7 +4,8 @@
 globalThis.window = globalThis;
 importScripts('config.js');
 try { importScripts('config.local.js'); } catch (e) { /* optional */ }
-importScripts('lib/ical.min.js'); // Mozilla ical.js 1.5.0 (MPL-2.0) – Serientermine, Ausnahmen, Zeitzonen
+importScripts('lib/ical.min.js');
+try { importScripts('hydranten.js'); } catch (e) { /* optional */ } // Mozilla ical.js 1.5.0 (MPL-2.0) – Serientermine, Ausnahmen, Zeitzonen
 const C = globalThis.LEASKIN_CONFIG || {};
 
 const getJson = async (url, ms) => {
@@ -384,6 +385,7 @@ const mobilSenden = async (leaJson) => {
     const ex = (await chrome.storage.local.get('extra')).extra || {};
     const cfg = {}, extra = {};
     MOBIL_CFG.forEach((k) => { if (C[k] !== undefined) cfg[k] = C[k]; });
+    cfg.hydranten = globalThis.LEASKIN_HYDRANTEN || [];
     MOBIL_EXTRA.forEach((k) => { if (ex[k] !== undefined) extra[k] = ex[k]; });
     const body = '{"at":' + Date.now() + ',"lea":' + leaJson + ',"extra":' + JSON.stringify(extra) + ',"cfg":' + JSON.stringify(cfg) + '}';
     const ctl = new AbortController();
