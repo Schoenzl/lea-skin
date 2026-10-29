@@ -263,6 +263,8 @@ function anwAktion(pin, a) {
 
 // ---------- Push „Jemand ist im Feuerwehrhaus“ über ntfy (App „ntfy“, kostenlos, ohne Konto) ----------
 // Skripteigenschaft NTFY_TOPIC = geheimer Kanalname (wer ihn kennt, bekommt die Nachrichten). Nicht ins Repo schreiben.
+// Skripteigenschaft NTFY_TOKEN = Zugangstoken (tk_…) eines kostenlosen Kontos auf ntfy.sh – ohne Token lehnt ntfy.sh
+// Anfragen von Google oft ab (Tageskontingent der gemeinsamen Google-Server erschöpft, Antwort 429).
 // Einmal ▶ pushTest ausführen: erlaubt den Versand nach außen und schickt eine Testnachricht.
 function hausPush_(name, titel, anzahl) {
   const topic = (PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC') || '').trim();
@@ -272,8 +274,11 @@ function hausPush_(name, titel, anzahl) {
     const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
     const klick = id ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=da#' + id : '';
     const q = 'title=' + encodeURIComponent(name + ' ist im Feuerwehrhaus') + '&tags=fire_engine' + (klick ? '&click=' + encodeURIComponent(klick) : '');
+    // Mit Zugangstoken (kostenloses ntfy-Konto) zählt das Kontingent für unser Konto statt für Googles gemeinsame Server-Adressen
+    const token = (PropertiesService.getScriptProperties().getProperty('NTFY_TOKEN') || '').trim();
     const r = UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?' + q, {
-      method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true
+      method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true,
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
     });
     const code = r.getResponseCode();
     if (code !== 200) console.log('ntfy antwortet ' + code + ': ' + r.getContentText().slice(0, 300));
