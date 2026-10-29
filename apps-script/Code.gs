@@ -168,7 +168,7 @@ function statusdaten(pin) {
   const jetzt = Date.now(), alle = buchungen_(), zst = zustand_();
   const fahrzeuge = FAHRZEUGE.map((fz) => {
     const eigene = alle.filter((b) => gleich_(b.fahrzeug, fz)).sort((a, b) => a.von - b.von);
-    const zeige = (b) => b && { name: b.name, zweck: b.zweck, von: b.von, bis: b.bis, text: fmt_(b.von) + ' – ' + fmt_(b.bis) };
+    const zeige = (b) => b && { zeile: b.zeile, name: b.name, zweck: b.zweck, von: b.von, bis: b.bis, text: fmt_(b.von) + ' – ' + fmt_(b.bis) };
     const z = Object.keys(zst).find((x) => gleich_(x, fz));
     return {
       fahrzeug: fz,
@@ -181,4 +181,23 @@ function statusdaten(pin) {
     };
   });
   return { ok: true, jetzt, fahrzeuge };
+}
+
+// Kommando löscht eine Fahrt: Zeile wird nur entfernt, wenn Fahrzeug, Von und Bis noch übereinstimmen
+// (falls sich die Tabelle inzwischen verschoben hat, wird nichts Falsches gelöscht).
+function statusLoeschen(pin, zeile, fahrzeug, von, bis) {
+  if (!pinOk_(pin)) return { ok: false, fehler: 'PIN falsch.' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const b = buchungen_().find((x) => x.zeile === +zeile);
+    if (!b || !gleich_(b.fahrzeug, fahrzeug) || b.von !== +von || b.bis !== +bis) {
+      return { ok: false, fehler: 'Die Fahrt wurde inzwischen geändert oder gelöscht. Ansicht wird neu geladen.' };
+    }
+    blatt_().deleteRow(b.zeile);
+    SpreadsheetApp.flush();
+    return { ok: true, text: b.fahrzeug + ' · ' + b.name + ' · ' + fmt_(b.von) + ' gelöscht.' };
+  } finally {
+    lock.releaseLock();
+  }
 }

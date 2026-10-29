@@ -65,7 +65,8 @@ Der Infoscreen markiert zusätzlich Doppelbuchungen, die direkt in der Tabelle e
 ### Fahrzeugstatus fürs Kommando (`apps-script/Status.html`)
 Gleiche Web-App wie die Buchungsseite, Adresse mit `?seite=status` (z. B. `…/exec?seite=status`).
 Zeigt pro Fahrzeug „frei“ / „unterwegs“ mit Name, Zweck, Rückkehrzeit, Einsatzbereitschaft und Pickerl,
-dazu eine Zeitleiste (heute & morgen) und die Buchungen der nächsten 7 Tage. Aktualisiert jede Minute.
+dazu eine Zeitleiste (heute & morgen) und die Fahrten der letzten 24 h und nächsten 7 Tage. Aktualisiert jede Minute.
+- Das Kommando kann dort jede Fahrt löschen (Zeile wird aus der Tabelle entfernt; der Server prüft vorher, dass Fahrzeug, Von und Bis noch übereinstimmen).
 - Geschützt mit PIN: Apps Script → Projekteinstellungen → Skripteigenschaften → `STATUS_PIN` (mind. 6 Ziffern).
   Ohne richtige PIN liefert der Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre.
 - Einrichten: neue HTML-Datei `Status` anlegen, `Code.gs` ersetzen, dann Bereitstellungen verwalten → Bearbeiten → Version „Neu“.
