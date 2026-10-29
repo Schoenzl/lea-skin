@@ -100,3 +100,6 @@ Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird 
 - **Einrichten:** in Apps Script neue Skriptdatei `Anwesenheit` mit `Anwesenheit.gs`, `Code.gs` und `Buchung` ersetzen,
   ▶ `anwesenheitEinrichten` ausführen (Berechtigungen für Tabellen und Kalender erlauben), Tab „Mitglieder“ befüllen,
   Bereitstellungen verwalten → Version „Neu“.
+- **Push „… ist im Feuerwehrhaus“** bei jedem Einchecken per QR (nicht bei Nachtragen) über ntfy.sh: Skripteigenschaft
+  `NTFY_TOPIC` (geheimer Kanalname, nicht ins Repo), einmal ▶ `pushTest` ausführen (erlaubt Versand nach außen).
+  Abonnieren: App „ntfy“ → + → Kanalname. Tippen auf die Nachricht öffnet die Anwesenheit.
