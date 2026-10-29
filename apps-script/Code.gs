@@ -25,7 +25,7 @@ function blatt_() {
 function spalten_(kopf) {
   const k = kopf.map((x) => String(x).toLowerCase());
   const f = (...w) => k.findIndex((h) => w.some((x) => h.indexOf(x) !== -1));
-  return { zeit: f('zeitstempel'), fz: f('fahrzeug'), name: f('name'), von: f('von', 'beginn'), bis: f('bis', 'ende'), zweck: f('zweck', 'grund') };
+  return { zeit: f('zeitstempel'), fz: f('fahrzeug'), name: f('name'), von: f('von', 'beginn'), bis: f('bis', 'ende'), zweck: f('zweck', 'grund'), mail: f('mail') };
 }
 function buchungen_() {
   const werte = blatt_().getDataRange().getValues();
@@ -37,13 +37,20 @@ function buchungen_() {
     name: String(r[s.name] || '').trim(),
     von: zeit_(r[s.von]),
     bis: zeit_(r[s.bis]),
-    zweck: s.zweck >= 0 ? String(r[s.zweck] || '').trim() : ''
+    zweck: s.zweck >= 0 ? String(r[s.zweck] || '').trim() : '',
+    mail: s.mail >= 0 ? String(r[s.mail] || '').trim() : ''
   })).filter((b) => b.fahrzeug && b.von && b.bis && b.bis > b.von && !ABGESAGT.test(b.zweck));
 }
 function zeit_(v) {
   if (v instanceof Date) return v.getTime();
   const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?/.exec(String(v || '').trim());
   return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0;
+}
+const MAIL_ = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Spalte „E-Mail“ beim ersten Bedarf hinten anfügen (Infoscreen erkennt Spalten am Namen, stört also nicht)
+function mailSpalte_(sh) {
+  const kopf = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  if (spalten_(kopf).mail < 0) sh.getRange(1, kopf.length + 1).setValue('E-Mail');
 }
 const gleich_ = (a, b) => String(a).replace(/\s+/g, '').toLowerCase() === String(b).replace(/\s+/g, '').toLowerCase();
 const WT_ = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -69,6 +76,7 @@ function lokal_(s) {
 function pruefe_(neu, alle) {
   if (FAHRZEUGE.indexOf(neu.fahrzeug) === -1) return 'Bitte ein Fahrzeug auswählen.';
   if (!neu.name || neu.name.length < 3) return 'Bitte den vollen Namen eintragen.';
+  if (!MAIL_.test(neu.mail)) return 'Bitte eine gültige E-Mail-Adresse eintragen (für Nachrichten zur Buchung).';
   if (!(neu.bis > neu.von)) return '„Bis“ muss nach „Von“ liegen.';
   if (neu.bis - neu.von > MAX_TAGE * 864e5) return 'Eine Buchung darf höchstens ' + MAX_TAGE + ' Tage dauern.';
   if (neu.bis < Date.now()) return 'Der Zeitraum liegt in der Vergangenheit.';
@@ -87,14 +95,17 @@ function buchen(daten) {
       fahrzeug: String(daten.fahrzeug || '').trim(),
       name: String(daten.name || '').trim().slice(0, 80),
       zweck: String(daten.zweck || '').trim().slice(0, 120),
+      mail: String(daten.mail || '').trim().toLowerCase().slice(0, 120),
       von: lokal_(daten.von).getTime(),
       bis: lokal_(daten.bis).getTime()
     };
     const fehler = pruefe_(neu, buchungen_());
     if (fehler) return { ok: false, fehler };
     const sh = blatt_();
+    mailSpalte_(sh);
     const s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
     const zeile = new Array(sh.getLastColumn()).fill('');
+    zeile[s.mail] = neu.mail;
     zeile[s.zeit] = new Date(); zeile[s.fz] = neu.fahrzeug; zeile[s.name] = neu.name;
     zeile[s.von] = new Date(neu.von); zeile[s.bis] = new Date(neu.bis);
     if (s.zweck >= 0) zeile[s.zweck] = neu.zweck;
@@ -185,7 +196,7 @@ function statusdaten(pin) {
 
 // Kommando löscht eine Fahrt: Zeile wird nur entfernt, wenn Fahrzeug, Von und Bis noch übereinstimmen
 // (falls sich die Tabelle inzwischen verschoben hat, wird nichts Falsches gelöscht).
-function statusLoeschen(pin, zeile, fahrzeug, von, bis) {
+function statusLoeschen(pin, zeile, fahrzeug, von, bis, grund) {
   if (!pinOk_(pin)) return { ok: false, fehler: 'PIN falsch.' };
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -196,8 +207,34 @@ function statusLoeschen(pin, zeile, fahrzeug, von, bis) {
     }
     blatt_().deleteRow(b.zeile);
     SpreadsheetApp.flush();
-    return { ok: true, text: b.fahrzeug + ' · ' + b.name + ' · ' + fmt_(b.von) + ' gelöscht.' };
+    const begr = String(grund || '').trim().slice(0, 500);
+    let info = ' Keine E-Mail hinterlegt, bitte persönlich Bescheid geben.';
+    if (MAIL_.test(b.mail)) {
+      try {
+        MailApp.sendEmail({
+          to: b.mail,
+          subject: 'Fahrzeugbuchung ' + b.fahrzeug + ' ' + fmt_(b.von) + ' wurde gelöscht',
+          body: 'Hallo ' + b.name + ',\n\n' +
+            'deine Buchung wurde vom Kommando der FF Deutsch Haslau gelöscht:\n\n' +
+            '  Fahrzeug: ' + b.fahrzeug + '\n' +
+            '  Zeit:     ' + fmt_(b.von) + ' – ' + fmt_(b.bis) + '\n' +
+            (b.zweck ? '  Zweck:    ' + b.zweck + '\n' : '') +
+            '\nBegründung: ' + (begr || '(keine angegeben)') + '\n\n' +
+            'Bei Fragen melde dich bitte beim Kommando.\n\nFF Deutsch Haslau',
+          name: 'FF Deutsch Haslau – Fahrzeuge'
+        });
+        info = ' Benachrichtigung an ' + b.mail + ' gesendet.';
+      } catch (e) {
+        info = ' E-Mail konnte nicht gesendet werden (' + e.message + '), bitte persönlich Bescheid geben.';
+      }
+    }
+    return { ok: true, text: b.fahrzeug + ' · ' + b.name + ' · ' + fmt_(b.von) + ' gelöscht.' + info };
   } finally {
     lock.releaseLock();
   }
+}
+
+// Einmal im Editor ausführen (▶ mailTest): erteilt die Berechtigung zum Mailversand und schickt dir eine Testmail.
+function mailTest() {
+  MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Test Fahrzeugbuchung', 'Mailversand funktioniert. Verbleibendes Tageskontingent: ' + MailApp.getRemainingDailyQuota());
 }

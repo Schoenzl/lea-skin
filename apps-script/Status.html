@@ -74,6 +74,16 @@
   .fz .weg { margin-top: 10px; }
   .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 92vw; padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; color: #fff; background: #166534; box-shadow: 0 6px 20px rgba(0,0,0,.2); z-index: 9; }
   .toast.fehler { background: #991B1B; }
+  .dlg { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .dlg .box { background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .dlg h3 { margin: 0 0 8px; font-size: 18px; }
+  .dlg .was { font-size: 14px; color: var(--grau); white-space: pre-line; margin-bottom: 12px; }
+  .dlg label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin-bottom: 6px; }
+  .dlg textarea { width: 100%; min-height: 84px; font: inherit; padding: 10px; border: 1px solid #C5CCD6; border-radius: 8px; resize: vertical; }
+  .dlg .hinw { font-size: 12px; color: var(--grau); margin-top: 6px; }
+  .dlg .knoepfe { display: flex; gap: 10px; margin-top: 14px; }
+  .dlg .knoepfe button { flex: 1; font: inherit; font-weight: 700; padding: 12px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; }
+  .dlg .knoepfe .ja { background: var(--rot); border-color: var(--rot); color: #fff; }
   .fuss { text-align: center; font-size: 12px; color: var(--grau); }
   [hidden] { display: none !important; }
 </style>
@@ -227,19 +237,35 @@
   // Löschen (nur mit PIN, Server prüft nochmals)
   function knopf(fahrzeug, b, text) {
     const k = el('button', 'weg', text); k.type = 'button';
-    k.onclick = () => {
-      if (!confirm('Fahrt wirklich löschen?\n\n' + fahrzeug + ' · ' + b.name + '\n' + wann(b.von) + ' – ' + wann(b.bis) + (b.zweck ? '\n' + b.zweck : ''))) return;
+    k.onclick = () => frage(fahrzeug, b, (grund) => {
       k.disabled = true; k.textContent = '…';
       const fertig = (r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); };
       if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fertig({ ok: false, fehler: e.message }))
-        .statusLoeschen(pin, b.zeile, fahrzeug, b.von, b.bis);
-      else fertig({ ok: true, text: 'Gelöscht (Vorschau).' });
-    };
+        .statusLoeschen(pin, b.zeile, fahrzeug, b.von, b.bis, grund);
+      else fertig({ ok: true, text: 'Gelöscht (Vorschau). Benachrichtigung gesendet.' });
+    });
     return k;
   }
   function toast(t, istFehler) {
     const d = el('div', 'toast' + (istFehler ? ' fehler' : ''), t); document.body.appendChild(d);
-    setTimeout(() => d.remove(), 4000);
+    setTimeout(() => d.remove(), 6000);
+  }
+  // Rückfrage mit Begründung
+  function frage(fahrzeug, b, weiter) {
+    const hg = el('div', 'dlg'), box = el('div', 'box');
+    box.appendChild(el('h3', '', 'Fahrt löschen?'));
+    box.appendChild(el('div', 'was', fahrzeug + ' · ' + b.name + '\n' + wann(b.von) + ' – ' + wann(b.bis) + (b.zweck ? '\n' + b.zweck : '')));
+    box.appendChild(el('label', '', 'Begründung'));
+    const ta = el('textarea'); ta.maxLength = 500; ta.placeholder = 'z. B. Fahrzeug wird für Einsatzbereitschaft beim Fest gebraucht';
+    box.appendChild(ta);
+    box.appendChild(el('div', 'hinw', 'Geht per E-Mail an den Buchenden, falls eine Adresse hinterlegt ist.'));
+    const kn = el('div', 'knoepfe'), nein = el('button', '', 'Abbrechen'), ja = el('button', 'ja', 'Löschen');
+    nein.type = ja.type = 'button';
+    nein.onclick = () => hg.remove();
+    hg.onclick = (e) => { if (e.target === hg) hg.remove(); };
+    ja.onclick = () => { const g = ta.value.trim(); hg.remove(); weiter(g); };
+    kn.append(nein, ja); box.appendChild(kn); hg.appendChild(box); document.body.appendChild(hg);
+    ta.focus();
   }
 
   // Vorschau ohne Google (nur lokal zum Testen)

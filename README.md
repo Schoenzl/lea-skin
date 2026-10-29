@@ -70,3 +70,5 @@ dazu eine Zeitleiste (heute & morgen) und die Fahrten der letzten 24 h und näch
 - Geschützt mit PIN: Apps Script → Projekteinstellungen → Skripteigenschaften → `STATUS_PIN` (mind. 6 Ziffern).
   Ohne richtige PIN liefert der Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre.
 - Einrichten: neue HTML-Datei `Status` anlegen, `Code.gs` ersetzen, dann Bereitstellungen verwalten → Bearbeiten → Version „Neu“.
+- Löschen fragt eine Begründung ab. Hat der Buchende auf der Buchungsseite eine E-Mail angegeben (Pflichtfeld, Spalte „E-Mail“ wird automatisch angelegt),
+  bekommt er eine Mail vom FF-Konto mit Fahrzeug, Zeit und Begründung. Einmalig im Editor `mailTest` ausführen, um den Mailversand zu erlauben.

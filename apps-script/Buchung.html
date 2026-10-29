@@ -43,6 +43,8 @@
     <label for="name">Name (Vor- und Nachname)</label>
     <input id="name" list="namen" autocomplete="name" placeholder="z. B. Max Mustermann">
     <datalist id="namen"></datalist>
+    <label for="mail">E-Mail (für Nachrichten zur Buchung)</label>
+    <input id="mail" type="email" autocomplete="email" inputmode="email" placeholder="name@beispiel.at">
     <div class="zeit">
       <div><label for="von">Von</label><input id="von" type="datetime-local"></div>
       <div><label for="bis">Bis</label><input id="bis" type="datetime-local"></div>
@@ -63,7 +65,7 @@
   const melden = (text, art) => { const m = $('meldung'); m.textContent = text; m.className = 'meldung ' + art; };
   const pad = (n) => String(n).padStart(2, '0');
   const lokal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  try { $('name').value = localStorage.getItem('fz-name') || ''; } catch (e) {}
+  try { $('name').value = localStorage.getItem('fz-name') || ''; $('mail').value = localStorage.getItem('fz-mail') || ''; } catch (e) {}
 
   // Vorschlag: nächste volle Stunde, 2 Stunden
   const start = new Date(); start.setMinutes(0, 0, 0); start.setHours(start.getHours() + 1);
@@ -108,8 +110,8 @@
 
   $('los').onclick = () => {
     if (!fahrzeug) return melden('Bitte ein Fahrzeug auswählen.', 'fehler');
-    const d = { fahrzeug, name: $('name').value.trim(), von: $('von').value, bis: $('bis').value, zweck: $('zweck').value.trim() };
-    try { localStorage.setItem('fz-name', d.name); } catch (e) {}
+    const d = { fahrzeug, name: $('name').value.trim(), mail: $('mail').value.trim(), von: $('von').value, bis: $('bis').value, zweck: $('zweck').value.trim() };
+    try { localStorage.setItem('fz-name', d.name); localStorage.setItem('fz-mail', d.mail); } catch (e) {}
     $('los').disabled = true; melden('Wird geprüft …', 'ok');
     google.script.run
       .withSuccessHandler((r) => { $('los').disabled = false; melden(r.ok ? '✓ ' + r.text : r.fehler, r.ok ? 'ok' : 'fehler'); if (r.ok) { $('zweck').value = ''; laden(); } })
