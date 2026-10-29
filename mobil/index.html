@@ -106,6 +106,14 @@ main { padding: 12px; display: grid; gap: 12px; }
 .da-wahl button { text-align: left; font: inherit; font-size: 15px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
 .da-wahl button small { display: block; color: var(--grau); font-size: 12px; margin-top: 2px; }
 .da-wahl select { font: inherit; padding: 11px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
+.nachbar { background: #3A1A0A; border: 1px solid #9A3412; }
+.nachbar .lab { color: #FDBA74; }
+.nachbar .zeile { border-color: #5B2A12; }
+.haus-t { padding: 8px 0; border-top: 1px solid var(--linie); font-size: 14px; }
+.haus-t:first-child { border-top: 0; padding-top: 0; }
+.haus-t b { font-size: 15px; }
+.haus-t small { color: var(--grau); }
+.haus-t .namen { margin-top: 3px; color: #DDE2E8; }
 .da-ok { color: #4ADE80; font-weight: 700; margin-top: 10px; }
 .da-fehler { color: #FCA5A5; font-weight: 600; margin-top: 10px; }
 
@@ -374,6 +382,11 @@ main { padding: 12px; display: grid; gap: 12px; }
     const kurzZeit = (z) => { const d = /(\d{2})\.(\d{2})\.\d{4}\s+(\d{2}):(\d{2})/.exec(z || ''); if (d) return d[1] + '.' + d[2] + '. ' + d[3] + ':' + d[4]; const u = /([<~>]\s*\d+)\s*std/i.exec(z || ''); return u ? u[1].replace(/\s+/g, ' ') + ' Std.' : ''; };
     const ffs = ((wa && wa.feuerwehren) || []).map((f) => Object.assign({ bezirk: 'BL' }, f)).concat((ls && ls.feuerwehren) || [])
       .sort((a, b) => (eigen(b.name) ? 1 : 0) - (eigen(a.name) ? 1 : 0));
+    const istNachbar = (n) => (cfg().nachbarn || []).some((x) => norm(n).indexOf(norm(x)) !== -1);
+    const nachbarn = ffs.filter((f) => istNachbar(f.name));
+    const nachbarKarte = nachbarn.length ? h('div', 'card nachbar', [h('div', 'lab', ['Nachbar im Einsatz'])].concat(nachbarn.map((f) =>
+      h('div', 'zeile', [h('span', 'd', [f.dauer ? f.dauer.replace(/\s*h$/, ' Std.') : kurzZeit(f.zeit)]),
+        h('span', 'w', [h('span', 'cd', [f.stufe || '–'], chipStil(f.stufe)), 'FF ' + f.name, f.text ? h('small', null, [f.text]) : null])])))) : null;
     const bezirk = !wa && !ls ? [h('div', 'leer', ['keine aktuellen Daten'])]
       : ffs.length ? ffs.map((f) => h('div', 'zeile', [h('span', 'd', [f.dauer ? f.dauer.replace(/\s*h$/, ' Std.') : kurzZeit(f.zeit)]),
         h('span', 'w' + (eigen(f.name) ? ' eigen' : ''), [h('span', 'cd', [f.stufe || '–'], chipStil(f.stufe)), f.name + (f.bezirk ? ' (' + f.bezirk + ')' : ''), f.text ? h('small', null, [f.text]) : null])]))
@@ -390,6 +403,7 @@ main { padding: 12px; display: grid; gap: 12px; }
 
     app.append(kopf, h('main', null, [
       warn.length ? h('div', 'chips', warn) : null,
+      nachbarKarte,
       h('div', 'card', [status].concat(hist.length ? [h('div', 'lab', ['Letzter Einsatz'], { marginTop: '12px' }), histZeile(hist[0])] : [])),
       daKarte(),
       h('div', 'card', [h('div', 'lab', ['Ausgerückt im Bezirk'])].concat(bezirk)),
@@ -436,7 +450,23 @@ main { padding: 12px; display: grid; gap: 12px; }
       const b = h('button', 'knopf', ['Ich bin da ✓']); b.type = 'button'; b.onclick = auswahl;
       zeig(b);
     }
-    daBox.append(h('div', 'lab', ['Anwesenheit']), inhalt);
+    // Wer ist heute im Haus (alle 60 s neu, solange die Karte sichtbar ist)
+    const haus = h('div', null, null, { marginBottom: '12px' });
+    const hausLaden = () => {
+      if (!daBox.isConnected || document.visibilityState !== 'visible') return;
+      fetch('/da/heute').then((r) => r.json()).then((d) => {
+        haus.textContent = '';
+        if (!d.ok) { haus.appendChild(h('div', 'leer', [d.fehler])); return; }
+        if (!d.termine.length) { haus.appendChild(h('div', 'leer', ['Heute noch niemand eingecheckt.'])); return; }
+        d.termine.forEach((t) => haus.appendChild(h('div', 'haus-t', [
+          h('b', null, [t.titel]), h('small', null, [' · ' + (t.status === 'offen' ? 'seit ' + hhmm(t.beginn) : hhmm(t.beginn) + '–' + (t.ende ? hhmm(t.ende) : '')) + ' · ' + t.personen.length + ' da']),
+          h('div', 'namen', [t.personen.map((p) => p.name).join(', ')])
+        ])));
+      }).catch(() => {});
+    };
+    setTimeout(hausLaden, 300); setInterval(hausLaden, 60000);
+    document.addEventListener('visibilitychange', hausLaden);
+    daBox.append(h('div', 'lab', ['Heute im Feuerwehrhaus']), haus, inhalt);
     start();
     return daBox;
   };

@@ -324,6 +324,26 @@ const refreshIntern = async () => {
     run('Fahrzeuge', fahrzeugStatus, (v) => { next.fahrzeugStatus = v; })
   ]);
   await chrome.storage.local.set({ extra: next });
+  await nachbarPruefen(next).catch(() => {});
+};
+
+// ---------- Nachbarwehr im Einsatz → Push (nur wenn nachbarPushTopic gesetzt, nur ein Pi) ----------
+const istNachbar = (name) => (C.nachbarn || []).some((n) => norm_(name).indexOf(norm_(n)) !== -1);
+const norm_ = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+const nachbarPruefen = async (ex) => {
+  const ffs = (((ex.wastl || {}).feuerwehren) || []).concat(((ex.lsz || {}).feuerwehren) || []).filter((f) => istNachbar(f.name));
+  const alt = (await chrome.storage.local.get('nachbarGesehen')).nachbarGesehen || {};
+  const neu = {}, jetzt = Date.now();
+  const melden = [];
+  ffs.forEach((f) => { const k = norm_(f.name) + '|' + (f.stufe || '') + '|' + (f.text || ''); neu[k] = alt[k] || jetzt; if (!alt[k]) melden.push(f); });
+  await chrome.storage.local.set({ nachbarGesehen: neu });
+  if (!C.nachbarPushTopic) return;
+  // erster Lauf nach dem Einrichten: was schon läuft, nicht melden
+  if (!(await chrome.storage.local.get('nachbarInit')).nachbarInit) { await chrome.storage.local.set({ nachbarInit: true }); return; }
+  for (const f of melden) {
+    await fetch('https://ntfy.sh/' + encodeURIComponent(C.nachbarPushTopic) + '?title=' + encodeURIComponent('Nachbar im Einsatz: FF ' + f.name) + '&tags=rotating_light',
+      { method: 'POST', body: [f.stufe, f.text].filter(Boolean).join(' · ') + (f.zeit || f.alarm ? ' · ' + (f.alarm || f.zeit) : '') }).catch(() => {});
+  }
 };
 
 // ---------- Wächter: Selbstheilung + Ausfallmeldung ----------
@@ -378,7 +398,7 @@ chrome.runtime.onMessage.addListener((m) => {
 
 // ---------- Handy-Ansicht: Stand an den Server am Pi (mobil/server.py, nur 127.0.0.1) ----------
 const MOBIL_CFG = ['feuerwehr', 'elListe', 'funktionen', 'fahrzeug', 'farben', 'fahrzeuge', 'pickerlLkw', 'eigeneFF',
-  'termine', 'termineAnzahl', 'karteUrl', 'karteZoom', 'ort', 'datenTimeoutSek', 'pegel', 'fahrtenbuchFormUrl'];
+  'termine', 'termineAnzahl', 'karteUrl', 'karteZoom', 'ort', 'datenTimeoutSek', 'pegel', 'fahrtenbuchFormUrl', 'nachbarn'];
 const MOBIL_EXTRA = ['wetter', 'wastl', 'lsz', 'pegel', 'kalender', 'fahrtenbuch', 'fahrzeugStatus', 'uwz', 'status', 'version', 'at'];
 const mobilSenden = async (leaJson) => {
   try {

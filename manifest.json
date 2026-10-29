@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LEA Infoscreen – FF Deutsch Haslau",
   "description": "Eigene Darstellung des LEA-Infoscreens für die FF Deutsch Haslau. Liest nur mit, was die Seite selbst lädt.",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://api.open-meteo.com/*",
@@ -15,7 +15,8 @@
     "https://hc-ping.com/*",
     "https://rss.orf.at/*",
     "https://www.uwz.at/*",
-    "http://127.0.0.1/*"
+    "http://127.0.0.1/*",
+    "https://ntfy.sh/*"
   ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [

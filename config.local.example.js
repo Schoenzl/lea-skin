@@ -21,3 +21,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
 // Handy-Ansicht (mobil/): nur auf EINEM Pi setzen. Gibt den Stand an den Server am Pi weiter (127.0.0.1:8787),
 // erreichbar nur über Tailscale. Einrichten: ~/lea-skin/mobil/install-mobil.sh
 // globalThis.LEASKIN_CONFIG.mobilPush = true;
+
+// Push, wenn eine Nachbarwehr (Liste „nachbarn“ in config.js) ausrückt – nur an dich, App „ntfy“, eigener geheimer Kanal.
+// Nur auf EINEM Pi setzen. globalThis.LEASKIN_CONFIG.nachbarPushTopic = 'ffdh-nachbar-…';

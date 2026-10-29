@@ -303,8 +303,25 @@ function doPost(e) {
     if (!soll || String(d.key || '') !== soll) return antwort({ ok: false, fehler: 'Schlüssel falsch oder DA_KEY nicht eingerichtet.' });
     if (d.aktion === 'start') { const s = daStart(); return antwort({ ok: true, termine: s.termine, arten: s.arten }); }
     if (d.aktion === 'einchecken') return antwort(daEinchecken({ name: d.name, termin: d.termin, art: d.art, titel: d.titel }));
+    if (d.aktion === 'heute') return antwort(anwHeute_());
     return antwort({ ok: false, fehler: 'Unbekannte Aktion.' });
   } catch (err) {
     return antwort({ ok: false, fehler: err.message });
   }
+}
+
+// Wer war/ist heute im Haus (für die Handy-Ansicht): Termine mit Beginn heute oder noch offen, mit Namen
+function anwHeute_() {
+  const ss = anwSS_();
+  const heute = Utilities.formatDate(new Date(), 'Europe/Vienna', 'yyyyMMdd');
+  const A = anwLesen_(ss, 'Anwesenheit').zeilen;
+  const termine = anwLesen_(ss, 'Termine').zeilen
+    .filter((t) => t.Status === 'offen' || (anwZeit_(t.Beginn) && Utilities.formatDate(t.Beginn, 'Europe/Vienna', 'yyyyMMdd') === heute))
+    .sort((a, b) => anwZeit_(b.Beginn) - anwZeit_(a.Beginn))
+    .map((t) => {
+      const p = A.filter((a) => a['Termin-ID'] === t.ID).sort((a, b) => anwZeit_(a.Zeitstempel) - anwZeit_(b.Zeitstempel));
+      return { titel: t.Titel, status: t.Status, beginn: anwZeit_(t.Beginn), ende: anwZeit_(t.Ende),
+        personen: p.map((a) => ({ name: a.Name, seit: anwZeit_(a.Zeitstempel) })) };
+    }).filter((t) => t.personen.length);
+  return { ok: true, termine };
 }

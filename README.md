@@ -115,3 +115,10 @@ nur am Pi in `mobil/da.json` (nicht im Repo):
 (grau = nicht ganzjährig) mit Kasten „Nächste Hydranten“ (Entfernung, Anschlüsse); in der Handy-Ansicht ebenso, die Liste
 darunter öffnet die Navigation zum Hydranten. Änderungen direkt in `hydranten.js`, dann `update.sh`.
 Offen: Nr. 2 und 3 haben laut Export dieselbe Position (vor Ort prüfen); Druck/Nennweite sind in wasserkarte.info nicht erfasst.
+
+## Handy-Ansicht: Heute im Feuerwehrhaus und Nachbar im Einsatz (ab v0.19.0)
+- **Heute im Feuerwehrhaus** (Reiter „Lage“): Termine von heute bzw. noch offene mit Namen, über `mobil/server.py` → `/da/heute`
+  → Apps Script `doPost` Aktion `heute` (Schlüssel `DA_KEY`). Aktualisiert jede Minute.
+- **Nachbar im Einsatz**: rückt eine Wehr aus `nachbarn` (config.js) laut WASTL/LSZ aus, erscheint oben eine Karte.
+  Optional Push vom Pi über ntfy (eigene IP, kein Google-Kontingent): `nachbarPushTopic` in `config.local.js` (nur ein Pi).
+  Beim ersten Lauf werden schon laufende Einsätze nicht gemeldet. Abfrage alle 5 Minuten (`aktualisierenMin`).

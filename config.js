@@ -54,7 +54,10 @@ globalThis.LEASKIN_CONFIG = {
   // Burgenland: Landessicherheitszentrale (einsatz.lsz-b.at), Bezirk Neusiedl am See = ND
   lszBezirk: 'ND',
   lszUrl: 'https://einsatz.lsz-b.at/',
-  eigeneFF: 'Deutsch Haslau',   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
+  eigeneFF: 'Deutsch Haslau',
+  // Nachbarwehren: in der Handy-Ansicht hervorgehoben, optional Push (nachbarPushTopic in config.local.js)
+  nachbarn: ['Prellenkirchen', 'Schönabrunn', 'Hundsheim', 'Bad Deutsch-Altenburg', 'Petronell', 'Rohrau', 'Hainburg',
+    'Pama', 'Kittsee', 'Gattendorf', 'Edelstal', 'Berg', 'Wolfsthal'],   // wird in der Liste der eingesetzten Feuerwehren hervorgehoben
   // Pegel aus dem Hydrographischen Dienst NÖ (noe.gv.at/wasserstand)
   // Pegel ausgeblendet (25.10.2026). Wieder einschalten: { name: 'Leitha', station: '209007', ort: 'Deutsch Haslau' }
   pegel: null,

@@ -61,6 +61,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._antwort(200, 'ok')
         if pfad == '/da/start':
             return self._da({'aktion': 'start'})
+        if pfad == '/da/heute':
+            return self._da({'aktion': 'heute'})
         if pfad.startswith('/fonts/') and pfad.endswith('.woff2'):
             name = os.path.basename(pfad)
             ordner = os.path.join(DIR, '..', 'fonts')
