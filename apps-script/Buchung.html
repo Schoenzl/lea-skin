@@ -114,12 +114,46 @@
   .b .info span { color: var(--grau); }
   .b button { flex: none; font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
   .leer { color: var(--grau); font-size: 14px; }
+  /* Anwesenheit */
+  .wahl { display: grid; gap: 8px; }
+  .wahl button { text-align: left; font: inherit; padding: 12px 14px; border-radius: 10px; border: 2px solid #C5CCD6; background: #fff; color: var(--text); }
+  .wahl button small { display: block; color: var(--grau); font-size: 13px; margin-top: 2px; }
+  .wahl button.an { border-color: var(--rot); background: #FDECEF; }
+  select { width: 100%; font: inherit; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
+  .ich { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #F3F5F8; font-weight: 700; font-size: 18px; }
+  .ich button { font: inherit; font-size: 13px; font-weight: 400; border: 0; background: none; color: var(--grau); text-decoration: underline; }
+  .gross-ok { text-align: center; padding: 26px 10px; }
+  .gross-ok .haken { font-size: 56px; line-height: 1; color: #16A34A; }
+  .gross-ok p { font-size: 18px; font-weight: 700; margin: 10px 0 0; }
+  #kommando .anw-t { border-top: 1px solid var(--linie); padding: 14px 0; }
+  #kommando .anw-t:first-of-type { border-top: 0; padding-top: 0; }
+  #kommando .anw-kopf { display: flex; align-items: center; gap: 8px; }
+  #kommando .anw-kopf b { flex: 1; font-size: 16px; }
+  #kommando .badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 3px 8px; border-radius: 999px; background: var(--gelb-bg); color: #92400E; }
+  #kommando .badge.zu { background: var(--gruen-bg); color: var(--gruen); }
+  #kommando .anw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  #kommando .anw-grid label { margin: 0 0 4px; font-size: 11px; }
+  #kommando .anw-grid .breit { grid-column: 1 / -1; }
+  #kommando .anw-grid > div { min-width: 0; }
+  #kommando .anw-grid input, #kommando .anw-grid select { width: 100%; min-width: 0; }
+  #kommando .nachtragen input { flex: 1; min-width: 0; }
+  #kommando .anw-grid input, #kommando .anw-grid select { padding: 9px; font-size: 14px; }
+  #kommando .pchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  #kommando .pchip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 4px 4px 10px; border-radius: 999px; background: #F3F5F8; }
+  #kommando .pchip.warn { background: var(--gelb-bg); }
+  #kommando .pchip button { border: 0; background: #DDE2E9; color: var(--grau); width: 22px; height: 22px; border-radius: 50%; font: inherit; font-size: 13px; line-height: 1; padding: 0; }
+  #kommando .nachtragen { display: flex; gap: 8px; margin-top: 10px; }
+  #kommando .nachtragen input { padding: 9px; font-size: 14px; }
+  #kommando .nachtragen button, #kommando .anw-knoepfe button { flex: none; font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; color: var(--text); }
+  #kommando .anw-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  #kommando .anw-knoepfe .rot { background: var(--rot); border-color: var(--rot); color: #fff; }
+  #kommando .anw-knoepfe .weg2 { color: #991B1B; border-color: #E5A3A3; margin-left: auto; }
 </style>
 </head>
 <body>
 <header>
-  <div class="titel"><h1>Fahrzeuge</h1><p>FF Deutsch Haslau · Fahrzeugnutzung</p></div>
-  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-kommando">Kommando</button></nav>
+  <div class="titel"><h1>FF Deutsch Haslau</h1><p>Fahrzeuge · Anwesenheit</p></div>
+  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-anwesenheit">Anwesenheit</button><button type="button" id="tab-kommando">Kommando</button></nav>
 </header>
 <main>
 <section id="buchen">
@@ -145,6 +179,28 @@
     <div id="liste"><div class="leer">wird geladen …</div></div>
   </div>
 </section>
+<section id="anwesenheit" hidden>
+  <div class="karte" id="a-form">
+    <h2>Anwesenheit</h2>
+    <div id="a-ichbox" hidden><div class="ich"><span id="a-ich"></span><button type="button" id="a-wechsel">nicht du?</button></div></div>
+    <div id="a-namebox">
+      <label for="a-name">Dein Name</label>
+      <input id="a-name" list="a-namen" autocomplete="off" placeholder="Namen eintippen und aus der Liste wählen">
+      <datalist id="a-namen"></datalist>
+    </div>
+    <label>Wofür?</label>
+    <div class="wahl" id="a-termine"><div class="leer">wird geladen …</div></div>
+    <div id="a-artbox" hidden>
+      <label for="a-art">Was machst du?</label>
+      <select id="a-art"></select>
+      <label for="a-titel">Kurz beschreiben (optional)</label>
+      <input id="a-titel" maxlength="80" placeholder="z. B. Schlauchpflege, Funkgeräte laden">
+    </div>
+    <button class="los" id="a-los">Ich bin da ✓</button>
+    <div class="meldung" id="a-meldung"></div>
+  </div>
+  <div class="karte gross-ok" id="a-ok" hidden><div class="haken">✓</div><p id="a-oktext"></p><button class="los" id="a-nochmal" type="button" style="background:#5B6573">Fertig</button></div>
+</section>
 <section id="kommando" hidden>
   <div id="k-pinbox" class="karte">
     <h2>Kommando · PIN eingeben</h2>
@@ -164,6 +220,11 @@
     <div class="karte">
       <h2>Fahrten · letzte 24 h und nächste 7 Tage</h2>
       <div id="k-liste"></div>
+    </div>
+    <div class="karte">
+      <h2>Anwesenheit · offen und abgeschlossen</h2>
+      <div id="k-anw"><div class="leer">wird geladen …</div></div>
+      <div class="anw-knoepfe"><button type="button" id="k-anw-neu">Aktualisieren</button></div>
     </div>
     <div class="fuss">Aktualisiert sich jede Minute von selbst.</div>
   </div>
@@ -232,13 +293,14 @@
 
   // Reiter Buchen / Kommando
   const reiter = (r) => {
-    $('buchen').hidden = r !== 'buchen'; $('kommando').hidden = r !== 'kommando';
-    $('tab-buchen').className = r === 'buchen' ? 'an' : ''; $('tab-kommando').className = r === 'kommando' ? 'an' : '';
+    ['buchen', 'anwesenheit', 'kommando'].forEach((x) => { $(x).hidden = r !== x; $('tab-' + x).className = r === x ? 'an' : ''; });
+    if (r === 'anwesenheit') window.anwStart();
     if (r === 'kommando') { window.kommandoStart(); if ($('k-pinbox') && !$('k-pinbox').hidden) $('k-pin').focus(); }
   };
   $('tab-buchen').onclick = () => reiter('buchen');
   $('tab-kommando').onclick = () => reiter('kommando');
-  window.addEventListener('load', () => { if ('<?= start ?>' === 'kommando') reiter('kommando'); });
+  $('tab-anwesenheit').onclick = () => reiter('anwesenheit');
+  window.addEventListener('load', () => { const s = '<?= start ?>'; if (s === 'kommando' || s === 'anwesenheit') reiter(s); });
 </script>
 <script>
 (() => {
@@ -260,13 +322,14 @@
       if (!d.ok) { abmelden(); fehler(d.fehler); return; }
       try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
       daten = d; zeigen();
+      if (window.anwKommando && !window.anwKommandoGeladen) { window.anwKommandoGeladen = true; window.anwKommando(pin); }
     };
     if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fehler(e.message)).statusdaten(pin);
     else fertig(demo());
   }
   function fehler(t) { $('k-meldung').textContent = t; $('k-meldung').hidden = false; }
   function abmelden() {
-    pin = ''; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
+    pin = ''; window.anwKommandoGeladen = false; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
     clearInterval(timer); timer = null;
     $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
   }
@@ -406,6 +469,144 @@
     ] };
   }
   window.kommandoStart = () => { if (pin && !daten) laden(); };
+})();
+</script>
+<script>
+// ---------- Anwesenheit: Mitglied scannt QR-Code ----------
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const run = () => google.script.run;
+  let daten = null, wahl = null, ich = '';
+  try { ich = localStorage.getItem('da-name') || ''; } catch (e) {}
+  const melden = (t, art) => { const m = $('a-meldung'); m.textContent = t; m.className = 'meldung ' + art; };
+  const zeigeIch = () => {
+    const bekannt = ich && daten && daten.namen.indexOf(ich) !== -1;
+    $('a-ichbox').hidden = !bekannt; $('a-namebox').hidden = !!bekannt;
+    if (bekannt) $('a-ich').textContent = ich;
+  };
+  const zeigen = (d) => {
+    daten = d;
+    $('a-namen').textContent = '';
+    d.namen.forEach((n) => { const o = document.createElement('option'); o.value = n; $('a-namen').appendChild(o); });
+    zeigeIch();
+    $('a-art').textContent = '';
+    [''].concat(d.arten).forEach((a) => { const o = document.createElement('option'); o.value = a; o.textContent = a || '– bitte wählen –'; $('a-art').appendChild(o); });
+    const t = $('a-termine'); t.textContent = '';
+    const opts = d.termine.map((x) => ({ id: x.id, titel: x.titel, sub: x.text + (x.anzahl ? ' · ' + x.anzahl + ' da' : '') }))
+      .concat([{ id: '', titel: d.termine.length ? 'Etwas anderes …' : 'Kein Termin eingetragen – auswählen, was du machst', sub: '' }]);
+    if (wahl === null || !opts.some((o) => o.id === wahl)) wahl = d.termine.length === 1 ? d.termine[0].id : d.termine.length ? null : '';
+    opts.forEach((o) => {
+      const b = el('button', o.id === wahl ? 'an' : '', o.titel); b.type = 'button';
+      if (o.sub) b.appendChild(el('small', '', o.sub));
+      b.onclick = () => { wahl = o.id; zeigen(daten); };
+      t.appendChild(b);
+    });
+    $('a-artbox').hidden = wahl !== '';
+  };
+  const laden = () => run().withSuccessHandler(zeigen).withFailureHandler((e) => { $('a-termine').textContent = ''; melden(e.message, 'fehler'); }).daStart();
+  $('a-wechsel').onclick = () => { ich = ''; try { localStorage.removeItem('da-name'); } catch (e) {} zeigeIch(); $('a-name').value = ''; $('a-name').focus(); };
+  $('a-los').onclick = () => {
+    const name = ich && !$('a-ichbox').hidden ? ich : $('a-name').value.trim();
+    if (!name) return melden('Bitte deinen Namen wählen.', 'fehler');
+    if (wahl === null) return melden('Bitte auswählen, wofür du da bist.', 'fehler');
+    if (wahl === '' && !$('a-art').value) return melden('Bitte auswählen, was du machst.', 'fehler');
+    $('a-los').disabled = true; melden('Wird eingetragen …', 'ok');
+    run().withSuccessHandler((r) => {
+      $('a-los').disabled = false;
+      if (!r.ok) return melden(r.fehler, 'fehler');
+      ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
+      melden('', ''); $('a-meldung').className = 'meldung';
+      $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
+    }).withFailureHandler((e) => { $('a-los').disabled = false; melden('Fehler: ' + e.message, 'fehler'); })
+      .daEinchecken({ name, termin: wahl, art: $('a-art').value, titel: $('a-titel').value.trim() });
+  };
+  $('a-nochmal').onclick = () => { $('a-ok').hidden = true; $('a-form').hidden = false; $('a-titel').value = ''; laden(); };
+  let geladen = false;
+  window.anwStart = () => { if (!geladen) { geladen = true; laden(); } };
+})();
+
+// ---------- Anwesenheit: Kommando prüft, trägt nach, schließt ab ----------
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const pad = (n) => String(n).padStart(2, '0');
+  const lokal = (t) => { if (!t) return ''; const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  let pin = '';
+  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 5000); };
+  const feld = (label, input, breit) => { const w = el('div', breit ? 'breit' : ''); w.appendChild(el('label', '', label)); w.appendChild(input); return w; };
+  const auswahl = (werte, wert) => { const s = el('select'); werte.forEach((v) => { const o = el('option', '', v || '–'); o.value = v; if (v === wert) o.selected = true; s.appendChild(o); }); return s; };
+  const aktion = (a, knopf) => {
+    if (knopf) knopf.disabled = true;
+    google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); })
+      .withFailureHandler((e) => { toast(e.message, true); laden(); }).anwAktion(pin, a);
+  };
+  const zeigen = (d) => {
+    const box = $('k-anw'); box.textContent = '';
+    if (!d.ok) { box.appendChild(el('div', 'leer', d.fehler)); return; }
+    if (d.fehlt) { box.appendChild(el('div', 'leer', d.fehlt)); return; }
+    if (!d.termine.length) { box.appendChild(el('div', 'leer', 'Keine offenen Termine. Abgeschlossene werden nach dem Eintragen ins FDISK ausgeblendet.')); return; }
+    const dl = el('datalist'); dl.id = 'k-anw-namen'; d.namen.forEach((n) => { const o = el('option'); o.value = n; dl.appendChild(o); }); box.appendChild(dl);
+    d.termine.forEach((t) => {
+      const w = el('div', 'anw-t');
+      const kopf = el('div', 'anw-kopf'); kopf.appendChild(el('b', '', t.titel + ' · ' + t.personen.length));
+      kopf.appendChild(el('span', 'badge' + (t.status === 'offen' ? '' : ' zu'), t.status)); w.appendChild(kopf);
+      w.appendChild(el('div', 'leer', t.text));
+      const titel = el('input'); titel.value = t.titel; titel.maxLength = 80;
+      const art = auswahl([''].concat(d.arten), t.art);
+      const unter = auswahl((d.unterarten[t.art] || ['']), t.unterart);
+      let unterRef = unter;
+      art.onchange = () => { const neu = auswahl(d.unterarten[art.value] || [''], ''); unterRef.replaceWith(neu); unterRef = neu; };
+      const beginn = el('input'); beginn.type = 'datetime-local'; beginn.value = lokal(t.beginn);
+      const ende = el('input'); ende.type = 'datetime-local'; ende.value = lokal(t.ende);
+      const bem = el('input'); bem.value = t.bemerkung; bem.maxLength = 300; bem.placeholder = 'Bemerkung fürs FDISK';
+      const grid = el('div', 'anw-grid');
+      grid.append(feld('Titel', titel, true), feld('FDISK-Art', art), feld('Unterart', unter), feld('Beginn', beginn), feld('Ende', ende), feld('Bemerkung', bem, true));
+      w.appendChild(grid);
+      const chips = el('div', 'pchips');
+      t.personen.forEach((p) => {
+        const c = el('span', 'pchip' + (p.fehlt ? ' warn' : ''), p.name + (p.quelle === 'nachgetragen' ? ' (nachgetr.)' : '') + (p.fehlt ? ' ⚠ Standesbuchnr. fehlt' : ''));
+        const x = el('button', '', '×'); x.type = 'button'; x.title = 'entfernen';
+        x.onclick = () => { if (confirm(p.name + ' aus „' + t.titel + '“ entfernen?')) aktion({ aktion: 'entfernen', id: t.id, name: p.name }, x); };
+        c.appendChild(x); chips.appendChild(c);
+      });
+      w.appendChild(chips);
+      const nt = el('div', 'nachtragen'); const ni = el('input'); ni.setAttribute('list', 'k-anw-namen'); ni.placeholder = 'Name nachtragen';
+      const nb = el('button', '', '+ Nachtragen'); nb.type = 'button';
+      nb.onclick = () => { if (ni.value.trim()) aktion({ aktion: 'nachtragen', id: t.id, name: ni.value.trim() }, nb); };
+      nt.append(ni, nb); w.appendChild(nt);
+      const kn = el('div', 'anw-knoepfe');
+      const sp = el('button', '', 'Speichern'); sp.type = 'button';
+      const daten = () => ({ id: t.id, titel: titel.value.trim(), art: art.value, unterart: unterRef.value, beginn: beginn.value, ende: ende.value, bemerkung: bem.value.trim() });
+      sp.onclick = () => aktion(Object.assign({ aktion: 'speichern' }, daten()), sp);
+      kn.appendChild(sp);
+      if (t.status === 'offen') {
+        const ab = el('button', 'rot', 'Abschließen'); ab.type = 'button';
+        ab.onclick = () => {
+          if (!art.value) return toast('Bitte zuerst die FDISK-Art wählen.', true);
+          if (!confirm('„' + titel.value + '“ mit ' + t.personen.length + ' Personen abschließen?')) return;
+          ab.disabled = true;
+          google.script.run.withSuccessHandler((r) => {
+            if (!r.ok) { toast(r.fehler, true); laden(); return; }
+            aktion({ aktion: 'abschliessen', id: t.id, wer: 'Kommando' }, ab);
+          }).withFailureHandler((e) => { toast(e.message, true); laden(); }).anwAktion(pin, Object.assign({ aktion: 'speichern' }, daten()));
+        };
+        kn.appendChild(ab);
+      } else {
+        const of = el('button', '', 'Wieder öffnen'); of.type = 'button';
+        of.onclick = () => aktion({ aktion: 'oeffnen', id: t.id }, of);
+        kn.appendChild(of);
+      }
+      const lo = el('button', 'weg2', 'Löschen'); lo.type = 'button';
+      lo.onclick = () => { if (confirm('„' + t.titel + '“ samt ' + t.personen.length + ' Einträgen löschen?')) aktion({ aktion: 'loeschen', id: t.id }, lo); };
+      kn.appendChild(lo);
+      w.appendChild(kn);
+      box.appendChild(w);
+    });
+  };
+  const laden = () => google.script.run.withSuccessHandler(zeigen).withFailureHandler((e) => { $('k-anw').textContent = e.message; }).anwUebersicht(pin);
+  $('k-anw-neu').onclick = () => laden();
+  window.anwKommando = (p) => { pin = p; laden(); };
 })();
 </script>
 </body>

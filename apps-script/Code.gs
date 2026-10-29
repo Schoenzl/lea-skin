@@ -10,9 +10,10 @@ const MAX_TAGE = 7;                              // längste Buchung
 
 function doGet(e) {
   const t = HtmlService.createTemplateFromFile('Buchung');
-  t.start = e && e.parameter && e.parameter.seite === 'status' ? 'kommando' : 'buchen';
+  const seite = (e && e.parameter && e.parameter.seite) || '';
+  t.start = seite === 'status' ? 'kommando' : seite === 'da' ? 'anwesenheit' : 'buchen';
   return t.evaluate()
-    .setTitle('Fahrzeuge – FF Deutsch Haslau')
+    .setTitle('FF Deutsch Haslau')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

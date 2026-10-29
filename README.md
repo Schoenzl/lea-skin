@@ -86,3 +86,17 @@ eine Zeitleiste (heute & morgen) und die Fahrten der letzten 24 h und nächsten 
   Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre. Geht die PIN nicht: im Editor `pinPruefen` ausführen (Log zeigt, ob
   `STATUS_PIN` gefunden wird, und hebt die Sperre auf).
 - Mailversand einmalig freigeben: im Editor `mailTest` ausführen.
+
+### Anwesenheit per QR-Code (apps-script/Anwesenheit.gs, Reiter „Anwesenheit“)
+Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird am Handy gemerkt) und tippt „Ich bin da“.
+- **Welche Tätigkeit:** laufender Termin aus dem Google-Kalender „FF Deutsch Haslau“ (90 min vorher bis 60 min nachher).
+  Das Stichwort im Titel bestimmt die FDISK-Art laut Tab „Zuordnung“ (erste passende Zeile gilt, frei änderbar).
+  Ohne Termin: „Was machst du?“ – die erste Person wählt, weitere mit derselben Auswahl innerhalb von 4 h kommen dazu.
+- **Kommando** (Reiter „Kommando“, PIN): Titel, FDISK-Art/Unterart, Beginn/Ende, Bemerkung ändern, nachtragen, entfernen,
+  abschließen. Abgeschlossene Termine überträgt Claude mit dem Skill „fdisk-eintragen“ ins FDISK und setzt den Status „eingetragen“
+  samt Berichtsnummer.
+- **Tabelle** „Anwesenheit FF Deutsch Haslau“ (legt `anwesenheitEinrichten` an, ID in der Skripteigenschaft `ANW_ID`):
+  Mitglieder (Name, Standesbuchnummer, Aktiv) · Zuordnung · Termine · Anwesenheit. Nur Namen aus „Mitglieder“ werden angenommen.
+- **Einrichten:** in Apps Script neue Skriptdatei `Anwesenheit` mit `Anwesenheit.gs`, `Code.gs` und `Buchung` ersetzen,
+  ▶ `anwesenheitEinrichten` ausführen (Berechtigungen für Tabellen und Kalender erlauben), Tab „Mitglieder“ befüllen,
+  Bereitstellungen verwalten → Version „Neu“.
