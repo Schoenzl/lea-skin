@@ -9,9 +9,10 @@ const ABGESAGT = /abgesagt|storniert|storno|entf(ä|ae)llt|f(ä|ae)llt aus/i;
 const MAX_TAGE = 7;                              // längste Buchung
 
 function doGet(e) {
-  const status = e && e.parameter && e.parameter.seite === 'status';
-  return HtmlService.createTemplateFromFile(status ? 'Status' : 'Buchung').evaluate()
-    .setTitle(status ? 'Fahrzeugstatus – FF Deutsch Haslau' : 'Fahrzeug buchen – FF Deutsch Haslau')
+  const t = HtmlService.createTemplateFromFile('Buchung');
+  t.start = e && e.parameter && e.parameter.seite === 'status' ? 'kommando' : 'buchen';
+  return t.evaluate()
+    .setTitle('Fahrzeuge – FF Deutsch Haslau')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -139,20 +140,31 @@ function absagen(zeile, name) {
 }
 
 // ---------- Statusseite fürs Kommando (…/exec?seite=status), mit PIN geschützt ----------
-// PIN einrichten: Projekteinstellungen → Skripteigenschaften → STATUS_PIN (mind. 6 Ziffern).
+// PIN einrichten: Projekteinstellungen → Skripteigenschaften → STATUS_PIN (mind. 4 Ziffern).
 // Ohne richtige PIN liefert der Server keine Daten. Nach 10 Fehlversuchen ist 15 Minuten gesperrt.
 const FEHL_MAX = 10, SPERRE_S = 900;
 
+function pinNorm_(p) { return String(p == null ? '' : p).replace(/[\s"'„“]/g, ''); }
 function pinOk_(pin) {
-  const soll = PropertiesService.getScriptProperties().getProperty('STATUS_PIN');
-  if (!soll || String(soll).length < 6) throw new Error('Die Statusseite ist noch nicht eingerichtet (STATUS_PIN fehlt).');
+  const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
+  if (!soll) throw new Error('Kommando-Ansicht noch nicht eingerichtet: In Apps Script unter Projekteinstellungen → Skripteigenschaften die Eigenschaft STATUS_PIN anlegen.');
+  if (soll.length < 4) throw new Error('STATUS_PIN ist zu kurz, bitte mindestens 4 Ziffern verwenden.');
   const cache = CacheService.getScriptCache();
   const fehl = +(cache.get('status-fehl') || 0);
   if (fehl >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
-  if (String(pin || '').trim() === String(soll).trim()) return true;
+  if (pinNorm_(pin) === soll) { cache.remove('status-fehl'); return true; }
   cache.put('status-fehl', String(fehl + 1), SPERRE_S);
   Utilities.sleep(800);                          // bremst Durchprobieren
   return false;
+}
+
+// Im Editor ausführen (▶ pinPruefen), wenn die PIN nicht geht: zeigt im Ausführungslog, ob STATUS_PIN gefunden wird, und hebt eine Sperre auf.
+function pinPruefen() {
+  const p = PropertiesService.getScriptProperties().getProperties();
+  const k = Object.keys(p);
+  CacheService.getScriptCache().remove('status-fehl');
+  console.log('Skripteigenschaften: ' + (k.length ? k.join(', ') : '(keine)'));
+  console.log(p.STATUS_PIN ? 'STATUS_PIN gefunden, ' + pinNorm_(p.STATUS_PIN).length + ' Zeichen. Sperre aufgehoben.' : 'STATUS_PIN NICHT gefunden – Name genau so schreiben: STATUS_PIN');
 }
 
 function zustand_() {

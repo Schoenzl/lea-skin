@@ -9,14 +9,96 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
   header { background: var(--rot); color: #fff; padding: 16px; }
   header h1 { margin: 0; font-size: 20px; } header p { margin: 2px 0 0; opacity: .85; font-size: 14px; }
-  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  #buchen { max-width: 560px; margin: 0 auto; }
+  nav.tabs { display: flex; gap: 6px; margin-top: 12px; }
+  nav.tabs button { font: inherit; font-weight: 700; font-size: 15px; padding: 8px 16px; border-radius: 8px 8px 0 0; border: 0; background: rgba(255,255,255,.18); color: #fff; }
+  nav.tabs button.an { background: var(--bg); color: var(--rot); }
+  header { padding-bottom: 0 !important; }
+  header .titel { padding-bottom: 4px; }
+  :root { --gruen: #16A34A; --gruen-bg: #E8F7EE; --gelb: #D97706; --gelb-bg: #FEF3C7; --rot-bg: #FDECEC; }
+  [hidden] { display: none !important; }
+  #kommando .kbar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; font-size: 13px; color: var(--grau); margin-bottom: 12px; }
+  #kommando .kbar button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
+  #kommando .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
+  #kommando h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
+
+  /* PIN */
+  #kommando #pinbox { max-width: 360px; margin: 40px auto; text-align: center; }
+  #kommando #pin { width: 100%; font: inherit; font-size: 28px; letter-spacing: 8px; text-align: center; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; }
+  #kommando .los { width: 100%; margin-top: 14px; font: inherit; font-weight: 700; font-size: 18px; padding: 14px; border: 0; border-radius: 10px; background: var(--rot); color: #fff; }
+  #kommando .meldung { display: block; white-space: pre-line; margin-top: 14px; padding: 12px; border-radius: 8px; font-weight: 600; background: var(--rot-bg); color: #991B1B; box-shadow: inset 4px 0 0 #DC2626; text-align: left; }
+
+  /* Fahrzeugkarten */
+  #kommando .fzs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  #kommando .fz { background: #fff; border-radius: 12px; box-shadow: 0 0 0 1px var(--linie); overflow: hidden; display: flex; flex-direction: column; }
+  #kommando .fz .kopf { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
+  #kommando .fz .name { font-size: 24px; font-weight: 800; letter-spacing: .5px; }
+  #kommando .fz .pille { margin-left: auto; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 4px 10px; border-radius: 999px; }
+  #kommando .frei .pille { background: var(--gruen-bg); color: var(--gruen); }
+  #kommando .unterwegs .pille { background: var(--gelb-bg); color: #92400E; }
+  #kommando .fz .band { height: 6px; }
+  #kommando .frei .band { background: var(--gruen); } .unterwegs .band { background: var(--gelb); }
+  #kommando .fz .koerper { padding: 0 14px 14px; flex: 1; }
+  #kommando .fz .wer { font-size: 18px; font-weight: 700; }
+  #kommando .fz .klein { font-size: 14px; color: var(--grau); }
+  #kommando .fz .rest { margin-top: 6px; font-weight: 700; color: #92400E; }
+  #kommando .fz .zst { margin: 0 14px 14px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  #kommando .zst.ja { background: #F3F5F8; color: var(--grau); }
+  #kommando .zst.eing { background: var(--gelb-bg); color: #92400E; }
+  #kommando .zst.nein { background: var(--rot-bg); color: #991B1B; }
+  #kommando .unterwegs .wer::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gelb); margin-right: 8px; animation: puls 1.6s infinite; vertical-align: 1px; }
+  @keyframes puls { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+  /* Zeitleiste */
+  #kommando .tl { position: relative; }
+  #kommando .tl .zeile { display: grid; grid-template-columns: 54px 1fr; align-items: center; gap: 8px; height: 38px; }
+  #kommando .tl .lab { font-weight: 800; font-size: 14px; }
+  #kommando .tl .spur { position: relative; height: 28px; background: #F3F5F8; border-radius: 6px; overflow: hidden; }
+  #kommando .tl .balken { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: #93A3B8; color: #fff; font-size: 11px; font-weight: 700; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 22px; }
+  #kommando .tl .balken.jetzt { background: var(--gelb); }
+  #kommando .tl .balken.spaeter { background: #3B6FB6; }
+  #kommando .tl .achse { display: grid; grid-template-columns: 54px 1fr; gap: 8px; }
+  #kommando .tl .ticks { position: relative; height: 18px; font-size: 11px; color: var(--grau); }
+  #kommando .tl .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  #kommando .tl .ticks span.tag { font-weight: 800; color: var(--text); }
+  #kommando .tl .nl { position: absolute; top: 0; bottom: 18px; width: 2px; background: var(--rot); z-index: 2; }
+  #kommando .tl .nl::after { content: 'jetzt'; position: absolute; top: -16px; left: -12px; font-size: 10px; font-weight: 800; color: var(--rot); }
+  #kommando .tl .gitter { position: absolute; top: 0; bottom: 18px; width: 1px; background: var(--linie); }
+  #kommando .legende { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--grau); }
+  #kommando .legende i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  /* Liste */
+  #kommando .b { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--linie); font-size: 14px; }
+  #kommando .b:first-child { border-top: 0; }
+  #kommando .b .fzk { flex: none; width: 54px; font-weight: 800; }
+  #kommando .b .info span { color: var(--grau); }
+  #kommando .leer { color: var(--grau); font-size: 14px; }
+  #kommando .b .info { flex: 1; min-width: 0; }
+  #kommando .b.vorbei { opacity: .55; }
+  #kommando .weg { flex: none; font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #E5A3A3; background: #fff; color: #991B1B; }
+  #kommando .weg:disabled { opacity: .5; }
+  #kommando .fz .weg { margin-top: 10px; }
+  #kommando .fuss { text-align: center; font-size: 12px; color: var(--grau); }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 92vw; padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; color: #fff; background: #166534; box-shadow: 0 6px 20px rgba(0,0,0,.2); z-index: 9; }
+  .toast.fehler { background: #991B1B; }
+  .dlg { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .dlg .box { background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .dlg h3 { margin: 0 0 8px; font-size: 18px; }
+  .dlg .was { font-size: 14px; color: var(--grau); white-space: pre-line; margin-bottom: 12px; }
+  .dlg label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin-bottom: 6px; }
+  .dlg textarea { width: 100%; min-height: 84px; font: inherit; padding: 10px; border: 1px solid #C5CCD6; border-radius: 8px; resize: vertical; }
+  .dlg .hinw { font-size: 12px; color: var(--grau); margin-top: 6px; }
+  .dlg .knoepfe { display: flex; gap: 10px; margin-top: 14px; }
+  .dlg .knoepfe button { flex: 1; font: inherit; font-weight: 700; padding: 12px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; }
+  .dlg .knoepfe .ja { background: var(--rot); border-color: var(--rot); color: #fff; }
   .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
   label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin: 14px 0 6px; }
   label:first-child { margin-top: 0; }
   input { width: 100%; font: inherit; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
-  .fz { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .fz button { font: inherit; font-weight: 700; padding: 14px 0; border-radius: 8px; border: 2px solid #C5CCD6; background: #fff; color: var(--text); }
-  .fz button.an { border-color: var(--rot); background: #FDECEF; color: var(--rot); }
+  .fzwahl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .fzwahl button { font: inherit; font-weight: 700; padding: 14px 0; border-radius: 8px; border: 2px solid #C5CCD6; background: #fff; color: var(--text); }
+  .fzwahl button.an { border-color: var(--rot); background: #FDECEF; color: var(--rot); }
   .zeit { display: grid; grid-template-columns: 1fr; gap: 0; }
   input { min-width: 0; max-width: 100%; }
   .los { width: 100%; margin-top: 18px; font: inherit; font-weight: 700; font-size: 18px; padding: 14px; border: 0; border-radius: 10px; background: var(--rot); color: #fff; }
@@ -35,11 +117,15 @@
 </style>
 </head>
 <body>
-<header><h1>Fahrzeug buchen</h1><p>FF Deutsch Haslau · Fahrzeugnutzung</p></header>
+<header>
+  <div class="titel"><h1>Fahrzeuge</h1><p>FF Deutsch Haslau · Fahrzeugnutzung</p></div>
+  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-kommando">Kommando</button></nav>
+</header>
 <main>
+<section id="buchen">
   <div class="karte">
     <label>Fahrzeug</label>
-    <div class="fz" id="fz"></div>
+    <div class="fzwahl" id="fz"></div>
     <label for="name">Name (Vor- und Nachname)</label>
     <input id="name" list="namen" autocomplete="name" placeholder="z. B. Max Mustermann">
     <datalist id="namen"></datalist>
@@ -58,6 +144,30 @@
     <h2>Gebucht – nächste 30 Tage</h2>
     <div id="liste"><div class="leer">wird geladen …</div></div>
   </div>
+</section>
+<section id="kommando" hidden>
+  <div id="k-pinbox" class="karte">
+    <h2>Kommando · PIN eingeben</h2>
+    <input id="k-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12">
+    <button class="los" id="k-los">Anzeigen</button>
+    <div class="meldung" id="k-meldung" hidden></div>
+  </div>
+
+  <div id="k-inhalt" hidden>
+    <div class="kbar"><span id="k-stand"></span><button id="k-abmelden" type="button">Abmelden</button></div>
+    <div class="fzs" id="k-fzs"></div>
+    <div class="karte">
+      <h2>Zeitleiste · heute &amp; morgen</h2>
+      <div class="tl" id="k-tl"></div>
+      <div class="legende"><span><i style="background:var(--gelb)"></i>unterwegs</span><span><i style="background:#3B6FB6"></i>gebucht</span><span><i style="background:#93A3B8"></i>vorbei</span></div>
+    </div>
+    <div class="karte">
+      <h2>Fahrten · letzte 24 h und nächste 7 Tage</h2>
+      <div id="k-liste"></div>
+    </div>
+    <div class="fuss">Aktualisiert sich jede Minute von selbst.</div>
+  </div>
+</section>
 </main>
 <script>
   let fahrzeug = '', daten = null;
@@ -119,6 +229,184 @@
       .buchen(d);
   };
   laden();
+
+  // Reiter Buchen / Kommando
+  const reiter = (r) => {
+    $('buchen').hidden = r !== 'buchen'; $('kommando').hidden = r !== 'kommando';
+    $('tab-buchen').className = r === 'buchen' ? 'an' : ''; $('tab-kommando').className = r === 'kommando' ? 'an' : '';
+    if (r === 'kommando') { window.kommandoStart(); if ($('k-pinbox') && !$('k-pinbox').hidden) $('k-pin').focus(); }
+  };
+  $('tab-buchen').onclick = () => reiter('buchen');
+  $('tab-kommando').onclick = () => reiter('kommando');
+  window.addEventListener('load', () => { if ('<?= start ?>' === 'kommando') reiter('kommando'); });
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const pad = (n) => String(n).padStart(2, '0');
+  const uhr = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const tag = (t) => { const d = new Date(t); return WT[d.getDay()] + ' ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; };
+  const heute = (t) => new Date(t).toDateString() === new Date().toDateString();
+  const wann = (t) => (heute(t) ? 'heute' : tag(t)) + ' ' + uhr(t);
+  const dauer = (ms) => { const m = Math.round(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h < 48 ? h + ' h ' + pad(m % 60) + ' min' : Math.round(h / 24) + ' Tage'; };
+  let pin = '', daten = null, timer = null;
+  try { pin = localStorage.getItem('fz-status-pin') || ''; } catch (e) {}
+
+  function laden() {
+    if (!pin) return;
+    const fertig = (d) => {
+      if (!d.ok) { abmelden(); fehler(d.fehler); return; }
+      try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
+      daten = d; zeigen();
+    };
+    if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fehler(e.message)).statusdaten(pin);
+    else fertig(demo());
+  }
+  function fehler(t) { $('k-meldung').textContent = t; $('k-meldung').hidden = false; }
+  function abmelden() {
+    pin = ''; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
+    clearInterval(timer); timer = null;
+    $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
+  }
+  $('k-los').onclick = () => { pin = $('k-pin').value.trim(); $('k-meldung').hidden = true; laden(); };
+  $('k-pin').onkeydown = (e) => { if (e.key === 'Enter') $('k-los').click(); };
+  $('k-abmelden').onclick = abmelden;
+
+  function zeigen() {
+    $('k-pinbox').hidden = true; $('k-inhalt').hidden = false;
+    $('k-stand').textContent = 'Stand ' + uhr(Date.now());
+    if (!timer) timer = setInterval(laden, 60000);
+    const jetzt = Date.now();
+
+    // Karten
+    $('k-fzs').textContent = '';
+    daten.fahrzeuge.forEach((f) => {
+      const u = f.unterwegs;
+      const k = el('div', 'fz ' + (u ? 'unterwegs' : 'frei'));
+      k.appendChild(el('div', 'band'));
+      const kopf = el('div', 'kopf'); kopf.appendChild(el('div', 'name', f.fahrzeug)); kopf.appendChild(el('div', 'pille', u ? 'unterwegs' : 'frei'));
+      k.appendChild(kopf);
+      const kp = el('div', 'koerper');
+      if (u) {
+        kp.appendChild(el('div', 'wer', u.name || '–'));
+        kp.appendChild(el('div', 'klein', (u.zweck || 'ohne Zweck') + ' · seit ' + wann(u.von)));
+        kp.appendChild(el('div', 'rest', 'zurück bis ' + wann(u.bis) + ' (noch ' + dauer(u.bis - jetzt) + ')'));
+        if (f.naechste) kp.appendChild(el('div', 'klein', 'danach: ' + wann(f.naechste.von) + ' · ' + f.naechste.name));
+        kp.appendChild(knopf(f.fahrzeug, u, 'Fahrt löschen'));
+      } else {
+        kp.appendChild(el('div', 'wer', 'in der Halle'));
+        kp.appendChild(el('div', 'klein', f.naechste ? 'nächste Fahrt ' + wann(f.naechste.von) + ' · ' + f.naechste.name + (f.naechste.zweck ? ' · ' + f.naechste.zweck : '') : 'keine Fahrt geplant'));
+        if (f.zuletzt) kp.appendChild(el('div', 'klein', 'zuletzt ' + wann(f.zuletzt.bis) + ' · ' + f.zuletzt.name));
+      }
+      k.appendChild(kp);
+      const z = f.zustand;
+      if (z) {
+        const b = z.bereit;
+        const cls = b === 'nein' ? 'nein' : b.indexOf('einge') === 0 ? 'eing' : 'ja';
+        const t = (cls === 'nein' ? '⛔ nicht einsatzbereit' : cls === 'eing' ? '⚠ eingeschränkt einsatzbereit' : '✓ einsatzbereit') +
+          (z.mangel && cls !== 'ja' ? ': ' + z.mangel : '') + (z.pickerl ? ' · Pickerl ' + z.pickerl : '');
+        k.appendChild(el('div', 'zst ' + cls, t));
+      }
+      $('k-fzs').appendChild(k);
+    });
+
+    // Zeitleiste: heute 0 Uhr −6 h bis +48 h
+    const a0 = new Date(); a0.setHours(0, 0, 0, 0);
+    const start = a0.getTime() - 6 * 3600e3, ende = a0.getTime() + 48 * 3600e3, span = ende - start;
+    const x = (t) => Math.max(0, Math.min(100, (t - start) / span * 100));
+    const tl = $('k-tl'); tl.textContent = '';
+    const flaeche = el('div'); flaeche.style.position = 'relative';
+    daten.fahrzeuge.forEach((f) => {
+      const z = el('div', 'zeile'); z.appendChild(el('div', 'lab', f.fahrzeug));
+      const s = el('div', 'spur');
+      f.fahrten.filter((b) => b.bis > start && b.von < ende).forEach((b) => {
+        const art = b.von <= jetzt && jetzt < b.bis ? 'jetzt' : b.von > jetzt ? 'spaeter' : '';
+        const bk = el('div', 'balken ' + art, b.name);
+        bk.style.left = x(b.von) + '%'; bk.style.width = Math.max(1.2, x(b.bis) - x(b.von)) + '%';
+        bk.title = b.text + ' · ' + b.name + (b.zweck ? ' · ' + b.zweck : '');
+        s.appendChild(bk);
+      });
+      z.appendChild(s); flaeche.appendChild(z);
+    });
+    // Achse
+    const achse = el('div', 'achse'); achse.appendChild(el('div'));
+    const ticks = el('div', 'ticks');
+    for (let t = a0.getTime(); t < ende; t += 6 * 3600e3) {
+      const d = new Date(t), mitternacht = d.getHours() === 0;
+      const sp = el('span', mitternacht ? 'tag' : '', mitternacht ? (heute(t) ? 'heute' : WT[d.getDay()] + ' ' + pad(d.getDate()) + '.') : pad(d.getHours()) + 'h');
+      sp.style.left = x(t) + '%'; ticks.appendChild(sp);
+    }
+    achse.appendChild(ticks); flaeche.appendChild(achse);
+    // Gitter + Jetzt-Linie über die Spuren legen (Spalte 2 der Zeilen)
+    const ueber = el('div'); ueber.style.cssText = 'position:absolute;top:0;bottom:0;left:62px;right:0;pointer-events:none';
+    for (let t = a0.getTime(); t < ende; t += 24 * 3600e3) { const g = el('div', 'gitter'); g.style.left = x(t) + '%'; ueber.appendChild(g); }
+    const nl = el('div', 'nl'); nl.style.left = x(jetzt) + '%'; ueber.appendChild(nl);
+    flaeche.appendChild(ueber);
+    tl.appendChild(flaeche);
+
+    // Liste
+    const alle = [];
+    daten.fahrzeuge.forEach((f) => f.fahrten.forEach((b) => alle.push(Object.assign({ fahrzeug: f.fahrzeug }, b))));
+    alle.sort((a, b) => a.von - b.von);
+    $('k-liste').textContent = '';
+    if (!alle.length) $('k-liste').appendChild(el('div', 'leer', 'Keine Buchungen.'));
+    alle.forEach((b) => {
+      const r = el('div', 'b' + (b.bis <= jetzt ? ' vorbei' : '')); r.appendChild(el('div', 'fzk', b.fahrzeug));
+      const i = el('div', 'info'); i.appendChild(document.createTextNode(b.name + ' '));
+      i.appendChild(el('span', '', wann(b.von) + ' – ' + (heute(b.bis) || new Date(b.bis).toDateString() === new Date(b.von).toDateString() ? uhr(b.bis) : wann(b.bis)) + (b.zweck ? ' · ' + b.zweck : '')));
+      r.appendChild(i); r.appendChild(knopf(b.fahrzeug, b, 'Löschen')); $('k-liste').appendChild(r);
+    });
+  }
+
+  // Löschen (nur mit PIN, Server prüft nochmals)
+  function knopf(fahrzeug, b, text) {
+    const k = el('button', 'weg', text); k.type = 'button';
+    k.onclick = () => frage(fahrzeug, b, (grund) => {
+      k.disabled = true; k.textContent = '…';
+      const fertig = (r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); };
+      if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fertig({ ok: false, fehler: e.message }))
+        .statusLoeschen(pin, b.zeile, fahrzeug, b.von, b.bis, grund);
+      else fertig({ ok: true, text: 'Gelöscht (Vorschau). Benachrichtigung gesendet.' });
+    });
+    return k;
+  }
+  function toast(t, istFehler) {
+    const d = el('div', 'toast' + (istFehler ? ' fehler' : ''), t); document.body.appendChild(d);
+    setTimeout(() => d.remove(), 6000);
+  }
+  // Rückfrage mit Begründung
+  function frage(fahrzeug, b, weiter) {
+    const hg = el('div', 'dlg'), box = el('div', 'box');
+    box.appendChild(el('h3', '', 'Fahrt löschen?'));
+    box.appendChild(el('div', 'was', fahrzeug + ' · ' + b.name + '\n' + wann(b.von) + ' – ' + wann(b.bis) + (b.zweck ? '\n' + b.zweck : '')));
+    box.appendChild(el('label', '', 'Begründung'));
+    const ta = el('textarea'); ta.maxLength = 500; ta.placeholder = 'z. B. Fahrzeug wird für Einsatzbereitschaft beim Fest gebraucht';
+    box.appendChild(ta);
+    box.appendChild(el('div', 'hinw', 'Geht per E-Mail an den Buchenden, falls eine Adresse hinterlegt ist.'));
+    const kn = el('div', 'knoepfe'), nein = el('button', '', 'Abbrechen'), ja = el('button', 'ja', 'Löschen');
+    nein.type = ja.type = 'button';
+    nein.onclick = () => hg.remove();
+    hg.onclick = (e) => { if (e.target === hg) hg.remove(); };
+    ja.onclick = () => { const g = ta.value.trim(); hg.remove(); weiter(g); };
+    kn.append(nein, ja); box.appendChild(kn); hg.appendChild(box); document.body.appendChild(hg);
+    ta.focus();
+  }
+
+  // Vorschau ohne Google (nur lokal zum Testen)
+  function demo() {
+    const n = Date.now(), h = 3600e3; let z = 2; const b = (name, zweck, von, bis) => ({ zeile: z++, name, zweck, von: n + von * h, bis: n + bis * h, text: '' });
+    const fz = (fahrzeug, fahrten, zustand) => ({ fahrzeug, zustand, fahrten,
+      unterwegs: fahrten.find((x) => x.von <= n && n < x.bis), naechste: fahrten.find((x) => x.von > n), zuletzt: fahrten.filter((x) => x.bis <= n).pop() });
+    return { ok: true, jetzt: n, fahrzeuge: [
+      fz('KLF-W', [b('Christoph Schmid', 'Übung', -20, -17), b('Max Mustermann', 'Fahrtraining', 30, 33)], { bereit: 'ja', mangel: '', pickerl: '03/2027' }),
+      fz('MTF', [b('Raphael Schön', 'Besorgung', -1.2, 1.5), b('Anna Huber', 'Jugend', 8, 12)], { bereit: 'ja', mangel: '', pickerl: '10/2027' }),
+      fz('VFA', [b('Lukas Bauer', 'Werkstatt/Service', 20, 26)], { bereit: 'eingeschränkt', mangel: 'Rückfahrkamera defekt', pickerl: '06/2027' })
+    ] };
+  }
+  window.kommandoStart = () => { if (pin && !daten) laden(); };
+})();
 </script>
 </body>
 </html>

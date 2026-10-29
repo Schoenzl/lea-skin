@@ -62,13 +62,13 @@ Ersetzt das Google-Formular „Fahrzeugnutzung“: eigene Seite als Google-Apps-
 5. Adresse der Web-App am Pi als `fahrtenbuchFormUrl` eintragen (QR-Code am Schirm)
 Der Infoscreen markiert zusätzlich Doppelbuchungen, die direkt in der Tabelle entstehen.
 
-### Fahrzeugstatus fürs Kommando (`apps-script/Status.html`)
-Gleiche Web-App wie die Buchungsseite, Adresse mit `?seite=status` (z. B. `…/exec?seite=status`).
-Zeigt pro Fahrzeug „frei“ / „unterwegs“ mit Name, Zweck, Rückkehrzeit, Einsatzbereitschaft und Pickerl,
-dazu eine Zeitleiste (heute & morgen) und die Fahrten der letzten 24 h und nächsten 7 Tage. Aktualisiert jede Minute.
-- Das Kommando kann dort jede Fahrt löschen (Zeile wird aus der Tabelle entfernt; der Server prüft vorher, dass Fahrzeug, Von und Bis noch übereinstimmen).
-- Geschützt mit PIN: Apps Script → Projekteinstellungen → Skripteigenschaften → `STATUS_PIN` (mind. 6 Ziffern).
-  Ohne richtige PIN liefert der Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre.
-- Einrichten: neue HTML-Datei `Status` anlegen, `Code.gs` ersetzen, dann Bereitstellungen verwalten → Bearbeiten → Version „Neu“.
-- Löschen fragt eine Begründung ab. Hat der Buchende auf der Buchungsseite eine E-Mail angegeben (Pflichtfeld, Spalte „E-Mail“ wird automatisch angelegt),
-  bekommt er eine Mail vom FF-Konto mit Fahrzeug, Zeit und Begründung. Einmalig im Editor `mailTest` ausführen, um den Mailversand zu erlauben.
+### Reiter „Kommando“ auf der Buchungsseite
+Eine Seite, eine Adresse: oben die Reiter „Buchen“ und „Kommando“ (direkt öffnen: `…/exec?seite=status`).
+Kommando zeigt nach PIN pro Fahrzeug „frei“ / „unterwegs“ mit Name, Zweck, Rückkehrzeit, Einsatzbereitschaft und Pickerl,
+eine Zeitleiste (heute & morgen) und die Fahrten der letzten 24 h und nächsten 7 Tage; aktualisiert jede Minute.
+- Das Kommando kann jede Fahrt löschen, mit Begründung. Der Buchende bekommt eine Mail (E-Mail ist Pflichtfeld beim Buchen,
+  Spalte „E-Mail“ wird automatisch angelegt). Der Server prüft vor dem Löschen, dass Fahrzeug, Von und Bis noch übereinstimmen.
+- PIN: Apps Script → Projekteinstellungen → Skripteigenschaften → `STATUS_PIN` (mind. 4 Ziffern). Ohne richtige PIN liefert der
+  Server keine Daten; nach 10 Fehlversuchen 15 Minuten Sperre. Geht die PIN nicht: im Editor `pinPruefen` ausführen (Log zeigt, ob
+  `STATUS_PIN` gefunden wird, und hebt die Sperre auf).
+- Mailversand einmalig freigeben: im Editor `mailTest` ausführen.
