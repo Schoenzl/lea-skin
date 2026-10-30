@@ -671,6 +671,7 @@
       ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
       melden('', ''); $('a-meldung').className = 'meldung';
       $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
+      laden();                                   // Liste „Heute im Feuerwehrhaus“ sofort mit dir
     }).withFailureHandler((e) => { $('a-los').disabled = false; melden('Fehler: ' + e.message, 'fehler'); })
       .daEinchecken({ name, termin: wahl, art: $('a-art').value, titel: $('a-titel').value.trim() });
   };
@@ -686,10 +687,11 @@
       ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
       melden('', ''); $('a-meldung').className = 'meldung';
       $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
+      laden();
     }).withFailureHandler((e) => { $('a-gehen').disabled = false; melden('Fehler: ' + e.message, 'fehler'); }).daGehen({ name });
   };
   let geladen = false;
-  window.anwStart = () => { if (!geladen) { geladen = true; laden(); setInterval(() => { if (!$('anwesenheit').hidden && !$('a-form').hidden && document.visibilityState === 'visible') laden(); }, 60000); } };
+  window.anwStart = () => { if (!geladen) { geladen = true; laden(); setInterval(() => { if (!$('anwesenheit').hidden && document.visibilityState === 'visible') laden(); }, 60000); } };
 })();
 
 // ---------- Anwesenheit: Kommando prüft, trägt nach, schließt ab ----------
