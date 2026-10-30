@@ -122,3 +122,14 @@ Offen: Nr. 2 und 3 haben laut Export dieselbe Position (vor Ort prüfen); Druck/
 - **Nachbar im Einsatz**: rückt eine Wehr aus `nachbarn` (config.js) laut WASTL/LSZ aus, erscheint oben eine Karte.
   Optional Push vom Pi über ntfy (eigene IP, kein Google-Kontingent): `nachbarPushTopic` in `config.local.js` (nur ein Pi).
   Beim ersten Lauf werden schon laufende Einsätze nicht gemeldet. Abfrage alle 5 Minuten (`aktualisierenMin`).
+
+## Geräteprüfungen (apps-script/Pruefung.gs, Reiter „Kommando“)
+Rollen über den PIN: **Kommando-PIN** (`STATUS_PIN`) sieht alles, **Prüfer-PIN** (Tab „Prüfer“ der Tabelle
+„Geräte & Prüfungen FF Deutsch Haslau“) sieht nur die Geräteprüfungen – alle anderen Funktionen prüfen weiterhin nur den
+Kommando-PIN. Geprüft wird ohne Aufkleber: Ort wählen, Geräte antippen (✓ ok, nochmal = Mangel mit Beschreibung), speichern.
+Prüfer-Name kommt aus dem PIN ins Protokoll. Mängel an KLF-W/MTF/VFA-Geräten werden zusätzlich in der Spalte „Mangel“ des Tabs
+„Fahrzeuge“ ergänzt (Infoscreen). Ampel je Gerät aus letzter Prüfung + Intervall (Tab „Prüfarten“): rot überfällig/Mangel,
+gelb ≤ 30 Tage, grau noch nie erfasst.
+- Daten: 390 Geräte aus FDISK (30.10.2026) mit Ort laut FDISK-Zuweisung und den Prüfarten des Gerätestandards.
+- Einrichten: `GeraeteImport.gs` (nur lokal, nicht im Repo) einfügen, ▶ `geraeteEinrichten`, Tab „Prüfer“ befüllen,
+  `GeraeteImport.gs` löschen, neue Version bereitstellen.

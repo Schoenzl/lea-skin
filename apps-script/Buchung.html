@@ -19,6 +19,30 @@
   :root { --gruen: #16A34A; --gruen-bg: #E8F7EE; --gelb: #D97706; --gelb-bg: #FEF3C7; --rot-bg: #FDECEC; }
   [hidden] { display: none !important; }
   #kommando .kbar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; font-size: 13px; color: var(--grau); margin-bottom: 12px; }
+  #kommando .nur-pruefer .nur-kdo { display: none !important; }
+  #kommando #k-rolle { margin-right: auto; font-weight: 700; color: var(--text); }
+  #kommando .ortwahl { display: grid; gap: 6px; }
+  #kommando .ortwahl button { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: inherit; font-weight: 700; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--linie); background: #fff; color: var(--text); }
+  #kommando .ortwahl button small { font-weight: 400; color: var(--grau); }
+  #kommando .pp { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  #kommando .pp.gruen { background: var(--gruen-bg); color: var(--gruen); } #kommando .pp.gelb { background: var(--gelb-bg); color: #92400E; }
+  #kommando .pp.rot { background: var(--rot-bg); color: #991B1B; } #kommando .pp.grau { background: #F3F5F8; color: var(--grau); }
+  #kommando .pk-kopf { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  #kommando .pk-kopf b { flex: 1; font-size: 16px; }
+  #kommando .pk-kopf button, #kommando .pk-werkz button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; color: var(--text); }
+  #kommando .pk-werkz { display: flex; gap: 6px; margin: 8px 0; }
+  #kommando .pk-werkz input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; }
+  #kommando .gz { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--linie); }
+  #kommando .gz:first-child { border-top: 0; }
+  #kommando .gz .bx { flex: none; width: 28px; height: 28px; border-radius: 7px; border: 2px solid #C5CCD6; background: #fff; font: 900 15px/24px sans-serif; color: #fff; text-align: center; padding: 0; }
+  #kommando .gz .bx.ok { background: var(--gruen); border-color: var(--gruen); }
+  #kommando .gz .bx.m { background: #DC2626; border-color: #DC2626; }
+  #kommando .gz .t { flex: 1; min-width: 0; font-size: 14px; }
+  #kommando .gz .t b { font-size: 15px; }
+  #kommando .gz .t small { display: block; color: var(--grau); font-size: 12px; }
+  #kommando .gz .t select, #kommando .gz .t input { margin-top: 6px; width: 100%; font: inherit; font-size: 13px; padding: 7px; border: 1px solid #C5CCD6; border-radius: 7px; }
+  #kommando .gz .t input.mb { border-color: #E5A3A3; background: var(--rot-bg); }
+  #kommando .pk-speichern { position: sticky; bottom: 10px; margin-top: 10px; }
   #kommando .kbar button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
   #kommando .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
   #kommando h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
@@ -210,23 +234,27 @@
   </div>
 
   <div id="k-inhalt" hidden>
-    <div class="kbar"><span id="k-stand"></span><button id="k-abmelden" type="button">Abmelden</button></div>
-    <div class="fzs" id="k-fzs"></div>
-    <div class="karte">
+    <div class="kbar"><span id="k-rolle"></span><span id="k-stand"></span><button id="k-abmelden" type="button">Abmelden</button></div>
+    <div class="nur-kdo"><div class="fzs" id="k-fzs"></div></div>
+    <div class="karte" id="k-pruef-karte">
+      <h2>Geräteprüfungen</h2>
+      <div id="k-pruef"><div class="leer">wird geladen …</div></div>
+    </div>
+    <div class="karte nur-kdo">
       <h2>Zeitleiste · heute &amp; morgen</h2>
       <div class="tl" id="k-tl"></div>
       <div class="legende"><span><i style="background:var(--gelb)"></i>unterwegs</span><span><i style="background:#3B6FB6"></i>gebucht</span><span><i style="background:#93A3B8"></i>vorbei</span></div>
     </div>
-    <div class="karte">
+    <div class="karte nur-kdo">
       <h2>Fahrten · letzte 24 h und nächste 7 Tage</h2>
       <div id="k-liste"></div>
     </div>
-    <div class="karte">
+    <div class="karte nur-kdo">
       <h2>Anwesenheit · offen und abgeschlossen</h2>
       <div id="k-anw"><div class="leer">wird geladen …</div></div>
       <div class="anw-knoepfe"><button type="button" id="k-anw-neu">Aktualisieren</button></div>
     </div>
-    <div class="fuss">Aktualisiert sich jede Minute von selbst.</div>
+    <div class="fuss nur-kdo">Aktualisiert sich jede Minute von selbst.</div>
   </div>
 </section>
 </main>
@@ -319,11 +347,25 @@
   const heute = (t) => new Date(t).toDateString() === new Date().toDateString();
   const wann = (t) => (heute(t) ? 'heute' : tag(t)) + ' ' + uhr(t);
   const dauer = (ms) => { const m = Math.round(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h < 48 ? h + ' h ' + pad(m % 60) + ' min' : Math.round(h / 24) + ' Tage'; };
-  let pin = '', daten = null, timer = null;
+  let pin = '', daten = null, timer = null, rolle = null;
   try { pin = localStorage.getItem('fz-status-pin') || ''; } catch (e) {}
 
   function laden() {
     if (!pin) return;
+    if (!rolle && window.google && google.script) {
+      google.script.run.withSuccessHandler((r) => {
+        if (!r.ok) { abmelden(); fehler(r.fehler); return; }
+        rolle = r.rolle;
+        try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
+        $('k-inhalt').classList.toggle('nur-pruefer', rolle === 'pruefer');
+        $('k-rolle').textContent = (rolle === 'pruefer' ? 'Prüfer: ' : '') + r.name;
+        if (window.pruefStart) window.pruefStart(pin);
+        if (rolle === 'pruefer') { $('k-pinbox').hidden = true; $('k-inhalt').hidden = false; return; }
+        laden();
+      }).withFailureHandler((e) => fehler(e.message)).anmelden(pin);
+      return;
+    }
+    if (rolle === 'pruefer') return;
     const fertig = (d) => {
       if (!d.ok) { abmelden(); fehler(d.fehler); return; }
       try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
@@ -335,7 +377,7 @@
   }
   function fehler(t) { $('k-meldung').textContent = t; $('k-meldung').hidden = false; }
   function abmelden() {
-    pin = ''; window.anwKommandoGeladen = false; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
+    pin = ''; rolle = null; window.anwKommandoGeladen = false; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
     clearInterval(timer); timer = null;
     $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
   }
@@ -613,6 +655,106 @@
   const laden = () => google.script.run.withSuccessHandler(zeigen).withFailureHandler((e) => { $('k-anw').textContent = e.message; }).anwUebersicht(pin);
   $('k-anw-neu').onclick = () => laden();
   window.anwKommando = (p) => { pin = p; laden(); };
+})();
+</script>
+<script>
+// ---------- Geräteprüfungen (Kommando- und Prüfer-PIN) ----------
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const box = () => $('k-pruef');
+  let pin = '', ansicht = null;
+  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 5000); };
+  const run = (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
+  const STATUS = { rot: 'überfällig / Mangel', gelb: 'bald fällig', grau: 'noch nie erfasst', gruen: 'ok' };
+  const pill = (st, txt) => el('span', 'pp ' + st, txt || STATUS[st]);
+
+  function uebersicht() {
+    ansicht = null; box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
+    run('pruefUebersicht', pin).then((d) => {
+      box().textContent = '';
+      if (!d.ok) { box().appendChild(el('div', 'leer', d.fehler)); return; }
+      if (d.fehlt) { box().appendChild(el('div', 'leer', d.fehlt)); return; }
+      const g = d.gesamt;
+      const kopf = el('div', 'pk-kopf'); kopf.appendChild(el('b', '', g.n + ' Geräte'));
+      if (g.rot) kopf.appendChild(pill('rot', g.rot + ' überfällig'));
+      if (g.gelb) kopf.appendChild(pill('gelb', g.gelb + ' bald'));
+      if (g.grau) kopf.appendChild(pill('grau', g.grau + ' nie erfasst'));
+      box().appendChild(kopf);
+      const w = el('div', 'pk-werkz'); const q = el('input'); q.placeholder = 'Suchen: Bezeichnung, Inventar- oder Seriennr.'; q.id = 'k-pruef-suche';
+      const qb = el('button', '', 'Suchen'); qb.type = 'button'; qb.onclick = () => { if (q.value.trim()) liste({ suche: q.value.trim() }, 'Suche „' + q.value.trim() + '“'); };
+      q.onkeydown = (e) => { if (e.key === 'Enter') qb.click(); };
+      const fb = el('button', '', 'Alle fälligen'); fb.type = 'button'; fb.onclick = () => liste({ faellig: true }, 'Alle fälligen');
+      w.append(q, qb, fb); box().appendChild(w);
+      box().appendChild(el('h2', '', 'Wo prüfst du?'));
+      const ow = el('div', 'ortwahl');
+      d.orte.forEach((o) => {
+        const b = el('button'); b.type = 'button';
+        const l = el('span', '', o.ort); l.appendChild(el('small', '', ' · ' + o.n));
+        b.appendChild(l);
+        b.appendChild(o.rot ? pill('rot', o.rot + ' überfällig') : o.gelb ? pill('gelb', o.gelb + ' bald') : o.grau === o.n ? pill('grau', 'noch nie') : o.grau ? pill('grau', o.grau + ' offen') : pill('gruen', 'alles ok'));
+        b.onclick = () => liste({ ort: o.ort }, o.ort);
+        ow.appendChild(b);
+      });
+      box().appendChild(ow);
+    }).catch((e) => { box().textContent = e.message; });
+  }
+
+  function liste(filter, titel) {
+    ansicht = { filter, titel };
+    box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
+    run('pruefListe', pin, filter).then((d) => {
+      box().textContent = '';
+      if (!d.ok) { box().appendChild(el('div', 'leer', d.fehler)); return; }
+      const kopf = el('div', 'pk-kopf');
+      const zur = el('button', '', '‹ Orte'); zur.type = 'button'; zur.onclick = uebersicht;
+      kopf.append(zur, el('b', '', titel + ' · ' + d.geraete.length));
+      const alle = el('button', '', 'Alle ok'); alle.type = 'button';
+      kopf.appendChild(alle); box().appendChild(kopf);
+      if (!d.geraete.length) { box().appendChild(el('div', 'leer', 'Keine Geräte.')); return; }
+      const wahl = new Map();   // id → { art, ergebnis, bem }
+      const rows = el('div');
+      const zaehler = el('button', 'los pk-speichern', 'Prüfung speichern'); zaehler.type = 'button';
+      const neuZaehlen = () => { const v = Array.from(wahl.values()); const ok = v.filter((x) => x.ergebnis === 'OK').length, m = v.length - ok;
+        zaehler.textContent = v.length ? 'Prüfung speichern (' + ok + ' ok' + (m ? ' · ' + m + ' Mangel' : '') + ')' : 'Geräte antippen: ✓ ok, nochmal = Mangel'; zaehler.disabled = !v.length; };
+      const zeilen = [];
+      d.geraete.forEach((g) => {
+        const r = el('div', 'gz'); const bx = el('button', 'bx', ''); bx.type = 'button'; bx.title = 'antippen: ok · nochmal: Mangel · nochmal: leer';
+        const t = el('div', 't'); t.appendChild(el('b', '', g.bez + (g.anzahl > 1 ? ' (' + g.anzahl + ' Stk.)' : '')));
+        const p0 = g.pruefungen[0];
+        const sub = [g.inv ? 'Nr. ' + g.inv : '', g.serie ? 'SN ' + g.serie : '', filter.ort ? '' : g.ort].filter(Boolean).join(' · ');
+        if (sub) t.appendChild(el('small', '', sub));
+        const info = g.pruefungen.map((p) => p.art + ': ' + (p.letzte ? 'zuletzt ' + p.letzte + (p.ergebnis === 'Mangel' ? ' (Mangel: ' + p.bem + ')' : '') + ' · fällig ' + p.faellig : 'noch nie erfasst')).join(' | ');
+        t.appendChild(el('small', '', info));
+        let sel = null;
+        if (g.pruefungen.length > 1) { sel = el('select'); g.pruefungen.forEach((p) => { const o = el('option', '', p.art); o.value = p.art; sel.appendChild(o); }); sel.onchange = () => { const w = wahl.get(g.id); if (w) w.art = sel.value; }; t.appendChild(sel); }
+        const mb = el('input', 'mb'); mb.placeholder = 'Was ist der Mangel?'; mb.maxLength = 300; mb.hidden = true;
+        mb.oninput = () => { const w = wahl.get(g.id); if (w) w.bem = mb.value; };
+        t.appendChild(mb);
+        const setz = (zust) => {
+          bx.className = 'bx' + (zust === 'OK' ? ' ok' : zust === 'Mangel' ? ' m' : ''); bx.textContent = zust === 'OK' ? '✓' : zust === 'Mangel' ? '!' : '';
+          mb.hidden = zust !== 'Mangel';
+          if (zust) wahl.set(g.id, { id: g.id, art: sel ? sel.value : p0.art, ergebnis: zust, bem: mb.value }); else wahl.delete(g.id);
+          neuZaehlen();
+        };
+        bx.onclick = () => { const w = wahl.get(g.id); setz(!w ? 'OK' : w.ergebnis === 'OK' ? 'Mangel' : ''); if (!mb.hidden) mb.focus(); };
+        zeilen.push(setz);
+        r.append(bx, t, pill(g.status)); rows.appendChild(r);
+      });
+      alle.onclick = () => zeilen.forEach((f) => f('OK'));
+      zaehler.onclick = () => {
+        const v = Array.from(wahl.values());
+        const ohne = v.find((x) => x.ergebnis === 'Mangel' && !String(x.bem || '').trim());
+        if (ohne) return toast('Bitte bei jedem Mangel kurz beschreiben, was los ist.', true);
+        zaehler.disabled = true; zaehler.textContent = 'Wird gespeichert …';
+        run('pruefSpeichern', pin, v).then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) liste(filter, titel); else neuZaehlen(); })
+          .catch((e) => { toast(e.message, true); neuZaehlen(); });
+      };
+      box().append(rows, zaehler); neuZaehlen();
+    }).catch((e) => { box().textContent = e.message; });
+  }
+
+  window.pruefStart = (p) => { pin = p; uebersicht(); };
 })();
 </script>
 </body>
