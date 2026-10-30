@@ -114,6 +114,15 @@ main { padding: 12px; display: grid; gap: 12px; }
 .haus-t b { font-size: 15px; }
 .haus-t small { color: var(--grau); }
 .haus-t .namen { margin-top: 3px; color: #DDE2E8; }
+.haus-t { cursor: pointer; }
+.haus-t .pf { float: right; color: var(--grau); transition: transform .15s; }
+.haus-t.auf .pf { transform: rotate(90deg); }
+.haus-t .det { display: none; margin-top: 6px; }
+.haus-t.auf .det { display: block; }
+.haus-t .det div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13px; color: #DDE2E8; }
+.haus-t .det div span { color: var(--grau); white-space: nowrap; }
+.haus-t .det div.weg { color: var(--grau); text-decoration: line-through; }
+.haus-t .det div.weg span { text-decoration: none; }
 .da-ok { color: #4ADE80; font-weight: 700; margin-top: 10px; }
 .da-fehler { color: #FCA5A5; font-weight: 600; margin-top: 10px; }
 
@@ -446,24 +455,46 @@ main { padding: 12px; display: grid; gap: 12px; }
         zeig(liste);
       }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
     };
+    // „Ich gehe“ nur, wenn ich laut /da/heute gerade eingetragen bin
+    let ichDa = false, amStart = false;
+    const gehen = () => {
+      amStart = false; zeig(h('div', 'leer', ['Wird ausgetragen …']));
+      fetch('/da/gehen', { method: 'POST' }).then((r) => r.json()).then((r) => {
+        const zur = h('button', 'knopf grau', ['Fertig'], { marginTop: '10px' }); zur.type = 'button'; zur.onclick = () => { hausLaden(); start(); };
+        zeig(h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? '✓ ' + r.text : r.fehler]), zur);
+      }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
+    };
     function start() {
-      const b = h('button', 'knopf', ['Ich bin da ✓']); b.type = 'button'; b.onclick = auswahl;
-      zeig(b);
+      amStart = true;
+      const b = h('button', 'knopf', ['Ich bin da ✓']); b.type = 'button'; b.onclick = () => { amStart = false; auswahl(); };
+      let g = null;
+      if (ichDa) { g = h('button', 'knopf grau', ['Ich gehe 👋'], { marginTop: '8px' }); g.type = 'button'; g.onclick = gehen; }
+      zeig(b, g);
     }
     // Wer ist heute im Haus (alle 60 s neu, solange die Karte sichtbar ist)
     const haus = h('div', null, null, { marginBottom: '12px' });
-    const hausLaden = () => {
+    const offenAuf = {};
+    function hausLaden() {
       if (!daBox.isConnected || document.visibilityState !== 'visible') return;
       fetch('/da/heute').then((r) => r.json()).then((d) => {
         haus.textContent = '';
         if (!d.ok) { haus.appendChild(h('div', 'leer', [d.fehler])); return; }
         if (!d.termine.length) { haus.appendChild(h('div', 'leer', ['Heute noch niemand eingecheckt.'])); return; }
-        d.termine.forEach((t) => haus.appendChild(h('div', 'haus-t', [
-          h('b', null, [t.titel]), h('small', null, [' · ' + (t.status === 'offen' ? 'seit ' + hhmm(t.beginn) : hhmm(t.beginn) + '–' + (t.ende ? hhmm(t.ende) : '')) + ' · ' + t.personen.length + ' da']),
-          h('div', 'namen', [t.personen.map((p) => p.name).join(', ')])
-        ])));
+        const vorher = ichDa; ichDa = !!(d.ich && d.ich.da);
+        if (vorher !== ichDa && amStart) start();
+        d.termine.forEach((t) => {
+          const offen = t.status === 'offen', da = t.personen.filter((p) => !p.weg), weg = t.personen.filter((p) => p.weg);
+          const det = h('div', 'det', (t.art ? [h('div', null, ['Tätigkeit: ' + t.art])] : []).concat(t.personen.map((p) =>
+            h('div', p.weg ? 'weg' : null, [p.name, h('span', null, [p.weg ? hhmm(p.seit) + '–' + hhmm(p.weg) : 'seit ' + hhmm(p.seit)])]))));
+          const w = h('div', 'haus-t' + (offenAuf[t.id] ? ' auf' : ''), [
+            h('span', 'pf', ['›']), h('b', null, [t.titel]),
+            h('small', null, [' · ' + (offen ? 'seit ' + hhmm(t.beginn) : hhmm(t.beginn) + '–' + (t.ende ? hhmm(t.ende) : '')) + ' · ' + (offen ? da.length + ' da' + (weg.length ? ', ' + weg.length + ' weg' : '') : t.personen.length + ' Pers.')]),
+            h('div', 'namen', [(offen ? da : t.personen).map((p) => p.name).join(', ') || 'alle schon gegangen']), det]);
+          w.onclick = () => { offenAuf[t.id] = !offenAuf[t.id]; w.classList.toggle('auf'); };
+          haus.appendChild(w);
+        });
       }).catch(() => {});
-    };
+    }
     setTimeout(hausLaden, 300); setInterval(hausLaden, 60000);
     document.addEventListener('visibilitychange', hausLaden);
     daBox.append(h('div', 'lab', ['Heute im Feuerwehrhaus']), haus, inhalt);

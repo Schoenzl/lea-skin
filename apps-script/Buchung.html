@@ -159,6 +159,22 @@
   .ich { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #F3F5F8; font-weight: 700; font-size: 18px; }
   .ich button { font: inherit; font-size: 13px; font-weight: 400; border: 0; background: none; color: var(--grau); text-decoration: underline; }
   .gross-ok { text-align: center; padding: 26px 10px; }
+  #a-gehen { background: #fff; color: var(--rot); border: 2px solid var(--rot); margin-top: 10px; }
+  .haus-t { border-top: 1px solid var(--linie); }
+  .haus-t:first-of-type { border-top: 0; }
+  .haus-t > button { display: block; width: 100%; text-align: left; font: inherit; background: none; border: 0; padding: 10px 0; color: var(--text); cursor: pointer; }
+  .haus-t > button b { font-size: 16px; }
+  .haus-t > button small { color: var(--grau); font-size: 13px; }
+  .haus-t > button .namen { margin-top: 3px; font-size: 14px; color: var(--text); }
+  .haus-t > button .pf { float: right; color: #9AA3AF; transition: transform .15s; }
+  .haus-t.auf > button .pf { transform: rotate(90deg); }
+  .haus-t .det { display: none; padding: 0 0 10px; }
+  .haus-t.auf .det { display: block; }
+  .haus-t .det div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 6px; font-size: 14px; }
+  .haus-t .det div:nth-child(odd) { background: #F5F7FA; }
+  .haus-t .det div span { color: var(--grau); white-space: nowrap; }
+  .haus-t .det div.weg { color: var(--grau); }
+  .haus-t .det div.weg b { font-weight: 400; text-decoration: line-through; }
   .gross-ok .haken { font-size: 56px; line-height: 1; color: #16A34A; }
   .gross-ok p { font-size: 18px; font-weight: 700; margin: 10px 0 0; }
   #kommando .anw-t { border-top: 1px solid var(--linie); padding: 14px 0; }
@@ -247,7 +263,12 @@
       <input id="a-titel" maxlength="80" placeholder="z. B. Schlauchpflege, Funkgeräte laden">
     </div>
     <button class="los" id="a-los">Ich bin da ✓</button>
+    <button class="los" id="a-gehen" type="button" hidden>Ich gehe 👋</button>
     <div class="meldung" id="a-meldung"></div>
+  </div>
+  <div class="karte" id="a-hauskarte" hidden>
+    <h2>Heute im Feuerwehrhaus</h2>
+    <div id="a-haus"></div>
   </div>
   <div class="karte gross-ok" id="a-ok" hidden><div class="haken">✓</div><p id="a-oktext"></p><button class="los" id="a-nochmal" type="button" style="background:#5B6573">Fertig</button></div>
 </section>
@@ -583,10 +604,38 @@
   let daten = null, wahl = null, ich = '';
   try { ich = localStorage.getItem('da-name') || ''; } catch (e) {}
   const melden = (t, art) => { const m = $('a-meldung'); m.textContent = t; m.className = 'meldung ' + art; };
+  const norm = (x) => String(x || '').trim().toLowerCase();
+  const wer = () => (ich && !$('a-ichbox').hidden ? ich : $('a-name').value.trim());
+  // „Ich gehe“ nur zeigen, wenn die Person gerade irgendwo eingetragen und nicht gegangen ist
+  const gehenZeigen = () => {
+    const n = norm(wer());
+    $('a-gehen').hidden = !(n && daten && (daten.haus || []).some((t) => t.status === 'offen' && t.personen.some((p) => norm(p.name) === n && !p.weg)));
+  };
   const zeigeIch = () => {
     const bekannt = ich && daten && daten.namen.indexOf(ich) !== -1;
     $('a-ichbox').hidden = !bekannt; $('a-namebox').hidden = !!bekannt;
     if (bekannt) $('a-ich').textContent = ich;
+    gehenZeigen();
+  };
+  const pad = (n) => String(n).padStart(2, '0');
+  const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const offenAuf = {};
+  const hausZeigen = () => {
+    const haus = (daten && daten.haus) || [], box = $('a-haus');
+    $('a-hauskarte').hidden = !haus.length; box.textContent = '';
+    haus.forEach((t) => {
+      const da = t.personen.filter((p) => !p.weg), weg = t.personen.filter((p) => p.weg);
+      const w = el('div', 'haus-t' + (offenAuf[t.id] ? ' auf' : ''));
+      const b = el('button'); b.type = 'button';
+      b.append(el('span', 'pf', '›'), el('b', '', t.titel),
+        el('small', '', ' · ' + (t.status === 'offen' ? 'seit ' + hm(t.beginn) : hm(t.beginn) + (t.ende ? '–' + hm(t.ende) : '') + ' · abgeschlossen') + ' · ' + (t.status === 'offen' ? da.length + ' da' + (weg.length ? ', ' + weg.length + ' gegangen' : '') : t.personen.length + ' Personen')),
+        el('div', 'namen', (t.status === 'offen' ? da : t.personen).map((p) => p.name).join(', ') || 'alle schon gegangen'));
+      b.onclick = () => { offenAuf[t.id] = !offenAuf[t.id]; w.classList.toggle('auf'); };
+      const det = el('div', 'det');
+      if (t.art) det.appendChild(el('div', '', 'Tätigkeit: ' + t.art));
+      t.personen.forEach((p) => { const z = el('div', p.weg ? 'weg' : ''); z.append(el('b', '', p.name), el('span', '', p.weg ? hm(p.seit) + '–' + hm(p.weg) : 'seit ' + hm(p.seit))); det.appendChild(z); });
+      w.append(b, det); box.appendChild(w);
+    });
   };
   const zeigen = (d) => {
     daten = d;
@@ -606,6 +655,7 @@
       t.appendChild(b);
     });
     $('a-artbox').hidden = wahl !== '';
+    hausZeigen(); gehenZeigen();
   };
   const laden = () => run().withSuccessHandler(zeigen).withFailureHandler((e) => { $('a-termine').textContent = ''; melden(e.message, 'fehler'); }).daStart();
   $('a-wechsel').onclick = () => { ich = ''; try { localStorage.removeItem('da-name'); } catch (e) {} zeigeIch(); $('a-name').value = ''; $('a-name').focus(); };
@@ -625,8 +675,21 @@
       .daEinchecken({ name, termin: wahl, art: $('a-art').value, titel: $('a-titel').value.trim() });
   };
   $('a-nochmal').onclick = () => { $('a-ok').hidden = true; $('a-form').hidden = false; $('a-titel').value = ''; laden(); };
+  $('a-name').addEventListener('input', gehenZeigen);
+  $('a-gehen').onclick = () => {
+    const name = wer();
+    if (!name) return melden('Bitte deinen Namen wählen.', 'fehler');
+    $('a-gehen').disabled = true; melden('Wird ausgetragen …', 'ok');
+    run().withSuccessHandler((r) => {
+      $('a-gehen').disabled = false;
+      if (!r.ok) return melden(r.fehler, 'fehler');
+      ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
+      melden('', ''); $('a-meldung').className = 'meldung';
+      $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
+    }).withFailureHandler((e) => { $('a-gehen').disabled = false; melden('Fehler: ' + e.message, 'fehler'); }).daGehen({ name });
+  };
   let geladen = false;
-  window.anwStart = () => { if (!geladen) { geladen = true; laden(); } };
+  window.anwStart = () => { if (!geladen) { geladen = true; laden(); setInterval(() => { if (!$('anwesenheit').hidden && !$('a-form').hidden && document.visibilityState === 'visible') laden(); }, 60000); } };
 })();
 
 // ---------- Anwesenheit: Kommando prüft, trägt nach, schließt ab ----------

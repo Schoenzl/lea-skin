@@ -40,7 +40,7 @@ const ANW_TABS = {
   Mitglieder: ['Name', 'Standesbuchnummer', 'Aktiv'],
   Zuordnung: ['Stichwort im Kalendertitel', 'FDISK-Art', 'Unterart'],
   Termine: ['ID', 'Titel', 'FDISK-Art', 'Unterart', 'Beginn', 'Ende', 'Status', 'Abgeschlossen von', 'FDISK-Bericht', 'Bemerkung'],
-  Anwesenheit: ['Zeitstempel', 'Termin-ID', 'Name', 'Standesbuchnummer', 'Quelle']
+  Anwesenheit: ['Zeitstempel', 'Termin-ID', 'Name', 'Standesbuchnummer', 'Quelle', 'Gegangen']
 };
 
 // ---------- Einrichten (einmal im Editor ausführen) ----------
@@ -134,8 +134,53 @@ function daStart() {
   const liste = kal.map((k) => ({ id: k.id, titel: k.titel, text: anwFmt_(k.von) + ' – ' + Utilities.formatDate(new Date(k.bis), 'Europe/Vienna', 'HH:mm') }));
   offen.forEach((t) => { if (!liste.some((l) => l.id === t.ID)) liste.push({ id: t.ID, titel: t.Titel, text: 'seit ' + anwFmt_(anwZeit_(t.Beginn)) }); });
   const anw = anwLesen_(ss, 'Anwesenheit').zeilen;
-  liste.forEach((l) => { l.anzahl = anw.filter((a) => a['Termin-ID'] === l.id).length; });
-  return { namen: mitglieder_(ss).map((m) => m.name).sort((a, b) => a.localeCompare(b, 'de')), termine: liste, arten: ANW_ARTEN.map((a) => a[0]) };
+  liste.forEach((l) => { l.anzahl = anw.filter((a) => a['Termin-ID'] === l.id && !anwZeit_(a.Gegangen)).length; });
+  return { namen: mitglieder_(ss).map((m) => m.name).sort((a, b) => a.localeCompare(b, 'de')), termine: liste, arten: ANW_ARTEN.map((a) => a[0]), haus: anwHaus_(ss) };
+}
+
+// Spalte „Gegangen“ in älteren Tabellen nachrüsten
+function anwGegangenSpalte_(sh) {
+  if (String(sh.getRange(1, 6).getValue()).trim() !== 'Gegangen') {
+    sh.getRange(1, 6).setValue('Gegangen').setFontWeight('bold');
+    sh.getRange('F2:F10000').setNumberFormat('dd.MM.yyyy HH:mm');
+  }
+}
+
+// Wer ist/war heute im Haus: offene Termine und Termine mit Beginn heute, je Person seit wann und ggf. gegangen
+function anwHaus_(ss) {
+  const heute = Utilities.formatDate(new Date(), 'Europe/Vienna', 'yyyyMMdd');
+  const jetzt = Date.now();
+  const A = anwLesen_(ss, 'Anwesenheit').zeilen;
+  return anwLesen_(ss, 'Termine').zeilen
+    .filter((t) => (t.Status === 'offen' && jetzt - anwZeit_(t.Beginn) < 16 * 3600e3) || (anwZeit_(t.Beginn) && Utilities.formatDate(new Date(anwZeit_(t.Beginn)), 'Europe/Vienna', 'yyyyMMdd') === heute))
+    .sort((a, b) => anwZeit_(b.Beginn) - anwZeit_(a.Beginn))
+    .map((t) => {
+      const p = A.filter((a) => a['Termin-ID'] === t.ID).sort((a, b) => anwZeit_(a.Zeitstempel) - anwZeit_(b.Zeitstempel));
+      return { id: t.ID, titel: t.Titel, art: t['FDISK-Art'], status: t.Status, beginn: anwZeit_(t.Beginn), ende: anwZeit_(t.Ende),
+        personen: p.map((a) => ({ name: a.Name, seit: anwZeit_(a.Zeitstempel), weg: anwZeit_(a.Gegangen) || 0 })) };
+    }).filter((t) => t.personen.length);
+}
+
+// „Ich gehe“: alle heute offenen Eintragungen dieser Person bekommen die Uhrzeit in „Gegangen“
+function daGehen(d) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = anwSS_();
+    const name = String((d && d.name) || '').trim();
+    const m = mitglieder_(ss).find((x) => anwNorm_(x.name) === anwNorm_(name));
+    if (!m) return { ok: false, fehler: 'Bitte deinen Namen aus der Liste wählen.' };
+    const A = anwLesen_(ss, 'Anwesenheit');
+    anwGegangenSpalte_(A.sh);
+    const offen = anwHaus_(ss).filter((t) => t.status === 'offen').map((t) => t.id);
+    const z = A.zeilen.filter((a) => offen.indexOf(a['Termin-ID']) !== -1 && anwNorm_(a.Name) === anwNorm_(m.name) && !anwZeit_(a.Gegangen));
+    if (!z.length) return { ok: false, fehler: m.name + ', du bist gerade nirgends eingetragen.' };
+    const jetzt = new Date();
+    z.forEach((a) => A.sh.getRange(a._zeile, 6).setValue(jetzt));
+    return { ok: true, text: 'Danke ' + m.name.split(' ')[0] + '! Ausgetragen um ' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'HH:mm') + '.' };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function daEinchecken(d) {
@@ -174,9 +219,12 @@ function daEinchecken(d) {
     }
     if (termin.Status !== 'offen') return { ok: false, fehler: '„' + termin.Titel + '“ ist schon abgeschlossen. Bitte beim Kommando melden.' };
     const A = anwLesen_(ss, 'Anwesenheit');
-    if (A.zeilen.some((a) => a['Termin-ID'] === termin.ID && anwNorm_(a.Name) === anwNorm_(m.name))) {
-      return { ok: true, text: m.name + ', du bist bei „' + termin.Titel + '“ schon eingetragen.' };
+    const schon = A.zeilen.find((a) => a['Termin-ID'] === termin.ID && anwNorm_(a.Name) === anwNorm_(m.name));
+    if (schon && anwZeit_(schon.Gegangen)) {          // wieder zurück: „Gegangen“ löschen
+      A.sh.getRange(schon._zeile, 6).setValue('');
+      return { ok: true, text: 'Willkommen zurück, ' + m.name.split(' ')[0] + '! Du bist wieder bei „' + termin.Titel + '“ eingetragen.' };
     }
+    if (schon) return { ok: true, text: m.name + ', du bist bei „' + termin.Titel + '“ schon eingetragen.' };
     A.sh.appendRow([jetzt, termin.ID, m.name, m.sbn, 'QR']);
     const anzahl = A.zeilen.filter((a) => a['Termin-ID'] === termin.ID).length + 1;
     hausPush_(m.name, termin.Titel, anzahl);
@@ -303,25 +351,18 @@ function doPost(e) {
     if (!soll || String(d.key || '') !== soll) return antwort({ ok: false, fehler: 'Schlüssel falsch oder DA_KEY nicht eingerichtet.' });
     if (d.aktion === 'start') { const s = daStart(); return antwort({ ok: true, termine: s.termine, arten: s.arten }); }
     if (d.aktion === 'einchecken') return antwort(daEinchecken({ name: d.name, termin: d.termin, art: d.art, titel: d.titel }));
-    if (d.aktion === 'heute') return antwort(anwHeute_());
+    if (d.aktion === 'heute') return antwort(anwHeute_(d.name));
+    if (d.aktion === 'gehen') return antwort(daGehen({ name: d.name }));
     return antwort({ ok: false, fehler: 'Unbekannte Aktion.' });
   } catch (err) {
     return antwort({ ok: false, fehler: err.message });
   }
 }
 
-// Wer war/ist heute im Haus (für die Handy-Ansicht): Termine mit Beginn heute oder noch offen, mit Namen
-function anwHeute_() {
-  const ss = anwSS_();
-  const heute = Utilities.formatDate(new Date(), 'Europe/Vienna', 'yyyyMMdd');
-  const A = anwLesen_(ss, 'Anwesenheit').zeilen;
-  const termine = anwLesen_(ss, 'Termine').zeilen
-    .filter((t) => t.Status === 'offen' || (anwZeit_(t.Beginn) && Utilities.formatDate(t.Beginn, 'Europe/Vienna', 'yyyyMMdd') === heute))
-    .sort((a, b) => anwZeit_(b.Beginn) - anwZeit_(a.Beginn))
-    .map((t) => {
-      const p = A.filter((a) => a['Termin-ID'] === t.ID).sort((a, b) => anwZeit_(a.Zeitstempel) - anwZeit_(b.Zeitstempel));
-      return { titel: t.Titel, status: t.Status, beginn: anwZeit_(t.Beginn), ende: anwZeit_(t.Ende),
-        personen: p.map((a) => ({ name: a.Name, seit: anwZeit_(a.Zeitstempel) })) };
-    }).filter((t) => t.personen.length);
-  return { ok: true, termine };
+// Wer war/ist heute im Haus (für die Handy-Ansicht); ich = ob der Name aus da.json gerade eingetragen ist
+function anwHeute_(name) {
+  const termine = anwHaus_(anwSS_());
+  const n = anwNorm_(name || '');
+  const da = !!n && termine.some((t) => t.status === 'offen' && t.personen.some((p) => anwNorm_(p.name) === n && !p.weg));
+  return { ok: true, termine, ich: { da } };
 }

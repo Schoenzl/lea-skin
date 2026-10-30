@@ -97,6 +97,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._antwort(200, json.dumps({'ok': False, 'fehler': 'Google nicht erreichbar: %s' % e}), 'application/json; charset=utf-8')
 
     def do_POST(self):
+        if self.path.split('?', 1)[0] == '/da/gehen':
+            return self._da({'aktion': 'gehen'})
         if self.path.split('?', 1)[0] == '/da':
             n = int(self.headers.get('Content-Length') or 0)
             try:
