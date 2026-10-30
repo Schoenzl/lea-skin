@@ -146,7 +146,10 @@ function absagen(zeile, name) {
 const FEHL_MAX = 10, SPERRE_S = 900;
 
 function pinNorm_(p) { return String(p == null ? '' : p).replace(/[\s"'„“]/g, ''); }
+// Anmeldung kommt als „Name|PIN“. Kommando-Funktionen gelten nur für den Eintrag „Kommando“ (alte Anmeldung nur mit PIN geht weiter).
 function pinOk_(pin) {
+  const s = String(pin == null ? '' : pin), i = s.indexOf('|');
+  if (i >= 0) { if (s.slice(0, i) !== 'Kommando') return false; pin = s.slice(i + 1); }
   const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
   if (!soll) throw new Error('Kommando-Ansicht noch nicht eingerichtet: In Apps Script unter Projekteinstellungen → Skripteigenschaften die Eigenschaft STATUS_PIN anlegen.');
   if (soll.length < 4) throw new Error('STATUS_PIN ist zu kurz, bitte mindestens 4 Ziffern verwenden.');

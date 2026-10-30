@@ -42,7 +42,19 @@
   #kommando .gz .t small { display: block; color: var(--grau); font-size: 12px; }
   #kommando .gz .t select, #kommando .gz .t input { margin-top: 6px; width: 100%; font: inherit; font-size: 13px; padding: 7px; border: 1px solid #C5CCD6; border-radius: 7px; }
   #kommando .gz .t input.mb { border-color: #E5A3A3; background: var(--rot-bg); }
+  #kommando .gz .rechts { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+  #kommando .gz .ed { font: inherit; font-size: 14px; padding: 3px 9px; border-radius: 7px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
+  #kommando .gform { display: grid; gap: 10px; }
+  #kommando .gform label > span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin-bottom: 4px; }
+  #kommando .gform input { width: 100%; font: inherit; font-size: 15px; padding: 9px; border: 1px solid #C5CCD6; border-radius: 8px; }
+  #kommando .gform .arten { display: grid; gap: 4px; max-height: 220px; overflow: auto; border: 1px solid var(--linie); border-radius: 8px; padding: 8px; }
+  #kommando .gform .art { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 400; }
+  #kommando .gform .art input { width: auto; margin-top: 2px; flex: none; }
+  #kommando .aus { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--linie); }
+  #kommando .aus .pk-werkz button { color: #991B1B; border-color: #E5A3A3; }
   #kommando .pk-speichern { position: sticky; bottom: 10px; margin-top: 10px; }
+  #kommando #k-pinbox label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin: 12px 0 6px; }
+  #kommando #k-name { width: 100%; font: inherit; font-size: 17px; padding: 11px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
   #kommando .kbar button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
   #kommando .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
   #kommando h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
@@ -227,7 +239,10 @@
 </section>
 <section id="kommando" hidden>
   <div id="k-pinbox" class="karte">
-    <h2>Kommando · PIN eingeben</h2>
+    <h2>Anmelden</h2>
+    <label for="k-name">Wer bist du?</label>
+    <select id="k-name"><option value="">wird geladen …</option></select>
+    <label for="k-pin">PIN</label>
     <input id="k-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12">
     <button class="los" id="k-los">Anzeigen</button>
     <div class="meldung" id="k-meldung" hidden></div>
@@ -381,7 +396,23 @@
     clearInterval(timer); timer = null;
     $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
   }
-  $('k-los').onclick = () => { pin = $('k-pin').value.trim(); $('k-meldung').hidden = true; laden(); };
+  $('k-los').onclick = () => {
+    const n = $('k-name').value;
+    if (!n) { fehler('Bitte zuerst deinen Namen wählen.'); return; }
+    pin = n + '|' + $('k-pin').value.trim(); $('k-meldung').hidden = true; laden();
+  };
+  // Namensliste laden (Kommando + aktive Prüfer), zuletzt gewählter Name vorausgewählt
+  const namenLaden = () => {
+    if (!(window.google && google.script)) return;
+    google.script.run.withSuccessHandler((liste) => {
+      const sel = $('k-name'); sel.textContent = '';
+      const leer = document.createElement('option'); leer.value = ''; leer.textContent = '– Namen wählen –'; sel.appendChild(leer);
+      liste.forEach((x) => { const o = document.createElement('option'); o.value = x.name; o.textContent = x.name + (x.funktion ? ' (' + x.funktion + ')' : ''); sel.appendChild(o); });
+      try { const z = localStorage.getItem('fz-login-name'); if (z && liste.some((x) => x.name === z)) sel.value = z; } catch (e) {}
+    }).anmeldeNamen();
+  };
+  $('k-name').onchange = () => { try { localStorage.setItem('fz-login-name', $('k-name').value); } catch (e) {} $('k-pin').focus(); };
+  namenLaden();
   $('k-pin').onkeydown = (e) => { if (e.key === 'Enter') $('k-los').click(); };
   $('k-abmelden').onclick = abmelden;
 
@@ -685,7 +716,8 @@
       const qb = el('button', '', 'Suchen'); qb.type = 'button'; qb.onclick = () => { if (q.value.trim()) liste({ suche: q.value.trim() }, 'Suche „' + q.value.trim() + '“'); };
       q.onkeydown = (e) => { if (e.key === 'Enter') qb.click(); };
       const fb = el('button', '', 'Alle fälligen'); fb.type = 'button'; fb.onclick = () => liste({ faellig: true }, 'Alle fälligen');
-      w.append(q, qb, fb); box().appendChild(w);
+      const nb = el('button', '', '+ Gerät'); nb.type = 'button'; nb.onclick = () => formular(null, {});
+      w.append(q, qb, fb, nb); box().appendChild(w);
       box().appendChild(el('h2', '', 'Wo prüfst du?'));
       const ow = el('div', 'ortwahl');
       d.orte.forEach((o) => {
@@ -710,7 +742,8 @@
       const zur = el('button', '', '‹ Orte'); zur.type = 'button'; zur.onclick = uebersicht;
       kopf.append(zur, el('b', '', titel + ' · ' + d.geraete.length));
       const alle = el('button', '', 'Alle ok'); alle.type = 'button';
-      kopf.appendChild(alle); box().appendChild(kopf);
+      const hier = el('button', '', '+ Gerät'); hier.type = 'button'; hier.onclick = () => formular(null, { ort: filter.ort || '' });
+      kopf.append(alle, hier); box().appendChild(kopf);
       if (!d.geraete.length) { box().appendChild(el('div', 'leer', 'Keine Geräte.')); return; }
       const wahl = new Map();   // id → { art, ergebnis, bem }
       const rows = el('div');
@@ -739,7 +772,10 @@
         };
         bx.onclick = () => { const w = wahl.get(g.id); setz(!w ? 'OK' : w.ergebnis === 'OK' ? 'Mangel' : ''); if (!mb.hidden) mb.focus(); };
         zeilen.push(setz);
-        r.append(bx, t, pill(g.status)); rows.appendChild(r);
+        const ed = el('button', 'ed', '✎'); ed.type = 'button'; ed.title = 'Gerät bearbeiten oder ausscheiden';
+        ed.onclick = () => formular(g, {});
+        const rechts = el('div', 'rechts'); rechts.append(pill(g.status), ed);
+        r.append(bx, t, rechts); rows.appendChild(r);
       });
       alle.onclick = () => zeilen.forEach((f) => f('OK'));
       zaehler.onclick = () => {
@@ -751,6 +787,50 @@
           .catch((e) => { toast(e.message, true); neuZaehlen(); });
       };
       box().append(rows, zaehler); neuZaehlen();
+    }).catch((e) => { box().textContent = e.message; });
+  }
+
+  // Gerät anlegen (g = null) oder bearbeiten / ausscheiden
+  function formular(g, vor) {
+    const zurueck = () => (ansicht ? liste(ansicht.filter, ansicht.titel) : uebersicht());
+    box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
+    run('geraetStamm', pin).then((st) => {
+      box().textContent = '';
+      if (!st.ok) { box().appendChild(el('div', 'leer', st.fehler)); return; }
+      const kopf = el('div', 'pk-kopf'); const zb = el('button', '', '‹ Zurück'); zb.type = 'button'; zb.onclick = zurueck;
+      kopf.append(zb, el('b', '', g ? 'Gerät bearbeiten · ' + g.id : 'Neues Gerät')); box().appendChild(kopf);
+      const f = el('div', 'gform');
+      const feld = (label, inp) => { const w = el('label'); w.appendChild(el('span', '', label)); w.appendChild(inp); f.appendChild(w); return inp; };
+      const dl = (id, werte) => { const d = el('datalist'); d.id = id; werte.forEach((v) => { const o = el('option'); o.value = v; d.appendChild(o); }); f.appendChild(d); };
+      dl('gf-orte', st.orte); dl('gf-gruppen', st.gruppen);
+      const ort = feld('Ort', el('input')); ort.setAttribute('list', 'gf-orte'); ort.value = g ? (g.ort === 'Ohne Ort' ? '' : g.ort) : (vor.ort || ''); ort.placeholder = 'z. B. KLF-W › Geräteraum 3';
+      const bez = feld('Bezeichnung', el('input')); bez.value = g ? g.bez : ''; bez.maxLength = 120;
+      const gruppe = feld('Gruppe (optional)', el('input')); gruppe.setAttribute('list', 'gf-gruppen'); gruppe.value = g ? (g.gruppe || '') : '';
+      const inv = feld('Inventarnummer', el('input')); inv.value = g ? g.inv : '';
+      const serie = feld('Seriennummer', el('input')); serie.value = g ? g.serie : '';
+      const anz = feld('Anzahl', el('input')); anz.type = 'number'; anz.min = 1; anz.value = g ? (g.anzahl || 1) : 1;
+      const artBox = el('div', 'arten'); const gew = new Set(g ? g.pruefungen.map((p) => p.art) : []);
+      st.arten.forEach((a) => { const l = el('label', 'art'); const c = el('input'); c.type = 'checkbox'; c.value = a; c.checked = gew.has(a); l.append(c, document.createTextNode(' ' + a)); artBox.appendChild(l); });
+      const al = el('label'); al.appendChild(el('span', '', 'Prüfarten')); al.appendChild(artBox); f.appendChild(al);
+      box().appendChild(f);
+      const daten = () => ({ ort: ort.value, bez: bez.value, gruppe: gruppe.value, inv: inv.value, serie: serie.value, anzahl: anz.value,
+        arten: Array.from(artBox.querySelectorAll('input:checked')).map((c) => c.value) });
+      const sp = el('button', 'los', g ? 'Änderungen speichern' : 'Gerät anlegen'); sp.type = 'button';
+      sp.onclick = () => { sp.disabled = true; run(g ? 'geraetAendern' : 'geraetAnlegen', ...(g ? [pin, g.id, daten()] : [pin, daten()]))
+        .then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) zurueck(); else sp.disabled = false; }).catch((e) => { toast(e.message, true); sp.disabled = false; }); };
+      box().appendChild(sp);
+      if (g) {
+        const aus = el('div', 'aus'); aus.appendChild(el('h2', '', 'Gerät ausscheiden'));
+        aus.appendChild(el('div', 'leer', 'Das Gerät verschwindet aus den Prüflisten. Protokoll und Eintrag in der Tabelle bleiben erhalten.'));
+        const gr = el('input'); gr.placeholder = 'Grund, z. B. defekt, verloren, ersetzt'; gr.maxLength = 200;
+        const ab = el('button', '', 'Ausscheiden'); ab.type = 'button';
+        ab.onclick = () => {
+          if (ab.dataset.sicher !== '1') { ab.dataset.sicher = '1'; ab.textContent = 'Wirklich ausscheiden?'; return; }
+          ab.disabled = true; run('geraetAusscheiden', pin, g.id, gr.value).then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) zurueck(); else { ab.disabled = false; ab.dataset.sicher = ''; ab.textContent = 'Ausscheiden'; } })
+            .catch((e) => { toast(e.message, true); ab.disabled = false; });
+        };
+        const zeile = el('div', 'pk-werkz'); zeile.append(gr, ab); aus.appendChild(zeile); box().appendChild(aus);
+      }
     }).catch((e) => { box().textContent = e.message; });
   }
 

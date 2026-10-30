@@ -14,7 +14,8 @@ const GER_TABS = {
   'Geräte': ['ID', 'Ort', 'Gruppe', 'Gerätestandard', 'Bezeichnung', 'Inventarnr.', 'Seriennr.', 'Anzahl', 'Prüfarten', 'Prüfen', 'Bemerkung'],
   'Prüfarten': ['Prüfart', 'Intervall (Monate)', 'Aktiv', 'Hinweis'],
   'Prüfungen': ['Zeitstempel', 'Geräte-ID', 'Bezeichnung', 'Ort', 'Prüfart', 'Ergebnis', 'Bemerkung', 'Prüfer'],
-  'Prüfer': ['Name', 'Funktion', 'PIN', 'Aktiv']
+  'Prüfer': ['Name', 'Funktion', 'PIN', 'Aktiv'],
+  'Änderungen': ['Zeitstempel', 'Geräte-ID', 'Aktion', 'Details', 'Von']
 };
 const BALD_TAGE = 30;
 
@@ -69,16 +70,24 @@ const datum_ = (t) => (t ? Utilities.formatDate(new Date(t), 'Europe/Vienna', 'd
 function rolle_(pin) {
   const cache = CacheService.getScriptCache();
   if (+(cache.get('status-fehl') || 0) >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
-  const p = pinNorm_(pin);
+  const s = String(pin == null ? '' : pin), i = s.indexOf('|');
+  const wer = i >= 0 ? s.slice(0, i).trim() : 'Kommando', p = pinNorm_(i >= 0 ? s.slice(i + 1) : s);
   const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
-  if (soll && p === soll) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
-  try {
-    const t = gerLesen_(gerSS_(), 'Prüfer').zeilen.find((x) => jaNein_(x.Aktiv) && pinNorm_(x.PIN).length >= 4 && pinNorm_(x.PIN) === p);
+  if (wer === 'Kommando') {
+    if (soll && p === soll) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
+  } else try {
+    const t = gerLesen_(gerSS_(), 'Prüfer').zeilen.find((x) => jaNein_(x.Aktiv) && String(x.Name).trim() === wer && pinNorm_(x.PIN).length >= 4 && pinNorm_(x.PIN) === p);
     if (t) { cache.remove('status-fehl'); return { rolle: 'pruefer', name: String(t.Name).trim() + (t.Funktion ? ' (' + String(t.Funktion).trim() + ')' : '') }; }
   } catch (e) { /* noch nicht eingerichtet */ }
   cache.put('status-fehl', String(+(cache.get('status-fehl') || 0) + 1), SPERRE_S);
   Utilities.sleep(800);
   return null;
+}
+// Namen für die Anmeldung (ohne PINs): „Kommando“ und alle aktiven Prüfer
+function anmeldeNamen() {
+  let namen = [];
+  try { namen = gerLesen_(gerSS_(), 'Prüfer').zeilen.filter((x) => jaNein_(x.Aktiv)).map((x) => ({ name: String(x.Name).trim(), funktion: String(x.Funktion || '').trim() })).filter((x) => x.name); } catch (e) { /* noch nicht eingerichtet */ }
+  return [{ name: 'Kommando', funktion: 'Kommando-PIN' }].concat(namen.sort((a, b) => a.name.localeCompare(b.name, 'de')));
 }
 function anmelden(pin) {
   const r = rolle_(pin);
@@ -180,4 +189,80 @@ function fahrzeugMaengel_(maengel) {
     fertig.push(fz);
   });
   return fertig.length ? ' (bei ' + fertig.join(', ') + ' als Mangel eingetragen)' : '';
+}
+
+// ---------- Geräte anlegen, ändern, ausscheiden (Kommando und Prüfer) ----------
+// Ausscheiden löscht nicht: „Prüfen“ wird „Nein“, Grund und Name kommen in die Bemerkung – das Protokoll bleibt erhalten.
+function aenderungenTab_(ss) {
+  let sh = ss.getSheetByName('Änderungen');
+  if (!sh) { sh = ss.insertSheet('Änderungen'); sh.getRange(1, 1, 1, 5).setValues([GER_TABS['Änderungen']]).setFontWeight('bold'); sh.setFrozenRows(1); sh.getRange('A2:A10000').setNumberFormat('dd.MM.yyyy HH:mm'); }
+  return sh;
+}
+function gerLog_(ss, id, aktion, details, wer) { aenderungenTab_(ss).appendRow([new Date(), id, aktion, String(details).slice(0, 500), wer]); }
+
+// Auswahllisten fürs Formular
+function geraetStamm(pin) {
+  const r = rolle_(pin); if (!r) return { ok: false, fehler: 'PIN falsch.' };
+  const ss = gerSS_();
+  const g = gerLesen_(ss, 'Geräte').zeilen;
+  const orte = new Set(['KLF-W › Fahrerraum', 'KLF-W › Mannschaftsraum', 'KLF-W › Geräteraum 1', 'KLF-W › Geräteraum 2', 'KLF-W › Geräteraum 3',
+    'KLF-W › Geräteraum 4', 'KLF-W › Geräteraum 5', 'KLF-W › Geräteraum 6', 'KLF-W › Pumpenraum', 'KLF-W › Dach', 'MTF', 'VFA', 'Rollcontainer', 'Halle', 'Lager / nicht zugewiesen']);
+  g.forEach((x) => { if (String(x.Ort).trim()) orte.add(String(x.Ort).trim()); });
+  const gruppen = Array.from(new Set(g.map((x) => String(x.Gruppe).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'de'));
+  const arten = gerLesen_(ss, 'Prüfarten').zeilen.filter((a) => jaNein_(a.Aktiv)).map((a) => String(a['Prüfart']).trim());
+  return { ok: true, orte: Array.from(orte).sort((a, b) => a.localeCompare(b, 'de', { numeric: true })), gruppen, arten };
+}
+function geraetDaten_(d) {
+  const t = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+  const o = { ort: t(d.ort, 80), gruppe: t(d.gruppe, 120), bez: t(d.bez, 120), inv: t(d.inv, 40), serie: t(d.serie, 60),
+    anzahl: Math.max(1, Math.min(999, parseInt(d.anzahl, 10) || 1)), arten: (Array.isArray(d.arten) ? d.arten : []).map((a) => t(a, 160)).filter(Boolean) };
+  if (!o.bez) throw new Error('Bitte eine Bezeichnung eingeben.');
+  if (!o.ort) throw new Error('Bitte einen Ort wählen.');
+  if (!o.arten.length) throw new Error('Bitte mindestens eine Prüfart wählen.');
+  return o;
+}
+function geraetAnlegen(pin, d) {
+  const r = rolle_(pin); if (!r) return { ok: false, fehler: 'PIN falsch.' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const o = geraetDaten_(d), ss = gerSS_(), G = gerLesen_(ss, 'Geräte');
+    const max = G.zeilen.reduce((m, x) => Math.max(m, parseInt(String(x.ID).replace(/\D/g, ''), 10) || 0), 0);
+    const id = 'G' + String(max + 1).padStart(3, '0');
+    const zeile = G.sh.getLastRow() + 1;
+    G.sh.getRange(zeile, 6, 1, 2).setNumberFormat('@');
+    G.sh.getRange(zeile, 1, 1, 11).setValues([[id, o.ort, o.gruppe, '', o.bez, o.inv, o.serie, o.anzahl, o.arten.join('; '), 'Ja', 'angelegt ' + datum_(Date.now()) + ' von ' + r.name]]);
+    gerLog_(ss, id, 'angelegt', o.bez + ' · ' + o.ort + (o.inv ? ' · Nr. ' + o.inv : ''), r.name);
+    return { ok: true, id, text: '„' + o.bez + '“ angelegt (' + id + ').' };
+  } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
+}
+function geraetAendern(pin, id, d) {
+  const r = rolle_(pin); if (!r) return { ok: false, fehler: 'PIN falsch.' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const o = geraetDaten_(d), ss = gerSS_(), G = gerLesen_(ss, 'Geräte');
+    const g = G.zeilen.find((x) => x.ID === id); if (!g) return { ok: false, fehler: 'Gerät nicht gefunden.' };
+    const neu = { Ort: o.ort, Gruppe: o.gruppe || g.Gruppe, Bezeichnung: o.bez, 'Inventarnr.': o.inv, 'Seriennr.': o.serie, Anzahl: o.anzahl, 'Prüfarten': o.arten.join('; ') };
+    const diff = Object.keys(neu).filter((k) => String(g[k]) !== String(neu[k])).map((k) => k + ': „' + g[k] + '“ → „' + neu[k] + '“');
+    if (!diff.length) return { ok: true, text: 'Keine Änderung.' };
+    const kopf = GER_TABS['Geräte'];
+    G.sh.getRange(g._zeile, 6, 1, 2).setNumberFormat('@');
+    Object.keys(neu).forEach((k) => G.sh.getRange(g._zeile, kopf.indexOf(k) + 1).setValue(neu[k]));
+    gerLog_(ss, id, 'geändert', diff.join(' · '), r.name);
+    return { ok: true, text: '„' + o.bez + '“ gespeichert.' };
+  } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
+}
+function geraetAusscheiden(pin, id, grund) {
+  const r = rolle_(pin); if (!r) return { ok: false, fehler: 'PIN falsch.' };
+  const gr = String(grund || '').trim().slice(0, 200);
+  if (gr.length < 3) return { ok: false, fehler: 'Bitte kurz den Grund angeben (z. B. defekt, verloren, ersetzt).' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const ss = gerSS_(), G = gerLesen_(ss, 'Geräte');
+    const g = G.zeilen.find((x) => x.ID === id); if (!g) return { ok: false, fehler: 'Gerät nicht gefunden.' };
+    const kopf = GER_TABS['Geräte'];
+    G.sh.getRange(g._zeile, kopf.indexOf('Prüfen') + 1).setValue('Nein');
+    G.sh.getRange(g._zeile, kopf.indexOf('Bemerkung') + 1).setValue('ausgeschieden ' + datum_(Date.now()) + ' von ' + r.name + ': ' + gr + (g.Bemerkung ? ' · ' + g.Bemerkung : ''));
+    gerLog_(ss, id, 'ausgeschieden', g.Bezeichnung + ' · ' + gr, r.name);
+    return { ok: true, text: '„' + g.Bezeichnung + '“ ausgeschieden. Im FDISK bitte ebenfalls ausscheiden.' };
+  } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
 }
