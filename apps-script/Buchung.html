@@ -189,7 +189,7 @@
 <body data-start="<?= start ?>">
 <header>
   <div class="titel"><h1>FF Deutsch Haslau</h1><p>Fahrzeuge · Anwesenheit</p></div>
-  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-anwesenheit">Anwesenheit</button><button type="button" id="tab-kommando">Kommando</button></nav>
+  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-anwesenheit">Anwesenheit</button><button type="button" id="tab-kommando">Intern</button></nav>
 </header>
 <main>
 <section id="buchen">
@@ -345,7 +345,7 @@
   $('tab-anwesenheit').onclick = () => reiter('anwesenheit');
   // Start-Reiter: ?seite=da → Anwesenheit, ?seite=status → Kommando.
   // Apps Script setzt Werte in <script> mit Anführungszeichen ein, daher über ein data-Attribut und zusätzlich aus der Adresse.
-  const startReiter = (s) => { s = String(s || '').replace(/["']/g, ''); if (s === 'da') s = 'anwesenheit'; if (s === 'status') s = 'kommando'; if (s === 'kommando' || s === 'anwesenheit') reiter(s); };
+  const startReiter = (s) => { s = String(s || '').replace(/["']/g, ''); if (s === 'da') s = 'anwesenheit'; if (s === 'status' || s === 'intern') s = 'kommando'; if (s === 'kommando' || s === 'anwesenheit') reiter(s); };
   window.addEventListener('load', () => {
     startReiter(document.body.dataset.start);
     try { google.script.url.getLocation((l) => { if (l && l.parameter && l.parameter.seite) startReiter(l.parameter.seite); }); } catch (e) {}
@@ -401,7 +401,7 @@
     if (!n) { fehler('Bitte zuerst deinen Namen wählen.'); return; }
     pin = n + '|' + $('k-pin').value.trim(); $('k-meldung').hidden = true; laden();
   };
-  // Namensliste laden (Kommando + aktive Prüfer), zuletzt gewählter Name vorausgewählt
+  // Namensliste laden (aktive Personen aus Tab „Prüfer“), zuletzt gewählter Name vorausgewählt
   const namenLaden = () => {
     if (!(window.google && google.script)) return;
     google.script.run.withSuccessHandler((liste) => {

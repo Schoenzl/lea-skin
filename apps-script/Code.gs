@@ -11,7 +11,7 @@ const MAX_TAGE = 7;                              // längste Buchung
 function doGet(e) {
   const t = HtmlService.createTemplateFromFile('Buchung');
   const seite = (e && e.parameter && e.parameter.seite) || '';
-  t.start = seite === 'status' ? 'kommando' : seite === 'da' ? 'anwesenheit' : 'buchen';
+  t.start = seite === 'status' || seite === 'intern' ? 'kommando' : seite === 'da' ? 'anwesenheit' : 'buchen';
   return t.evaluate()
     .setTitle('FF Deutsch Haslau')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
@@ -146,20 +146,10 @@ function absagen(zeile, name) {
 const FEHL_MAX = 10, SPERRE_S = 900;
 
 function pinNorm_(p) { return String(p == null ? '' : p).replace(/[\s"'„“]/g, ''); }
-// Anmeldung kommt als „Name|PIN“. Kommando-Funktionen gelten nur für den Eintrag „Kommando“ (alte Anmeldung nur mit PIN geht weiter).
+// Anmeldung kommt als „Name|PIN“. Fahrzeuge, Fahrten löschen und Anwesenheit nur für Rolle „Alles“ (Kdt, Stv) – siehe rolle_ in Pruefung.gs.
 function pinOk_(pin) {
-  const s = String(pin == null ? '' : pin), i = s.indexOf('|');
-  if (i >= 0) { if (s.slice(0, i) !== 'Kommando') return false; pin = s.slice(i + 1); }
-  const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
-  if (!soll) throw new Error('Kommando-Ansicht noch nicht eingerichtet: In Apps Script unter Projekteinstellungen → Skripteigenschaften die Eigenschaft STATUS_PIN anlegen.');
-  if (soll.length < 4) throw new Error('STATUS_PIN ist zu kurz, bitte mindestens 4 Ziffern verwenden.');
-  const cache = CacheService.getScriptCache();
-  const fehl = +(cache.get('status-fehl') || 0);
-  if (fehl >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
-  if (pinNorm_(pin) === soll) { cache.remove('status-fehl'); return true; }
-  cache.put('status-fehl', String(fehl + 1), SPERRE_S);
-  Utilities.sleep(800);                          // bremst Durchprobieren
-  return false;
+  const r = rolle_(pin);
+  return !!r && r.rolle === 'kommando';
 }
 
 // Im Editor ausführen (▶ pinPruefen), wenn die PIN nicht geht: zeigt im Ausführungslog, ob STATUS_PIN gefunden wird, und hebt eine Sperre auf.

@@ -2,10 +2,10 @@
  * Geräteprüfungen – FF Deutsch Haslau.
  * Eigene Datei im selben Apps-Script-Projekt wie Code.gs und Anwesenheit.gs.
  *
- * Rollen über den PIN im Reiter „Kommando“:
- *  - Kommando-PIN (STATUS_PIN) → alles
- *  - Prüfer-PIN (Tab „Prüfer“ in der Tabelle „Geräte & Prüfungen“) → nur die Geräteprüfungen; alle anderen
- *    Funktionen prüfen weiterhin nur den Kommando-PIN und liefern einem Prüfer nichts.
+ * Anmeldung im Reiter „Intern“: Name wählen, dann eigener PIN (Tab „Prüfer“ in der Tabelle „Geräte & Prüfungen“).
+ *  - Rolle „Alles“ (Kdt, 1. und 2. Kdt-Stv) → alles: Fahrzeuge, Fahrten löschen, Anwesenheit, Geräte
+ *  - Rolle „Geräte“ (alle anderen) → nur Geräteprüfungen und Geräteverwaltung
+ *  - Der gemeinsame STATUS_PIN („Kommando“) gilt nur, solange noch niemand die Rolle „Alles“ mit gültigem PIN hat.
  * Geprüft wird ohne Aufkleber: Ort wählen (z. B. „KLF-W › Geräteraum 4“), Geräte abhaken, bei Mangel kurz notieren.
  *
  * Einrichten: GeraeteImport.gs (Daten aus FDISK, nicht im Repo) einfügen und einmal ▶ geraeteEinrichten ausführen.
@@ -14,7 +14,7 @@ const GER_TABS = {
   'Geräte': ['ID', 'Ort', 'Gruppe', 'Gerätestandard', 'Bezeichnung', 'Inventarnr.', 'Seriennr.', 'Anzahl', 'Prüfarten', 'Prüfen', 'Bemerkung'],
   'Prüfarten': ['Prüfart', 'Intervall (Monate)', 'Aktiv', 'Hinweis'],
   'Prüfungen': ['Zeitstempel', 'Geräte-ID', 'Bezeichnung', 'Ort', 'Prüfart', 'Ergebnis', 'Bemerkung', 'Prüfer'],
-  'Prüfer': ['Name', 'Funktion', 'PIN', 'Aktiv'],
+  'Prüfer': ['Name', 'Funktion', 'PIN', 'Aktiv', 'Rolle'],
   'Änderungen': ['Zeitstempel', 'Geräte-ID', 'Aktion', 'Details', 'Von']
 };
 const BALD_TAGE = 30;
@@ -43,6 +43,7 @@ function geraeteEinrichten() {
   const pr = ss.getSheetByName('Prüfer');
   pr.getRange('C2:C100').setNumberFormat('@');
   pr.getRange('D2:D100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Ja', 'Nein'], true).build());
+  pr.getRange('E2:E100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Alles', 'Geräte'], true).build());
   [g, p, ss.getSheetByName('Prüfungen'), pr].forEach((sh) => sh.autoResizeColumns(1, sh.getLastColumn()));
   props.setProperty('GER_ID', ss.getId());
   console.log(rows.length + ' Geräte übernommen. Tabelle: ' + ss.getUrl());
@@ -66,28 +67,46 @@ const jaNein_ = (v) => String(v || '').trim().toLowerCase() !== 'nein';
 const monatePlus_ = (t, m) => { const d = new Date(t); d.setMonth(d.getMonth() + m); return d.getTime(); };
 const datum_ = (t) => (t ? Utilities.formatDate(new Date(t), 'Europe/Vienna', 'dd.MM.yyyy') : '');
 
-// Rolle aus dem PIN: Kommando (STATUS_PIN) oder Prüfer (Tab „Prüfer“). Sperre nach Fehlversuchen wie beim Kommando-PIN.
+// Tab „Prüfer“ lesen; fehlt die Spalte „Rolle“ (ältere Tabelle), wird sie angelegt und für Kdt/Stv mit „Alles“ vorbelegt.
+function personen_() {
+  const ss = gerSS_(), sh = ss.getSheetByName('Prüfer');
+  if (String(sh.getRange(1, 5).getValue()).trim() !== 'Rolle') {
+    sh.getRange(1, 5).setValue('Rolle').setFontWeight('bold');
+    const n = sh.getLastRow() - 1;
+    if (n > 0) sh.getRange(2, 5, n, 1).setValues(sh.getRange(2, 2, n, 1).getValues().map((r) => [/kommandant|kdt/i.test(String(r[0])) ? 'Alles' : 'Geräte']));
+    sh.getRange('E2:E100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Alles', 'Geräte'], true).build());
+  }
+  return gerLesen_(ss, 'Prüfer').zeilen.filter((x) => jaNein_(x.Aktiv) && String(x.Name).trim())
+    .map((x) => ({ name: String(x.Name).trim(), funktion: String(x.Funktion || '').trim(), pin: pinNorm_(x.PIN), alles: /^alles$/i.test(String(x.Rolle || '').trim()) }));
+}
+// Gemeinsamer STATUS_PIN nur als Übergang, bis jemand mit Rolle „Alles“ einen eigenen PIN hat
+const kommandoGemeinsam_ = (leute) => !leute.some((x) => x.alles && x.pin.length >= 4);
+
+// Rolle aus „Name|PIN“. Sperre nach Fehlversuchen wie bisher.
 function rolle_(pin) {
   const cache = CacheService.getScriptCache();
   if (+(cache.get('status-fehl') || 0) >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
   const s = String(pin == null ? '' : pin), i = s.indexOf('|');
   const wer = i >= 0 ? s.slice(0, i).trim() : 'Kommando', p = pinNorm_(i >= 0 ? s.slice(i + 1) : s);
   const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
+  let leute = [];
+  try { leute = personen_(); } catch (e) { /* noch nicht eingerichtet */ }
   if (wer === 'Kommando') {
-    if (soll && p === soll) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
-  } else try {
-    const t = gerLesen_(gerSS_(), 'Prüfer').zeilen.find((x) => jaNein_(x.Aktiv) && String(x.Name).trim() === wer && pinNorm_(x.PIN).length >= 4 && pinNorm_(x.PIN) === p);
-    if (t) { cache.remove('status-fehl'); return { rolle: 'pruefer', name: String(t.Name).trim() + (t.Funktion ? ' (' + String(t.Funktion).trim() + ')' : '') }; }
-  } catch (e) { /* noch nicht eingerichtet */ }
+    if (soll && soll.length >= 4 && p === soll && kommandoGemeinsam_(leute)) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
+  } else {
+    const t = leute.find((x) => x.name === wer && x.pin.length >= 4 && x.pin === p);
+    if (t) { cache.remove('status-fehl'); return { rolle: t.alles ? 'kommando' : 'pruefer', name: t.name + (t.funktion ? ' (' + t.funktion + ')' : '') }; }
+  }
   cache.put('status-fehl', String(+(cache.get('status-fehl') || 0) + 1), SPERRE_S);
   Utilities.sleep(800);
   return null;
 }
-// Namen für die Anmeldung (ohne PINs): „Kommando“ und alle aktiven Prüfer
+// Namen für die Anmeldung (ohne PINs): alle aktiven Personen; „Kommando“ nur solange der gemeinsame PIN noch gilt
 function anmeldeNamen() {
-  let namen = [];
-  try { namen = gerLesen_(gerSS_(), 'Prüfer').zeilen.filter((x) => jaNein_(x.Aktiv)).map((x) => ({ name: String(x.Name).trim(), funktion: String(x.Funktion || '').trim() })).filter((x) => x.name); } catch (e) { /* noch nicht eingerichtet */ }
-  return [{ name: 'Kommando', funktion: 'Kommando-PIN' }].concat(namen.sort((a, b) => a.name.localeCompare(b.name, 'de')));
+  let leute = [];
+  try { leute = personen_(); } catch (e) { /* noch nicht eingerichtet */ }
+  const namen = leute.map((x) => ({ name: x.name, funktion: x.funktion })).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return (kommandoGemeinsam_(leute) ? [{ name: 'Kommando', funktion: 'gemeinsamer PIN' }] : []).concat(namen);
 }
 function anmelden(pin) {
   const r = rolle_(pin);
