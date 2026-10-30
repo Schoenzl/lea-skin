@@ -13,7 +13,7 @@
 const GER_TABS = {
   'Geräte': ['ID', 'Ort', 'Gruppe', 'Gerätestandard', 'Bezeichnung', 'Inventarnr.', 'Seriennr.', 'Anzahl', 'Prüfarten', 'Prüfen', 'Bemerkung'],
   'Prüfarten': ['Prüfart', 'Intervall (Monate)', 'Aktiv', 'Hinweis'],
-  'Prüfungen': ['Zeitstempel', 'Geräte-ID', 'Bezeichnung', 'Ort', 'Prüfart', 'Ergebnis', 'Bemerkung', 'Prüfer'],
+  'Prüfungen': ['Zeitstempel', 'Geräte-ID', 'Bezeichnung', 'Ort', 'Prüfart', 'Ergebnis', 'Bemerkung', 'Prüfer', 'FDISK'],
   'Prüfer': ['Name', 'Funktion', 'PIN', 'Aktiv', 'Rolle'],
   'Änderungen': ['Zeitstempel', 'Geräte-ID', 'Aktion', 'Details', 'Von']
 };
@@ -185,6 +185,8 @@ function pruefSpeichern(pin, eintraege) {
     });
     if (!zeilen.length) return { ok: false, fehler: 'Geräte nicht gefunden.' };
     const sh = ss.getSheetByName('Prüfungen');
+    // Spalte „FDISK“: bleibt leer, bis die Prüfung ins FDISK übertragen ist („übertragen TT.MM.JJJJ“)
+    if (String(sh.getRange(1, 9).getValue()).trim() !== 'FDISK') sh.getRange(1, 9).setValue('FDISK').setFontWeight('bold');
     sh.getRange(sh.getLastRow() + 1, 1, zeilen.length, zeilen[0].length).setValues(zeilen);
     const info = fahrzeugMaengel_(maengel);
     return { ok: true, text: zeilen.length + ' Prüfung' + (zeilen.length === 1 ? '' : 'en') + ' gespeichert' + (maengel.length ? ', ' + maengel.length + ' Mangel' + (maengel.length === 1 ? '' : '/Mängel') + info : '') + '.' };
