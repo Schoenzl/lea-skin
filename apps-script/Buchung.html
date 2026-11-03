@@ -21,6 +21,22 @@
   #kommando .kbar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; font-size: 13px; color: var(--grau); margin-bottom: 12px; }
   #kommando .nur-pruefer .nur-kdo { display: none !important; }
   #kommando #k-rolle { margin-right: auto; font-weight: 700; color: var(--text); }
+  #kommando .nur-pruefer:not(.fm) .nur-fz { display: none !important; }
+  #kommando .fst { padding: 12px 0; border-top: 1px solid var(--linie); }
+  #kommando .fst:first-child { border-top: 0; padding-top: 0; }
+  #kommando .fst .fk { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  #kommando .fst .fk b { font-size: 18px; }
+  #kommando .fst .fk small { color: var(--grau); font-size: 12px; margin-left: auto; text-align: right; }
+  #kommando .fst .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  #kommando .fst .seg button { font: inherit; font-size: 13px; font-weight: 700; padding: 9px 4px; border-radius: 8px; border: 1.5px solid #C5CCD6; background: #fff; color: var(--grau); }
+  #kommando .fst .seg button.an.ja { background: var(--gruen-bg); border-color: var(--gruen); color: var(--gruen); }
+  #kommando .fst .seg button.an.eing { background: var(--gelb-bg); border-color: var(--gelb); color: #92400E; }
+  #kommando .fst .seg button.an.nein { background: var(--rot-bg); border-color: #DC2626; color: #991B1B; }
+  #kommando .fst .zeile2 { display: flex; gap: 6px; margin-top: 8px; }
+  #kommando .fst .zeile2 input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; }
+  #kommando .fst .zeile2 button { font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--rot); color: #fff; }
+  #kommando .fst .zeile2 button:disabled { opacity: .4; }
+  #kommando .fst .klein { font-size: 12px; color: #92400E; margin-top: 6px; }
   #kommando .ortwahl { display: grid; gap: 6px; }
   #kommando .ortwahl button { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: inherit; font-weight: 700; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--linie); background: #fff; color: var(--text); }
   #kommando .ortwahl button small { font-weight: 400; color: var(--grau); }
@@ -294,6 +310,10 @@
   <div id="k-inhalt" hidden>
     <div class="kbar"><span id="k-rolle"></span><span id="k-stand"></span><button id="k-abmelden" type="button">Abmelden</button></div>
     <div class="nur-kdo"><div class="fzs" id="k-fzs"></div></div>
+    <div class="karte nur-fz">
+      <h2>Fahrzeugstatus · Einsatzbereitschaft</h2>
+      <div id="k-fst"><div class="leer">wird geladen …</div></div>
+    </div>
     <div class="karte" id="k-pruef-karte">
       <h2>Geräteprüfungen</h2>
       <div id="k-pruef"><div class="leer">wird geladen …</div></div>
@@ -417,15 +437,17 @@
         if (!r.ok) { abmelden(); fehler(r.fehler); return; }
         rolle = r.rolle;
         try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
-        $('k-inhalt').classList.toggle('nur-pruefer', rolle === 'pruefer');
-        $('k-rolle').textContent = (rolle === 'pruefer' ? 'Prüfer: ' : '') + r.name;
+        $('k-inhalt').classList.toggle('nur-pruefer', rolle === 'pruefer' || rolle === 'fahrmeister');
+        $('k-inhalt').classList.toggle('fm', rolle === 'fahrmeister');
+        $('k-rolle').textContent = (rolle === 'pruefer' ? 'Prüfer: ' : rolle === 'fahrmeister' ? 'Fahrmeister: ' : '') + r.name;
         if (window.pruefStart) window.pruefStart(pin);
-        if (rolle === 'pruefer') { $('k-pinbox').hidden = true; $('k-inhalt').hidden = false; return; }
+        if (window.fstStart && rolle !== 'pruefer') window.fstStart(pin);
+        if (rolle === 'pruefer' || rolle === 'fahrmeister') { $('k-pinbox').hidden = true; $('k-inhalt').hidden = false; return; }
         laden();
       }).withFailureHandler((e) => fehler(e.message)).anmelden(pin);
       return;
     }
-    if (rolle === 'pruefer') return;
+    if (rolle === 'pruefer' || rolle === 'fahrmeister') return;
     const fertig = (d) => {
       if (!d.ok) { abmelden(); fehler(d.fehler); return; }
       try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
@@ -440,6 +462,7 @@
     pin = ''; rolle = null; window.anwKommandoGeladen = false; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
     clearInterval(timer); timer = null;
     $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
+    $('k-inhalt').classList.remove('fm'); $('k-fst').textContent = '';
   }
   $('k-los').onclick = () => {
     const n = $('k-name').value;
@@ -593,6 +616,7 @@
     ] };
   }
   window.kommandoStart = () => { if (pin && !daten) laden(); };
+  window.kommandoNeu = () => { if (rolle === 'kommando') laden(); };
 })();
 </script>
 <script>
@@ -924,6 +948,53 @@
   }
 
   window.pruefStart = (p) => { pin = p; uebersicht(); };
+})();
+</script>
+<script>
+// ---------- Fahrzeugstatus: Kommando und Fahrmeister stellen Fahrzeuge außer Dienst ----------
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 6000); };
+  const ARTEN = [['Ja', 'ja', 'Einsatzbereit'], ['Eingeschränkt', 'eing', 'Eingeschränkt'], ['Nein', 'nein', 'Außer Dienst']];
+  let pin = '';
+  function laden() {
+    if (!(window.google && google.script) || !pin) return;
+    google.script.run.withSuccessHandler(zeigen).withFailureHandler((e) => { $('k-fst').textContent = e.message; }).fzStatus(pin);
+  }
+  function zeigen(d) {
+    const box = $('k-fst'); box.textContent = '';
+    if (!d.ok) { box.appendChild(el('div', 'leer', d.fehler)); return; }
+    d.fahrzeuge.forEach((f) => {
+      const z = el('div', 'fst'), kopf = el('div', 'fk');
+      kopf.appendChild(el('b', '', f.fahrzeug));
+      kopf.appendChild(el('small', '', f.bereit !== 'Ja' && (f.von || f.am) ? 'gemeldet ' + [f.von, f.am].filter(Boolean).join(' · ') : f.pickerl ? 'Pickerl ' + f.pickerl : ''));
+      z.appendChild(kopf);
+      let wahl = f.bereit;
+      const seg = el('div', 'seg'), knoepfe = [];
+      const inp = el('input'); inp.maxLength = 300; inp.value = f.mangel; inp.placeholder = 'Grund, z. B. Werkstatt bis Fr';
+      const sp = el('button', '', 'Speichern'); sp.type = 'button';
+      const auffrischen = () => {
+        knoepfe.forEach(([b, w, c]) => { b.className = (w === wahl ? 'an ' : '') + c; });
+        inp.hidden = wahl === 'Ja';
+        sp.disabled = wahl === f.bereit && (wahl === 'Ja' ? !f.mangel : inp.value.trim() === f.mangel);
+      };
+      ARTEN.forEach(([w, c, t]) => { const b = el('button', '', t); b.type = 'button'; b.onclick = () => { wahl = w; auffrischen(); if (w !== 'Ja') inp.focus(); }; knoepfe.push([b, w, c]); seg.appendChild(b); });
+      inp.oninput = auffrischen;
+      sp.onclick = () => {
+        if (wahl !== 'Ja' && !inp.value.trim()) { toast('Bitte kurz den Grund eintragen.', true); inp.focus(); return; }
+        sp.disabled = true; sp.textContent = '…';
+        google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); if (window.kommandoNeu) window.kommandoNeu(); })
+          .withFailureHandler((e) => { toast(e.message, true); laden(); }).fzStatusSetzen(pin, f.fahrzeug, wahl, inp.value);
+      };
+      const z2 = el('div', 'zeile2'); z2.append(inp, sp);
+      z.append(seg, z2);
+      if (f.bereit === 'Ja' && f.mangel) z.appendChild(el('div', 'klein', 'Offener Hinweis: ' + f.mangel + ' (wird beim Speichern als „Einsatzbereit“ gelöscht)'));
+      box.appendChild(z);
+      auffrischen();
+    });
+  }
+  window.fstStart = (p) => { pin = p; laden(); };
 })();
 </script>
 <script>

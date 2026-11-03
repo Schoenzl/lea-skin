@@ -244,3 +244,67 @@ function statusLoeschen(pin, zeile, fahrzeug, von, bis, grund) {
 function mailTest() {
   MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Test Fahrzeugbuchung', 'Mailversand funktioniert. Verbleibendes Tageskontingent: ' + MailApp.getRemainingDailyQuota());
 }
+
+
+// ---------- Fahrzeugstatus (Tab „Fahrzeuge“) – Kommando und Fahrmeister ----------
+const FZ_BEREIT = ['Ja', 'Eingeschränkt', 'Nein'];
+const fzDarf_ = (r) => !!r && (r.rolle === 'kommando' || r.rolle === 'fahrmeister');
+
+function fzStatus(pin) {
+  const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
+  const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
+  if (!sh) return { ok: false, fehler: 'Tab „Fahrzeuge“ fehlt in der Tabelle.' };
+  const w = sh.getDataRange().getDisplayValues(), k = w[0].map((x) => String(x).toLowerCase());
+  const c = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
+  const cFz = c('fahrzeug'), cB = c('einsatzbereit'), cM = c('mangel'), cV = c('gemeldet von'), cA = c('gemeldet am'), cP = c('pickerl');
+  const fz = w.slice(1).filter((z) => String(z[cFz] || '').trim()).map((z) => {
+    const b = String(z[cB] || '').trim();
+    return {
+      fahrzeug: String(z[cFz]).trim(),
+      bereit: FZ_BEREIT.find((x) => x.toLowerCase() === b.toLowerCase()) || (/^einge/i.test(b) ? 'Eingeschränkt' : b ? b : 'Ja'),
+      mangel: cM >= 0 ? String(z[cM] || '').trim() : '',
+      von: cV >= 0 ? String(z[cV] || '').trim() : '',
+      am: cA >= 0 ? String(z[cA] || '').trim() : '',
+      pickerl: cP >= 0 ? String(z[cP] || '').trim() : ''
+    };
+  });
+  return { ok: true, fahrzeuge: fz };
+}
+
+// Status setzen. Bei „Ja“ wird der Mangel geleert (behoben). Wer und wann landet in „Gemeldet von/am“.
+function fzStatusSetzen(pin, fahrzeug, bereit, mangel) {
+  const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
+  bereit = FZ_BEREIT.find((x) => x.toLowerCase() === String(bereit || '').trim().toLowerCase());
+  if (!bereit) return { ok: false, fehler: 'Unbekannter Status.' };
+  mangel = String(mangel || '').trim().slice(0, 300);
+  if (bereit !== 'Ja' && !mangel) return { ok: false, fehler: 'Bitte kurz den Grund eintragen (z. B. „Werkstatt bis Fr“).' };
+  if (bereit === 'Ja') mangel = '';
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
+    if (!sh) return { ok: false, fehler: 'Tab „Fahrzeuge“ fehlt in der Tabelle.' };
+    const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).toLowerCase());
+    const c = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
+    const cFz = c('fahrzeug'), cB = c('einsatzbereit'), cM = c('mangel'), cV = c('gemeldet von'), cA = c('gemeldet am');
+    if (cFz < 0 || cB < 0 || cM < 0) return { ok: false, fehler: 'Spalten „Fahrzeug“, „Einsatzbereit“ oder „Mangel“ fehlen.' };
+    const i = w.findIndex((z, j) => j > 0 && gleich_(z[cFz], fahrzeug));
+    if (i < 0) return { ok: false, fehler: 'Fahrzeug „' + fahrzeug + '“ nicht gefunden.' };
+    const name = String(r.name).replace(/\s*\(.*\)$/, '');
+    sh.getRange(i + 1, cB + 1).setValue(bereit);
+    sh.getRange(i + 1, cM + 1).setValue(mangel);
+    if (cV >= 0) sh.getRange(i + 1, cV + 1).setValue(bereit === 'Ja' ? '' : name);
+    if (cA >= 0) sh.getRange(i + 1, cA + 1).setValue(bereit === 'Ja' ? '' : Utilities.formatDate(new Date(), 'Europe/Vienna', 'dd.MM.yyyy HH:mm'));
+    fzLog_(String(w[i][cFz]).trim(), bereit, mangel, name);
+    SpreadsheetApp.flush();
+    const was = bereit === 'Ja' ? 'wieder einsatzbereit' : bereit === 'Nein' ? 'außer Dienst' : 'eingeschränkt einsatzbereit';
+    return { ok: true, text: String(w[i][cFz]).trim() + ' ist jetzt ' + was + '. Der Infoscreen zeigt es in wenigen Minuten.' };
+  } finally { lock.releaseLock(); }
+}
+
+// Verlauf im Tab „Fahrzeugstatus-Log“ (legt sich selbst an)
+function fzLog_(fahrzeug, bereit, mangel, name) {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName('Fahrzeugstatus-Log');
+  if (!sh) { sh = ss.insertSheet('Fahrzeugstatus-Log'); sh.appendRow(['Zeitstempel', 'Fahrzeug', 'Einsatzbereit', 'Mangel', 'Von']); sh.getRange(1, 1, 1, 5).setFontWeight('bold'); sh.setFrozenRows(1); }
+  sh.appendRow([new Date(), fahrzeug, bereit, mangel, name]);
+}

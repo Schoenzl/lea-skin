@@ -4,6 +4,7 @@
  *
  * Anmeldung im Reiter „Intern“: Name wählen, dann eigener PIN (Tab „Prüfer“ in der Tabelle „Geräte & Prüfungen“).
  *  - Rolle „Alles“ (Kdt, 1. und 2. Kdt-Stv) → alles: Fahrzeuge, Fahrten löschen, Anwesenheit, Geräte
+ *  - Rolle „Fahrmeister“ (oder Funktion enthält „Fahrmeister“) → Geräte + Fahrzeugstatus (einsatzbereit/eingeschränkt/nein)
  *  - Rolle „Geräte“ (alle anderen) → nur Geräteprüfungen und Geräteverwaltung
  *  - Der gemeinsame STATUS_PIN („Kommando“) gilt nur, solange noch niemand die Rolle „Alles“ mit gültigem PIN hat.
  * Geprüft wird ohne Aufkleber: Ort wählen (z. B. „KLF-W › Geräteraum 4“), Geräte abhaken, bei Mangel kurz notieren.
@@ -74,10 +75,19 @@ function personen_() {
     sh.getRange(1, 5).setValue('Rolle').setFontWeight('bold');
     const n = sh.getLastRow() - 1;
     if (n > 0) sh.getRange(2, 5, n, 1).setValues(sh.getRange(2, 2, n, 1).getValues().map((r) => [/kommandant|kdt/i.test(String(r[0])) ? 'Alles' : 'Geräte']));
-    sh.getRange('E2:E100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Alles', 'Geräte'], true).build());
+  }
+  // Rolle „Fahrmeister“ ergänzen (Geräte + Fahrzeugstatus), falls die Auswahl noch die alte ist
+  const cache = CacheService.getScriptCache();
+  if (!cache.get('rolle-fm')) {
+    try {
+      const dv = sh.getRange('E2').getDataValidation(), werte = dv && dv.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST ? dv.getCriteriaValues()[0] : [];
+      if (werte.indexOf('Fahrmeister') < 0) sh.getRange('E2:E100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Alles', 'Fahrmeister', 'Geräte'], true).build());
+      cache.put('rolle-fm', '1', 21600);
+    } catch (e) { /* Auswahlliste ist nur Komfort */ }
   }
   return gerLesen_(ss, 'Prüfer').zeilen.filter((x) => jaNein_(x.Aktiv) && String(x.Name).trim())
-    .map((x) => ({ name: String(x.Name).trim(), funktion: String(x.Funktion || '').trim(), pin: pinNorm_(x.PIN), alles: /^alles$/i.test(String(x.Rolle || '').trim()) }));
+    .map((x) => ({ name: String(x.Name).trim(), funktion: String(x.Funktion || '').trim(), pin: pinNorm_(x.PIN), alles: /^alles$/i.test(String(x.Rolle || '').trim()),
+      fahrmeister: /^fahrmeister$/i.test(String(x.Rolle || '').trim()) || /fahrmeist/i.test(String(x.Funktion || '')) }));
 }
 // Gemeinsamer STATUS_PIN nur als Übergang, bis jemand mit Rolle „Alles“ einen eigenen PIN hat
 const kommandoGemeinsam_ = (leute) => !leute.some((x) => x.alles && x.pin.length >= 4);
@@ -95,7 +105,7 @@ function rolle_(pin) {
     if (soll && soll.length >= 4 && p === soll && kommandoGemeinsam_(leute)) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
   } else {
     const t = leute.find((x) => x.name === wer && x.pin.length >= 4 && x.pin === p);
-    if (t) { cache.remove('status-fehl'); return { rolle: t.alles ? 'kommando' : 'pruefer', name: t.name + (t.funktion ? ' (' + t.funktion + ')' : '') }; }
+    if (t) { cache.remove('status-fehl'); return { rolle: t.alles ? 'kommando' : t.fahrmeister ? 'fahrmeister' : 'pruefer', name: t.name + (t.funktion ? ' (' + t.funktion + ')' : '') }; }
   }
   cache.put('status-fehl', String(+(cache.get('status-fehl') || 0) + 1), SPERRE_S);
   Utilities.sleep(800);
