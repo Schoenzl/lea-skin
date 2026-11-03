@@ -37,6 +37,18 @@
   #kommando .fst .zeile2 button { font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--rot); color: #fff; }
   #kommando .fst .zeile2 button:disabled { opacity: .4; }
   #kommando .fst .klein { font-size: 12px; color: #92400E; margin-top: 6px; }
+  #kommando .fst .sp { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #F3F5F8; font-size: 13px; }
+  #kommando .fst .sp.laeuft { background: var(--rot-bg); }
+  #kommando .fst .sp.eing { background: var(--gelb-bg); }
+  #kommando .fst .sp div { flex: 1; min-width: 0; }
+  #kommando .fst .sp small { display: block; color: var(--grau); }
+  #kommando .fst .sp button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 7px; border: 1px solid #E5A3A3; background: #fff; color: #991B1B; }
+  #kommando .fst .plan-auf { margin-top: 8px; font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px dashed #C5CCD6; background: #fff; color: var(--grau); width: 100%; }
+  #kommando .fst .plan { display: grid; gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid var(--linie); border-radius: 10px; }
+  #kommando .fst .plan label { font-size: 12px; font-weight: 700; color: var(--grau); }
+  #kommando .fst .plan input, #kommando .fst .plan select { display: block; width: 100%; margin-top: 3px; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; box-sizing: border-box; }
+  #kommando .fst .plan .zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #kommando .fst .plan .los2 { font: inherit; font-size: 14px; font-weight: 700; padding: 9px; border-radius: 8px; border: 0; background: var(--rot); color: #fff; }
   #kommando .ortwahl { display: grid; gap: 6px; }
   #kommando .ortwahl button { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: inherit; font-weight: 700; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--linie); background: #fff; color: var(--text); }
   #kommando .ortwahl button small { font-weight: 400; color: var(--grau); }
@@ -990,9 +1002,59 @@
       const z2 = el('div', 'zeile2'); z2.append(inp, sp);
       z.append(seg, z2);
       if (f.bereit === 'Ja' && f.mangel) z.appendChild(el('div', 'klein', 'Offener Hinweis: ' + f.mangel + ' (wird beim Speichern als „Einsatzbereit“ gelöscht)'));
+      (f.sperren || []).forEach((x) => z.appendChild(sperre(f.fahrzeug, x)));
+      z.appendChild(planen(f.fahrzeug));
       box.appendChild(z);
       auffrischen();
     });
+  }
+  // Geplante Sperre anzeigen, mit Löschen
+  function sperre(fz, x) {
+    const d = el('div', 'sp' + (x.laeuft ? ' laeuft' : x.status === 'Eingeschränkt' ? ' eing' : ''));
+    const t = el('div'); t.appendChild(el('b', '', (x.laeuft ? 'Läuft: ' : 'Geplant: ') + (x.status === 'Nein' ? 'außer Dienst' : 'eingeschränkt')));
+    t.appendChild(el('small', '', x.text + ' · ' + x.grund + (x.wer ? ' · ' + x.wer : '')));
+    const k = el('button', '', 'Löschen'); k.type = 'button';
+    k.onclick = () => {
+      if (k.dataset.sicher !== '1') { k.dataset.sicher = '1'; k.textContent = 'Wirklich?'; setTimeout(() => { k.dataset.sicher = ''; k.textContent = 'Löschen'; }, 4000); return; }
+      k.disabled = true; k.textContent = '…';
+      google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); if (window.kommandoNeu) window.kommandoNeu(); })
+        .withFailureHandler((e) => { toast(e.message, true); laden(); }).fzSperreLoeschen(pin, x.id);
+    };
+    d.append(t, k); return d;
+  }
+  // Formular „Außer Dienst planen“
+  const pad = (n) => String(n).padStart(2, '0');
+  const lokal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  function planen(fz) {
+    const wrap = el('div'), auf = el('button', 'plan-auf', '+ Außer Dienst planen'); auf.type = 'button';
+    auf.onclick = () => {
+      auf.hidden = true;
+      const f = el('div', 'plan');
+      const feld = (titel, inp) => { const l = el('label', '', titel); l.appendChild(inp); return l; };
+      const morgen = new Date(); morgen.setDate(morgen.getDate() + 1); morgen.setHours(7, 0, 0, 0);
+      const von = el('input'); von.type = 'datetime-local'; von.value = lokal(morgen);
+      const bis = el('input'); bis.type = 'datetime-local';
+      const st = el('select'); [['Nein', 'Außer Dienst'], ['Eingeschränkt', 'Eingeschränkt']].forEach(([w, t]) => { const o = el('option', '', t); o.value = w; st.appendChild(o); });
+      const gr = el('input'); gr.maxLength = 200; gr.placeholder = 'z. B. Service Werkstatt';
+      const zwei = el('div', 'zwei'); zwei.append(feld('Von', von), feld('Bis (leer = bis auf Weiteres)', bis));
+      const los = el('button', 'los2', 'Planen'), ab = el('button', 'plan-auf', 'Abbrechen'); los.type = ab.type = 'button';
+      ab.onclick = () => { f.remove(); auf.hidden = false; };
+      los.onclick = () => {
+        if (!von.value) { toast('Bitte „Von“ angeben.', true); return; }
+        if (!gr.value.trim()) { toast('Bitte einen Grund eintragen.', true); gr.focus(); return; }
+        los.disabled = true; los.textContent = '…';
+        google.script.run.withSuccessHandler((r) => {
+          if (!r.ok) { toast(r.fehler, true); los.disabled = false; los.textContent = 'Planen'; return; }
+          toast(r.text);
+          if (r.konflikt && r.konflikt.length) alert(fz + ' ist in diesem Zeitraum noch gebucht. Bitte mit den Buchenden klären:\n\n' + r.konflikt.join('\n'));
+          laden(); if (window.kommandoNeu) window.kommandoNeu();
+        }).withFailureHandler((e) => { toast(e.message, true); los.disabled = false; los.textContent = 'Planen'; })
+          .fzSperreAnlegen(pin, fz, von.value, bis.value, st.value, gr.value);
+      };
+      f.append(zwei, feld('Status', st), feld('Grund', gr), los, ab);
+      wrap.appendChild(f); gr.focus();
+    };
+    wrap.appendChild(auf); return wrap;
   }
   window.fstStart = (p) => { pin = p; laden(); };
 })();

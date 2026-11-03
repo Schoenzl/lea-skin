@@ -82,6 +82,11 @@ function pruefe_(neu, alle) {
   if (!(neu.bis > neu.von)) return '„Bis“ muss nach „Von“ liegen.';
   if (neu.bis - neu.von > MAX_TAGE * 864e5) return 'Eine Buchung darf höchstens ' + MAX_TAGE + ' Tage dauern.';
   if (neu.bis < Date.now()) return 'Der Zeitraum liegt in der Vergangenheit.';
+  const gesperrt = sperrKonflikt_(neu);
+  if (gesperrt.length) {
+    return neu.fahrzeug + ' ist in diesem Zeitraum außer Dienst:\n' +
+      gesperrt.map((x) => '• ' + fmt_(x.von) + ' – ' + (x.bis ? fmt_(x.bis) : 'bis auf Weiteres') + ' · ' + x.grund).join('\n');
+  }
   const konflikt = alle.filter((b) => gleich_(b.fahrzeug, neu.fahrzeug) && b.von < neu.bis && neu.von < b.bis);
   if (konflikt.length) {
     return neu.fahrzeug + ' ist in diesem Zeitraum bereits gebucht:\n' +
@@ -249,56 +254,73 @@ function mailTest() {
 // ---------- Fahrzeugstatus (Tab „Fahrzeuge“) – Kommando und Fahrmeister ----------
 const FZ_BEREIT = ['Ja', 'Eingeschränkt', 'Nein'];
 const fzDarf_ = (r) => !!r && (r.rolle === 'kommando' || r.rolle === 'fahrmeister');
+const fzName_ = (r) => String(r.name).replace(/\s*\(.*\)$/, '');
+const fzBereit_ = (b) => FZ_BEREIT.find((x) => x.toLowerCase() === String(b || '').trim().toLowerCase()) || (/^einge/i.test(String(b || '').trim()) ? 'Eingeschränkt' : '');
+
+// Tab „Fahrzeuge“ lesen: Blatt, Werte, Spaltennummern
+function fzTab_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
+  if (!sh) throw new Error('Tab „Fahrzeuge“ fehlt in der Tabelle.');
+  const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).toLowerCase());
+  const c = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
+  const s = { fz: c('fahrzeug'), bereit: c('einsatzbereit'), mangel: c('mangel'), von: c('gemeldet von'), am: c('gemeldet am'), pickerl: c('pickerl') };
+  if (s.fz < 0 || s.bereit < 0 || s.mangel < 0) throw new Error('Spalten „Fahrzeug“, „Einsatzbereit“ oder „Mangel“ fehlen.');
+  return { sh, w, s };
+}
 
 function fzStatus(pin) {
   const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
-  const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
-  if (!sh) return { ok: false, fehler: 'Tab „Fahrzeuge“ fehlt in der Tabelle.' };
-  const w = sh.getDataRange().getDisplayValues(), k = w[0].map((x) => String(x).toLowerCase());
-  const c = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
-  const cFz = c('fahrzeug'), cB = c('einsatzbereit'), cM = c('mangel'), cV = c('gemeldet von'), cA = c('gemeldet am'), cP = c('pickerl');
-  const fz = w.slice(1).filter((z) => String(z[cFz] || '').trim()).map((z) => {
-    const b = String(z[cB] || '').trim();
-    return {
-      fahrzeug: String(z[cFz]).trim(),
-      bereit: FZ_BEREIT.find((x) => x.toLowerCase() === b.toLowerCase()) || (/^einge/i.test(b) ? 'Eingeschränkt' : b ? b : 'Ja'),
-      mangel: cM >= 0 ? String(z[cM] || '').trim() : '',
-      von: cV >= 0 ? String(z[cV] || '').trim() : '',
-      am: cA >= 0 ? String(z[cA] || '').trim() : '',
-      pickerl: cP >= 0 ? String(z[cP] || '').trim() : ''
-    };
-  });
-  return { ok: true, fahrzeuge: fz };
+  try {
+    const t = fzTab_(), s = t.s, anz = t.sh.getDataRange().getDisplayValues(), jetzt = Date.now(), sp = sperren_().filter((x) => x.aktiv && x.ablauf !== 'beendet' && (!x.bis || x.bis > jetzt));
+    const fz = t.w.slice(1).map((z, j) => [z, anz[j + 1]]).filter(([z]) => String(z[s.fz] || '').trim()).map(([z, d]) => {
+      const name = String(z[s.fz]).trim(), b = String(z[s.bereit] || '').trim();
+      return {
+        fahrzeug: name,
+        bereit: fzBereit_(b) || (b ? b : 'Ja'),
+        mangel: String(z[s.mangel] || '').trim(),
+        von: s.von >= 0 ? String(z[s.von] || '').trim() : '',
+        am: s.am >= 0 ? String(d[s.am] || '').trim() : '',
+        pickerl: s.pickerl >= 0 ? String(d[s.pickerl] || '').trim() : '',
+        sperren: sp.filter((x) => gleich_(x.fahrzeug, name)).sort((a, b) => a.von - b.von)
+          .map((x) => ({ id: x.id, status: x.status, grund: x.grund, von: x.von, bis: x.bis, wer: x.wer, laeuft: x.von <= jetzt,
+            text: fmt_(x.von) + ' – ' + (x.bis ? fmt_(x.bis) : 'bis auf Weiteres') }))
+      };
+    });
+    return { ok: true, fahrzeuge: fz };
+  } catch (e) { return { ok: false, fehler: e.message }; }
 }
 
-// Status setzen. Bei „Ja“ wird der Mangel geleert (behoben). Wer und wann landet in „Gemeldet von/am“.
+// Status direkt setzen. Bei „Ja“ wird der Mangel geleert (behoben). Wer und wann landet in „Gemeldet von/am“.
 function fzStatusSetzen(pin, fahrzeug, bereit, mangel) {
   const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
-  bereit = FZ_BEREIT.find((x) => x.toLowerCase() === String(bereit || '').trim().toLowerCase());
+  bereit = fzBereit_(bereit);
   if (!bereit) return { ok: false, fehler: 'Unbekannter Status.' };
   mangel = String(mangel || '').trim().slice(0, 300);
   if (bereit !== 'Ja' && !mangel) return { ok: false, fehler: 'Bitte kurz den Grund eintragen (z. B. „Werkstatt bis Fr“).' };
-  if (bereit === 'Ja') mangel = '';
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge');
-    if (!sh) return { ok: false, fehler: 'Tab „Fahrzeuge“ fehlt in der Tabelle.' };
-    const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).toLowerCase());
-    const c = (t) => k.findIndex((h) => h.indexOf(t) !== -1);
-    const cFz = c('fahrzeug'), cB = c('einsatzbereit'), cM = c('mangel'), cV = c('gemeldet von'), cA = c('gemeldet am');
-    if (cFz < 0 || cB < 0 || cM < 0) return { ok: false, fehler: 'Spalten „Fahrzeug“, „Einsatzbereit“ oder „Mangel“ fehlen.' };
-    const i = w.findIndex((z, j) => j > 0 && gleich_(z[cFz], fahrzeug));
-    if (i < 0) return { ok: false, fehler: 'Fahrzeug „' + fahrzeug + '“ nicht gefunden.' };
-    const name = String(r.name).replace(/\s*\(.*\)$/, '');
-    sh.getRange(i + 1, cB + 1).setValue(bereit);
-    sh.getRange(i + 1, cM + 1).setValue(mangel);
-    if (cV >= 0) sh.getRange(i + 1, cV + 1).setValue(bereit === 'Ja' ? '' : name);
-    if (cA >= 0) sh.getRange(i + 1, cA + 1).setValue(bereit === 'Ja' ? '' : Utilities.formatDate(new Date(), 'Europe/Vienna', 'dd.MM.yyyy HH:mm'));
-    fzLog_(String(w[i][cFz]).trim(), bereit, mangel, name);
-    SpreadsheetApp.flush();
+    const fz = fzSetzen_(fahrzeug, bereit, mangel, fzName_(r));
+    // Von Hand freigegeben: laufende Sperre dieses Fahrzeugs gilt als beendet
+    if (bereit === 'Ja') sperren_().filter((x) => x.aktiv && x.ablauf === 'läuft' && gleich_(x.fahrzeug, fz)).forEach((x) => spAblauf_(x, 'beendet'));
     const was = bereit === 'Ja' ? 'wieder einsatzbereit' : bereit === 'Nein' ? 'außer Dienst' : 'eingeschränkt einsatzbereit';
-    return { ok: true, text: String(w[i][cFz]).trim() + ' ist jetzt ' + was + '. Der Infoscreen zeigt es in wenigen Minuten.' };
-  } finally { lock.releaseLock(); }
+    return { ok: true, text: fz + ' ist jetzt ' + was + '. Der Infoscreen zeigt es in wenigen Minuten.' };
+  } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
+}
+
+// Schreibt den Status (ohne Rechteprüfung, Aufrufer hält den Lock). Gibt den Fahrzeugnamen aus der Tabelle zurück.
+function fzSetzen_(fahrzeug, bereit, mangel, name) {
+  const t = fzTab_(), s = t.s, sh = t.sh;
+  const i = t.w.findIndex((z, j) => j > 0 && gleich_(z[s.fz], fahrzeug));
+  if (i < 0) throw new Error('Fahrzeug „' + fahrzeug + '“ nicht gefunden.');
+  if (bereit === 'Ja') mangel = '';
+  sh.getRange(i + 1, s.bereit + 1).setValue(bereit);
+  sh.getRange(i + 1, s.mangel + 1).setValue(mangel);
+  if (s.von >= 0) sh.getRange(i + 1, s.von + 1).setValue(bereit === 'Ja' ? '' : name);
+  if (s.am >= 0) sh.getRange(i + 1, s.am + 1).setValue(bereit === 'Ja' ? '' : Utilities.formatDate(new Date(), 'Europe/Vienna', 'dd.MM.yyyy HH:mm'));
+  const fz = String(t.w[i][s.fz]).trim();
+  fzLog_(fz, bereit, mangel, name);
+  SpreadsheetApp.flush();
+  return fz;
 }
 
 // Verlauf im Tab „Fahrzeugstatus-Log“ (legt sich selbst an)
@@ -307,4 +329,122 @@ function fzLog_(fahrzeug, bereit, mangel, name) {
   let sh = ss.getSheetByName('Fahrzeugstatus-Log');
   if (!sh) { sh = ss.insertSheet('Fahrzeugstatus-Log'); sh.appendRow(['Zeitstempel', 'Fahrzeug', 'Einsatzbereit', 'Mangel', 'Von']); sh.getRange(1, 1, 1, 5).setFontWeight('bold'); sh.setFrozenRows(1); }
   sh.appendRow([new Date(), fahrzeug, bereit, mangel, name]);
+}
+
+// ---------- Geplante Sperren (Tab „Fahrzeugsperren“) ----------
+// Ein Zeitauslöser (alle 5 Min., ▶ sperrenEinrichten einmal im Editor) setzt den Status bei Beginn und stellt ihn am Ende zurück.
+// Während einer Sperre „Nein“ (außer Dienst) sind keine Buchungen möglich; „Eingeschränkt“ blockiert nicht.
+const SP_TAB = 'Fahrzeugsperren';
+const SP_KOPF = ['ID', 'Fahrzeug', 'Von', 'Bis', 'Status', 'Grund', 'Angelegt von', 'Angelegt am', 'Aktiv', 'Ablauf'];
+
+function spBlatt_() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(SP_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(SP_TAB); sh.appendRow(SP_KOPF);
+    sh.getRange(1, 1, 1, SP_KOPF.length).setFontWeight('bold'); sh.setFrozenRows(1);
+    sh.getRange('C:D').setNumberFormat('dd.MM.yyyy HH:mm'); sh.getRange('H:H').setNumberFormat('dd.MM.yyyy HH:mm');
+  }
+  return sh;
+}
+// Sperren lesen; „Ablauf“: leer = noch nicht begonnen, „läuft“ = Status gesetzt, „beendet“
+function sperren_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SP_TAB); if (!sh) return [];
+  const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).trim());
+  const c = (n) => k.indexOf(n);
+  return w.slice(1).map((z, i) => ({
+    zeile: i + 2, id: String(z[c('ID')] || ''), fahrzeug: String(z[c('Fahrzeug')] || '').trim(),
+    von: zeit_(z[c('Von')]), bis: zeit_(z[c('Bis')]), status: fzBereit_(z[c('Status')]) || 'Nein',
+    grund: String(z[c('Grund')] || '').trim(), wer: String(z[c('Angelegt von')] || '').trim(),
+    aktiv: !/^nein$/i.test(String(z[c('Aktiv')] || '').trim()), ablauf: String(z[c('Ablauf')] || '').trim()
+  })).filter((x) => x.id && x.fahrzeug && x.von);
+}
+const spMangel_ = (x) => x.grund + ' (geplant' + (x.bis ? ' bis ' + fmt_(x.bis) : '') + ')';
+function spSpalte_(sh, name) {
+  const k = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((x) => String(x).trim());
+  let i = k.indexOf(name); if (i < 0) { i = k.length; sh.getRange(1, i + 1).setValue(name); }
+  return i + 1;
+}
+function spAblauf_(x, wert) { const sh = spBlatt_(); sh.getRange(x.zeile, spSpalte_(sh, 'Ablauf')).setValue(wert); }
+
+function fzSperreAnlegen(pin, fahrzeug, von, bis, status, grund) {
+  const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
+  try {
+    status = fzBereit_(status);
+    if (status !== 'Nein' && status !== 'Eingeschränkt') return { ok: false, fehler: 'Bitte „Außer Dienst“ oder „Eingeschränkt“ wählen.' };
+    if (FAHRZEUGE.every((f) => !gleich_(f, fahrzeug))) return { ok: false, fehler: 'Unbekanntes Fahrzeug.' };
+    grund = String(grund || '').trim().slice(0, 200);
+    if (!grund) return { ok: false, fehler: 'Bitte einen Grund eintragen (z. B. „Service Werkstatt“).' };
+    const v = lokal_(von).getTime(), b = bis ? lokal_(bis).getTime() : 0;
+    if (b && b <= v) return { ok: false, fehler: '„Bis“ muss nach „Von“ liegen.' };
+    if (b && b <= Date.now()) return { ok: false, fehler: 'Der Zeitraum liegt in der Vergangenheit.' };
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      const jetzt = Date.now(), ueber = sperren_().find((x) => x.aktiv && x.ablauf !== 'beendet' && gleich_(x.fahrzeug, fahrzeug) && (!x.bis || x.bis > jetzt) && (!b || x.von < b) && (!x.bis || v < x.bis));
+      if (ueber) return { ok: false, fehler: fahrzeug + ' hat in diesem Zeitraum schon eine Sperre: ' + fmt_(ueber.von) + ' – ' + (ueber.bis ? fmt_(ueber.bis) : 'bis auf Weiteres') + ' · ' + ueber.grund + '. Bitte diese zuerst löschen oder anpassen.' };
+      const sh = spBlatt_(), id = Utilities.getUuid().slice(0, 8);
+      sh.appendRow([id, fahrzeug, new Date(v), b ? new Date(b) : '', status, grund, fzName_(r), new Date(), 'Ja', '']);
+      SpreadsheetApp.flush();
+    } finally { lock.releaseLock(); }
+    sperrenAnwenden();
+    let hinweis = '';
+    try { ausloeserPruefen_(); } catch (e) { hinweis = ' ⚠ Automatik noch nicht eingerichtet: im Editor einmal ▶ sperrenEinrichten ausführen.'; }
+    const konflikt = status === 'Nein' ? buchungen_().filter((x) => gleich_(x.fahrzeug, fahrzeug) && x.bis > Math.max(v, Date.now()) && (!b || x.von < b)) : [];
+    return { ok: true, text: fahrzeug + ' ' + (status === 'Nein' ? 'außer Dienst' : 'eingeschränkt') + ' geplant: ' + fmt_(v) + ' – ' + (b ? fmt_(b) : 'bis auf Weiteres') + '.' + hinweis,
+      konflikt: konflikt.map((x) => fmt_(x.von) + ' – ' + fmt_(x.bis) + ' · ' + x.name + (x.zweck ? ' · ' + x.zweck : '')) };
+  } catch (e) { return { ok: false, fehler: e.message }; }
+}
+
+// Sperre löschen. Läuft sie gerade, wird das Fahrzeug wieder freigegeben (wenn der Status noch von der Sperre stammt).
+function fzSperreLoeschen(pin, id) {
+  const r = rolle_(pin); if (!fzDarf_(r)) return { ok: false, fehler: 'Keine Berechtigung.' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const x = sperren_().find((y) => y.id === String(id));
+    if (!x || !x.aktiv) return { ok: false, fehler: 'Sperre nicht gefunden.' };
+    const sh = spBlatt_(); sh.getRange(x.zeile, spSpalte_(sh, 'Aktiv')).setValue('Nein');
+    let frei = '';
+    if (x.ablauf === 'läuft') { if (spFreigeben_(x, fzName_(r))) frei = ' ' + x.fahrzeug + ' ist wieder einsatzbereit.'; spAblauf_(x, 'beendet'); }
+    SpreadsheetApp.flush();
+    return { ok: true, text: 'Geplante Sperre gelöscht.' + frei };
+  } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
+}
+
+// Fahrzeug nur freigeben, wenn der aktuelle Status noch von dieser Sperre stammt (nicht inzwischen von Hand geändert)
+function spFreigeben_(x, name) {
+  const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], x.fahrzeug));
+  if (!z || String(z[t.s.mangel] || '').trim() !== spMangel_(x)) return false;
+  fzSetzen_(x.fahrzeug, 'Ja', '', name);
+  return true;
+}
+
+// Vom Zeitauslöser aufgerufen (und nach dem Anlegen): Sperren beginnen bzw. beenden
+function sperrenAnwenden() {
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
+  try {
+    const jetzt = Date.now();
+    sperren_().filter((x) => x.aktiv && x.ablauf !== 'beendet').sort((a, b) => a.von - b.von).forEach((x) => {
+      try {
+        const vorbei = x.bis && x.bis <= jetzt;
+        if (x.ablauf === 'läuft' && vorbei) { spFreigeben_(x, 'Automatik'); spAblauf_(x, 'beendet'); }
+        else if (!x.ablauf && vorbei) spAblauf_(x, 'beendet');
+        else if (!x.ablauf && x.von <= jetzt) { fzSetzen_(x.fahrzeug, x.status, spMangel_(x), x.wer || 'Automatik'); spAblauf_(x, 'läuft'); }
+      } catch (e) { console.error('Sperre ' + x.id + ' (' + x.fahrzeug + '): ' + e.message); }
+    });
+  } finally { lock.releaseLock(); }
+}
+
+// Einmal im Editor ausführen (▶ sperrenEinrichten): legt den Tab und den Zeitauslöser alle 5 Minuten an.
+function sperrenEinrichten() {
+  spBlatt_();
+  if (!ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'sperrenAnwenden')) ScriptApp.newTrigger('sperrenAnwenden').timeBased().everyMinutes(5).create();
+  console.log('Fahrzeugsperren eingerichtet, Auslöser läuft alle 5 Minuten.');
+}
+function ausloeserPruefen_() {
+  if (!ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'sperrenAnwenden')) throw new Error('kein Auslöser');
+}
+
+// Für die Buchung: Sperren „außer Dienst“, die mit dem Zeitraum kollidieren
+function sperrKonflikt_(neu) {
+  return sperren_().filter((x) => x.aktiv && x.ablauf !== 'beendet' && x.status === 'Nein' && gleich_(x.fahrzeug, neu.fahrzeug) && x.von < neu.bis && (!x.bis || neu.von < x.bis));
 }
