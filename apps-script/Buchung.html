@@ -150,6 +150,8 @@
     schild: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
     werkzeug: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
     liste: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 13l2 2 4-4"/>',
+    warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5"/><path d="M12 18h.01"/>',
+    kamera: '<path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/>',
     stift: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
     schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
   };
@@ -305,12 +307,14 @@
     out.push(h('div', { class: 'gitter' },
       kachel('da', 'Ich bin da', mein ? 'Eingetragen: ' + mein.titel : 'Anwesenheit eintragen', { s: 'da' }),
       kachel('auto', 'Fahrzeuge', fzKurz, { s: 'fahrzeuge' }),
-      kachel('doku', 'Einsatz', 'Pläne und Unterlagen', { s: 'einsatz' })));
+      kachel('doku', 'Einsatz', 'Pläne und Unterlagen', { s: 'einsatz' })),
+      h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:12px;font-size:19px', onclick: () => zeige({ s: 'mangel' }) }, icon('warn', 22), 'Mangel oder Schaden melden'));
     if (verw) {
       const kl = (ic, titel, pill, ziel) => h('button', { type: 'button', class: 'kachel k', onclick: () => zeige(ziel) }, h('span', { class: 'ic' }, icon(ic, 22)), h('span', { class: 't' }, h('b', null, titel)), pill);
       const g = zahlen && zahlen.geraete;
       out.push(h('div', { class: 'label', style: 'margin-top:28px' }, 'Verwaltung · ' + r.text), h('div', { class: 'gitter', style: 'gap:10px' },
         r.fz ? kl('schild', 'Fahrzeugstatus', ausN ? h('span', { class: 'pill rot' }, ausN + ' außer Dienst') : h('span', { class: 'pill gruen' }, 'alle bereit'), { s: 'fzstatus' }) : null,
+        kl('warn', 'Mängel', zahlen && zahlen.maengel != null ? h('span', { class: 'pill ' + (zahlen.maengel ? 'rot' : 'gruen') }, zahlen.maengel ? zahlen.maengel + ' neu' : 'nichts offen') : null, { s: 'maengel' }),
         r.fz ? kl('stift', 'Tätigkeiten', h('span', { class: 'pill' }, 'eintragen · FDISK'), { s: 'taet' }) : null,
         kl('werkzeug', 'Geräteprüfung', g ? (g.rot || g.gelb ? h('span', { class: 'pill ' + (g.rot ? 'rot' : 'gelb') }, (g.rot + g.gelb) + ' fällig') : h('span', { class: 'pill gruen' }, 'alles geprüft')) : null, { s: 'geraete' }),
         r.anw ? kl('liste', 'Anwesenheit prüfen', zahlen && zahlen.anwOffen != null ? h('span', { class: 'pill ' + (zahlen.anwOffen ? 'gelb' : 'gruen') }, zahlen.anwOffen ? zahlen.anwOffen + ' offen' : 'alles erledigt') : null, { s: 'anwp' }) : null,
@@ -344,6 +348,7 @@
     if (l.k === 'du' && mf) knoepfe.appendChild(h('button', { type: 'button', class: 'btn gruen gross', onclick: () => einruecken(mf) }, 'Einrücken'));
     if (l.k !== 'aus') knoepfe.appendChild(h('button', { type: 'button', class: 'btn zweit', onclick: () => zeige({ s: 'res', id: f.id }) }, 'Für später reservieren'));
     else knoepfe.appendChild(h('p', null, 'Dieses Fahrzeug kann derzeit nicht gebucht werden.'));
+    knoepfe.appendChild(h('button', { type: 'button', class: 'leise', style: 'margin:4px auto 0', onclick: () => zeige({ s: 'mangel', was: f.id }) }, icon('warn', 20), 'Mangel oder Schaden melden'));
     out.push(knoepfe);
     const geplant = f.sperren.filter((x) => !x.laeuft && x.status === 'Nein');
     if (geplant.length) out.push(h('div', { class: 'hinweis' }, geplant.map((x) => h('div', null, 'Geplant außer Dienst: ' + (x.bis ? spanne(x.von, x.bis) : 'ab ' + wann(x.von) + ' (bis auf Weiteres)') + ' · ' + x.grund))));
@@ -846,8 +851,116 @@
     return [kopfZurueck('Tätigkeiten'), h('h1', null, 'Tätigkeit eintragen'), box];
   };
 
+  // ---------- Mangel oder Schaden melden (alle) ----------
+  // Foto verkleinern: lange Seite max. px, JPEG → Base64 ohne Präfix
+  const verkleinern = (datei, max, q) => new Promise((ok, nein) => {
+    const url = URL.createObjectURL(datei), img = new Image();
+    img.onload = () => {
+      const f = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg', q).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); nein(new Error('Dieses Foto kann nicht gelesen werden.')); };
+    img.src = url;
+  });
+  const MG_HAUS = 'Gerät / Feuerwehrhaus';
+  SEITEN.mangel = () => {
+    if (seite.fertig) return [kopfZurueck('Zurück'), h('div', { style: 'text-align:center;padding-top:60px' }, h('div', { class: 'haken' }, icon('haken', 54)),
+      h('h1', { style: 'margin-top:20px' }, 'Danke!'), h('p', { style: 'font-size:20px' }, seite.fertig),
+      h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:24px', onclick: heim }, 'Zur Startseite'))];
+    const v = seite.v || (seite.v = { was: seite.was || '', text: '', fahrbereit: '', fotos: [] });
+    const box = h('div');
+    const meld = h('div', { class: 'warn', hidden: true });
+    const neu = () => { meld.hidden = true; box.textContent = ''; add(box, inhalt()); };
+    const chip = (an, text, fn) => h('button', { type: 'button', class: 'chip' + (an ? ' an' : ''), 'aria-pressed': an ? 'true' : 'false', onclick: () => { fn(); neu(); } }, text);
+    const fotoEingabe = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: async (e) => {
+      const dateien = [...e.target.files].slice(0, 3 - v.fotos.length); e.target.value = '';
+      for (const d of dateien) {
+        try { v.fotos.push({ voll: await verkleinern(d, 1600, 0.8), klein: await verkleinern(d, 360, 0.7) }); } catch (x) { fehler(x); }
+      }
+      neu();
+    } });
+    const senden = async (b) => {
+      meld.hidden = true;
+      const fehl = (t) => { meld.textContent = t; meld.hidden = false; };
+      if (!v.was) return fehl('Bitte auswählen, was betroffen ist.');
+      if (v.text.trim().length < 3) return fehl('Bitte kurz beschreiben, was kaputt ist.');
+      if (v.was !== MG_HAUS && !v.fahrbereit) return fehl('Bitte angeben, ob das Fahrzeug noch fahrbereit ist.');
+      b.disabled = true; b.textContent = v.fotos.length ? 'Fotos werden hochgeladen …' : 'Wird gesendet …';
+      try {
+        const r = await run('mangelMelden', { name: ich, was: v.was, text: v.text, fahrbereit: v.fahrbereit, fotos: v.fotos });
+        if (!r.ok) throw new Error(r.fehler);
+        seite.v = null; seite.fertig = r.text; zeichne(true);
+      } catch (x) { b.disabled = false; b.textContent = 'Meldung senden'; fehl(x.message); }
+    };
+    const inhalt = () => h('div', null,
+      h('h1', null, 'Mangel melden'),
+      h('p', { class: 'sub' }, 'Der Fahrmeister bzw. Gerätewart und das Kommando bekommen die Meldung sofort.'),
+      h('div', { class: 'label' }, 'Was ist betroffen?'),
+      h('div', { class: 'chips' }, daten.fahrzeuge.map((f) => f.id).concat([MG_HAUS]).map((w) => chip(v.was === w, w, () => { v.was = w; }))),
+      h('label', { class: 'label', for: 'mg-text' }, v.was === MG_HAUS ? 'Welches Gerät oder wo, und was ist kaputt?' : 'Was ist kaputt?'),
+      h('textarea', { id: 'mg-text', maxlength: '500', value: v.text, placeholder: v.was === MG_HAUS ? 'z. B. Tauchpumpe springt nicht an' : 'z. B. Blaulicht hinten links geht nicht', oninput: (e) => { v.text = e.target.value; } }),
+      v.was && v.was !== MG_HAUS ? [h('div', { class: 'label' }, 'Ist das Fahrzeug noch fahrbereit?'), h('div', { class: 'chips' }, ['Ja', 'Nein', 'Weiß nicht'].map((w) => chip(v.fahrbereit === w, w, () => { v.fahrbereit = w; })))] : null,
+      h('div', { class: 'label' }, 'Fotos (freiwillig, bis zu 3)'),
+      v.fotos.length ? h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, v.fotos.map((f, i) => h('div', { style: 'position:relative' },
+        h('img', { src: 'data:image/jpeg;base64,' + f.klein, alt: 'Foto ' + (i + 1), style: 'width:100px;height:100px;object-fit:cover;border-radius:12px;display:block' }),
+        h('button', { type: 'button', class: 'knopf', style: 'margin-top:6px;width:100px', onclick: () => { v.fotos.splice(i, 1); neu(); } }, 'Entfernen')))) : null,
+      v.fotos.length < 3 ? h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:10px;font-size:19px', onclick: () => fotoEingabe.click() }, icon('kamera', 22), v.fotos.length ? 'Weiteres Foto' : 'Foto aufnehmen oder wählen') : null,
+      fotoEingabe, meld,
+      h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:24px', onclick: (e) => senden(e.currentTarget) }, 'Meldung senden'));
+    neu();
+    return [kopfZurueck('Zurück'), box];
+  };
+
+  // ---------- Verwaltung: Mängel ----------
+  SEITEN.maengel = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const fzRecht = rollen().fz;
+    const gross = async (fid) => {
+      try {
+        const r = await run('mangelFoto', verw.pin, fid); if (!r.ok) throw new Error(r.fehler);
+        const hg = h('div', { class: 'hg', style: 'align-items:center;padding:12px', onclick: () => hg.remove() }, h('img', { src: 'data:image/jpeg;base64,' + r.bild, alt: 'Foto', style: 'max-width:100%;max-height:90vh;border-radius:12px' }));
+        document.body.appendChild(hg);
+      } catch (e) { fehler(e); }
+    };
+    const laden_ = () => run('mangelListe', verw.pin).then((r) => {
+      if (!r.ok) throw new Error(r.fehler);
+      box.textContent = '';
+      const karte = (m) => {
+        const fz = m.was !== MG_HAUS;
+        const k = h('div', { class: 'karte' },
+          h('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap' }, h('b', { style: 'font-size:21px' }, m.was),
+            h('span', { class: 'pill ' + (m.status === 'offen' ? 'rot' : m.status === 'bestätigt' ? 'gelb' : 'gruen') }, m.status === 'offen' ? 'neu' : m.status === 'bestätigt' ? 'bestätigt' : 'behoben'),
+            m.fahrbereit === 'Nein' ? h('span', { class: 'pill rot' }, 'nicht fahrbereit') : null),
+          h('p', { style: 'margin:8px 0 4px;font-size:19px' }, m.text),
+          h('div', { class: 'sub klein' }, m.von + ' · ' + wann(m.zeit) + (m.fahrbereit && m.fahrbereit !== 'Nein' ? ' · fahrbereit: ' + m.fahrbereit : '')),
+          m.bearbeiter ? h('div', { class: 'sub klein' }, (m.status === 'behoben' ? 'behoben' : 'bestätigt') + ' von ' + m.bearbeiter + ' · ' + wann(m.bearbeitet) + (m.notiz ? ' · ' + m.notiz : '')) : null,
+          m.bilder.length ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' }, m.bilder.map((b, i) => b ? h('button', { type: 'button', 'aria-label': 'Foto ' + (i + 1) + ' groß anzeigen', style: 'padding:0;border:0;background:none', onclick: () => gross(m.fotos[i]) },
+            h('img', { src: 'data:image/jpeg;base64,' + b, alt: '', style: 'width:96px;height:96px;object-fit:cover;border-radius:12px;display:block' })) : null)) : null);
+        if (m.status !== 'behoben') {
+          const kn = h('div', { class: 'gitter', style: 'gap:8px;margin-top:12px' });
+          const tun = (aktion, titel, text, ja) => frage({ titel, text, ja, aktion: async () => { antwort(await run('mangelAktion', verw.pin, m.id, aktion, '')); laden_(); zahlenLaden(); run('appDaten', ich).then((d) => { daten = d; }).catch(() => {}); } });
+          if (fz && fzRecht && m.status === 'offen') {
+            kn.appendChild(h('div', { class: 'zwei' },
+              h('button', { type: 'button', class: 'opt gelb an', style: 'justify-content:center', onclick: () => tun('eingeschraenkt', m.was + ' eingeschränkt?', 'Grund: ' + m.text + '\nAm Infoscreen steht es dann orange.', 'Ja, eingeschränkt') }, 'Eingeschränkt'),
+              h('button', { type: 'button', class: 'opt rot an', style: 'justify-content:center', onclick: () => tun('ausser', m.was + ' außer Dienst?', 'Grund: ' + m.text + '\nDas Fahrzeug kann dann nicht gebucht werden.', 'Ja, außer Dienst') }, 'Außer Dienst')));
+          }
+          if (!fz || fzRecht || m.status === 'offen') kn.appendChild(h('button', { type: 'button', class: 'btn zweit', style: 'min-height:56px;font-size:19px', onclick: () => tun('behoben', 'Als behoben markieren?', m.was + ' · ' + m.text + (fz && m.status === 'bestätigt' ? '\nIst es der letzte offene Mangel, wird das Fahrzeug wieder einsatzbereit.' : ''), 'Ja, behoben') }, 'Behoben'));
+          k.appendChild(kn);
+        }
+        return k;
+      };
+      add(box, h('div', { class: 'label' }, r.offen.length ? 'Offen (' + r.offen.length + ')' : 'Nichts offen'),
+        h('div', { class: 'gitter' }, r.offen.map(karte)),
+        r.behoben.length ? [h('div', { class: 'label', style: 'margin-top:28px' }, 'Zuletzt behoben'), h('div', { class: 'gitter' }, r.behoben.map(karte))] : null);
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    laden_();
+    return [kopfZurueck('Start'), h('h1', null, 'Mängel'), box];
+  };
+
   // ---------- Zeichnen ----------
-  const ADMIN = { fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1 };
+  const ADMIN = { maengel: 1, fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1 };
   function zeichne(nachOben) {
     if (!daten) return;
     if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
@@ -871,6 +984,8 @@
   else if (startArt === 'da') seite = { s: 'da' };
   else if (startArt === 'einsatz') seite = { s: 'einsatz' };
   else if (startArt === 'fahrzeuge') seite = { s: 'fahrzeuge' };
+  else if (startArt === 'mangel') seite = { s: 'mangel' };
+  else if (startArt === 'maengel') seite = verw ? { s: 'maengel' } : { s: 'pin' };
   else if (startArt === 'verwaltung') seite = verw ? { s: 'start' } : { s: 'pin' };
   if (seite.s !== 'start') stapel.push({ s: 'start' });
   if (seite.s === 'fahrzeug') stapel.push({ s: 'fahrzeuge' });
