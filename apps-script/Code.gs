@@ -394,6 +394,8 @@ function fzStatusSetzen(pin, fahrzeug, bereit, mangel) {
     const fz = fzSetzen_(fahrzeug, bereit, mangel, fzName_(r));
     // Von Hand freigegeben: laufende Sperre dieses Fahrzeugs gilt als beendet
     if (bereit === 'Ja') sperren_().filter((x) => x.aktiv && x.ablauf === 'läuft' && gleich_(x.fahrzeug, fz)).forEach((x) => spAblauf_(x, 'beendet'));
+    // von Hand einsatzbereit → bestätigte Mängelmeldungen dieses Fahrzeugs gelten als behoben
+    if (bereit === 'Ja') try { const sh = SpreadsheetApp.getActive().getSheetByName(MG_TAB); if (sh) mgLesen_().filter((x) => x.status === 'bestätigt' && gleich_(x.was, fz)).forEach((x) => sh.getRange(x.zeile, mgSp_('Status'), 1, 3).setValues([['behoben', fzName_(r), new Date()]])); } catch (e) { console.error(e.message); }
     const was = bereit === 'Ja' ? 'wieder einsatzbereit' : bereit === 'Nein' ? 'außer Dienst' : 'eingeschränkt einsatzbereit';
     return { ok: true, text: fz + ' ist jetzt ' + was + '. Der Infoscreen zeigt es in wenigen Minuten.' };
   } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
@@ -405,6 +407,7 @@ function fzSetzen_(fahrzeug, bereit, mangel, name) {
   const i = t.w.findIndex((z, j) => j > 0 && gleich_(z[s.fz], fahrzeug));
   if (i < 0) throw new Error('Fahrzeug „' + fahrzeug + '“ nicht gefunden.');
   if (bereit === 'Ja') mangel = '';
+  mangel = String(mangel || '').replace(/^[\s=+\-@]+/, '');    // keine Formeln in der Tabelle
   sh.getRange(i + 1, s.bereit + 1).setValue(bereit);
   sh.getRange(i + 1, s.mangel + 1).setValue(mangel);
   if (s.von >= 0) sh.getRange(i + 1, s.von + 1).setValue(bereit === 'Ja' ? '' : name);

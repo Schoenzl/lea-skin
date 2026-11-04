@@ -19,6 +19,7 @@ function mgBlatt_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(MG_TAB);
   if (!sh) { sh = ss.insertSheet(MG_TAB); sh.appendRow(MG_KOPF); sh.getRange(1, 1, 1, MG_KOPF.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.getRange('B:B').setNumberFormat('dd.MM.yyyy HH:mm'); sh.getRange('K:K').setNumberFormat('dd.MM.yyyy HH:mm'); }
+  sh.getRange('D:D').setNumberFormat('@'); sh.getRange('L:L').setNumberFormat('@');
   return sh;
 }
 function mgOrdner_() {
@@ -26,6 +27,7 @@ function mgOrdner_() {
   const id = p.getProperty('MG_ORDNER');
   if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* gelöscht → neu */ } }
   const o = DriveApp.createFolder('Mängelmeldungen FF Deutsch Haslau');
+  try { o.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) { /* Standard ist privat */ }
   p.setProperty('MG_ORDNER', o.getId());
   return o;
 }
@@ -47,25 +49,31 @@ function mangelMelden(d) {
   if (!m) return { ok: false, fehler: 'Bitte zuerst deinen Namen aus der Mitgliederliste wählen.' };
   const was = FAHRZEUGE.find((f) => gleich_(f, d.was)) || (d.was === MG_HAUS ? MG_HAUS : '');
   if (!was) return { ok: false, fehler: 'Bitte auswählen, was betroffen ist.' };
-  const text = String(d.text || '').trim().slice(0, 500);
+  const text = String(d.text || '').replace(/^[\s=+\-@]+/, '').trim().slice(0, 500);   // keine Formeln in der Tabelle
   if (text.length < 3) return { ok: false, fehler: 'Bitte kurz beschreiben, was kaputt ist.' };
   const fb = was === MG_HAUS ? '' : (MG_FAHRBEREIT.indexOf(d.fahrbereit) !== -1 ? d.fahrbereit : 'Weiß nicht');
   const fotos = (Array.isArray(d.fotos) ? d.fotos : []).slice(0, 3);
-  if (fotos.some((f) => !f || typeof f.voll !== 'string' || f.voll.length > MG_MAX_FOTO || typeof f.klein !== 'string' || f.klein.length > 200000)) return { ok: false, fehler: 'Ein Foto ist zu groß oder beschädigt.' };
+  // Fotos zuerst vollständig prüfen (echtes JPEG, Größe), erst dann irgendetwas speichern
+  const jpeg = (s, max) => { if (typeof s !== 'string' || s.length < 400 || s.length > max) return null; try { const b = Utilities.base64Decode(s); return b.length > 300 && (b[0] & 255) === 0xFF && (b[1] & 255) === 0xD8 ? b : null; } catch (e) { return null; } };
+  const bytes = fotos.map((f) => f && [jpeg(f.voll, MG_MAX_FOTO), jpeg(f.klein, 200000)]);
+  if (bytes.some((x) => !x || !x[0] || !x[1])) return { ok: false, fehler: 'Ein Foto ist zu groß oder beschädigt. Bitte ohne dieses Foto noch einmal.' };
+  // Begrenzung gegen Spam: je Name 10 und insgesamt 30 Meldungen pro Stunde
   const cache = CacheService.getScriptCache(), ck = 'mg-' + anwNorm_(m.name).replace(/\W/g, '');
-  if (+(cache.get(ck) || 0) >= 10) return { ok: false, fehler: 'Zu viele Meldungen in kurzer Zeit. Bitte später noch einmal.' };
-  cache.put(ck, String(+(cache.get(ck) || 0) + 1), 3600);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    if (+(cache.get(ck) || 0) >= 10 || +(cache.get('mg-alle') || 0) >= 30) return { ok: false, fehler: 'Zu viele Meldungen in kurzer Zeit. Bitte später noch einmal oder direkt beim Kommando melden.' };
+    cache.put(ck, String(+(cache.get(ck) || 0) + 1), 3600); cache.put('mg-alle', String(+(cache.get('mg-alle') || 0) + 1), 3600);
+  } finally { lock.releaseLock(); }
   const id = 'M' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'yyMMdd-HHmmss') + '-' + Math.random().toString(36).slice(2, 5);
   const voll = [], klein = [], blobs = [];
-  if (fotos.length) {
+  if (bytes.length) {
     const o = mgOrdner_();
-    fotos.forEach((f, i) => {
-      const b = Utilities.newBlob(Utilities.base64Decode(f.voll), 'image/jpeg', id + '-' + (i + 1) + '.jpg');
-      const k = Utilities.newBlob(Utilities.base64Decode(f.klein), 'image/jpeg', id + '-' + (i + 1) + '-klein.jpg');
-      voll.push(o.createFile(b).getId()); klein.push(o.createFile(k).getId()); blobs.push(b);
+    bytes.forEach(([vb, kb], i) => {
+      const b = Utilities.newBlob(vb, 'image/jpeg', id + '-' + (i + 1) + '.jpg');
+      voll.push(o.createFile(b).getId()); klein.push(o.createFile(Utilities.newBlob(kb, 'image/jpeg', id + '-' + (i + 1) + '-klein.jpg')).getId()); blobs.push(b);
     });
   }
-  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  lock.waitLock(20000);
   try { mgBlatt_().appendRow([id, new Date(), was, text, fb, m.name, voll.join(';'), klein.join(';'), 'offen', '', '', '']); SpreadsheetApp.flush(); }
   finally { lock.releaseLock(); }
   let info = '';
@@ -86,8 +94,9 @@ function mgMelden_(mg, blobs) {
   const an = e.mails.length ? e.mails : [Session.getEffectiveUser().getEmail()].filter(Boolean);
   const titel = 'Mangel gemeldet: ' + mg.was;
   const zeilen = [mg.text, mg.fahrbereit ? 'Fahrbereit: ' + mg.fahrbereit : '', 'Gemeldet von ' + mg.von + ' am ' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'dd.MM.yyyy HH:mm')].filter(Boolean);
+  mgPush_(titel, mg.text + (mg.fahrbereit === 'Nein' ? ' · NICHT fahrbereit' : '') + ' · ' + mg.von);
   let gesendet = false;
-  if (an.length) {
+  if (an.length) try {
     const inline = {};
     blobs.forEach((b, i) => { inline['foto' + i] = b; });
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -100,9 +109,9 @@ function mgMelden_(mg, blobs) {
       inlineImages: inline
     });
     gesendet = true;
-  }
-  mgPush_(titel, mg.text + (mg.fahrbereit === 'Nein' ? ' · NICHT fahrbereit' : '') + ' · ' + mg.von);
-  return gesendet ? (e.mails.length ? ' und ist an ' + e.namen.map((n) => n.split(' ')[0]).join(', ') + ' gegangen' : ' und ist ans Kommando gegangen') : '';
+  } catch (x) { console.error('Mangel-Mail: ' + x.message); }
+  const mitMail = e.namen.filter((n) => mitgliedMail_(n));
+  return gesendet ? (mitMail.length ? ' und ist an ' + mitMail.map((n) => n.split(' ')[0]).join(', ') + ' gegangen' : ' und ist ans Kommando gegangen') : '';
 }
 function mgPush_(titel, text) {
   const props = PropertiesService.getScriptProperties();
@@ -126,7 +135,7 @@ function mangelListe(pin) {
   const r = rolle_(pin); if (!r) return { ok: false, fehler: 'PIN falsch.' };
   const alle = mgLesen_().sort((a, b) => b.zeit - a.zeit);
   return { ok: true, rolle: r.rolle,
-    offen: alle.filter((m) => m.status !== 'behoben').map((m) => mgSicht_(m, true)),
+    offen: alle.filter((m) => m.status !== 'behoben').slice(0, 40).map((m, i) => mgSicht_(m, i < 25)),
     behoben: alle.filter((m) => m.status === 'behoben').slice(0, 8).map((m) => mgSicht_(m, false)) };
 }
 function mangelAnzahl_() { try { return mgLesen_().filter((m) => m.status === 'offen').length; } catch (e) { return 0; } }
@@ -148,25 +157,31 @@ function mangelAktion(pin, id, aktion, notiz) {
     const sh = mgBlatt_(), wer = String(r.name).replace(/\s*\(.*\)$/, ''), fz = FAHRZEUGE.find((f) => gleich_(f, m.was));
     const n = String(notiz || '').trim().slice(0, 300);
     const markiere = (status) => { sh.getRange(m.zeile, mgSp_('Status'), 1, 4).setValues([[status, wer, new Date(), n || m.notiz]]); };
+    if (m.status === 'behoben') return { ok: false, fehler: 'Diese Meldung ist schon behoben.' };
+    if (fz && !fzDarf_(r)) return { ok: false, fehler: 'Fahrzeugmängel bearbeiten nur Fahrmeister und Kommando.' };
+    const jetzt_ = () => { const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], fz)); return { bereit: z ? fzBereit_(z[t.s.bereit]) || 'Ja' : 'Ja', mangel: z ? String(z[t.s.mangel] || '').trim() : '' }; };
     if (aktion === 'eingeschraenkt' || aktion === 'ausser') {
       if (!fz) return { ok: false, fehler: 'Nur bei Fahrzeugen möglich.' };
-      if (!fzDarf_(r)) return { ok: false, fehler: 'Das dürfen nur Fahrmeister und Kommando.' };
-      // weitere bestätigte Mängel desselben Fahrzeugs bleiben im Grund stehen
-      const andere = mgLesen_().filter((x) => x.id !== m.id && x.status === 'bestätigt' && gleich_(x.was, fz)).map((x) => x.text);
-      fzSetzen_(fz, aktion === 'ausser' ? 'Nein' : 'Eingeschränkt', andere.concat([m.text]).join(' · ').slice(0, 300), wer);
+      const ist = jetzt_();
+      const neu = aktion === 'ausser' || ist.bereit === 'Nein' ? 'Nein' : 'Eingeschränkt';   // nie herabstufen
+      const grund = ist.bereit !== 'Ja' && ist.mangel && ist.mangel.indexOf(m.text) === -1 ? ist.mangel + ' · ' + m.text : (ist.bereit !== 'Ja' && ist.mangel ? ist.mangel : m.text);
+      fzSetzen_(fz, neu, grund.slice(0, 300), wer);
       markiere('bestätigt');
-      return { ok: true, text: fz + ' ist jetzt ' + (aktion === 'ausser' ? 'außer Dienst' : 'eingeschränkt einsatzbereit') + '. Der Infoscreen zeigt es gleich.' };
+      return { ok: true, text: fz + ' ist jetzt ' + (neu === 'Nein' ? 'außer Dienst' : 'eingeschränkt einsatzbereit') + '. Der Infoscreen zeigt es gleich.' };
     }
     if (aktion === 'behoben') {
-      if (fz && m.status === 'bestätigt' && !fzDarf_(r)) return { ok: false, fehler: 'Das dürfen nur Fahrmeister und Kommando.' };
+      const warBestaetigt = m.status === 'bestätigt';
       markiere('behoben');
       let frei = '';
-      if (fz && m.status === 'bestätigt') {
-        const rest = mgLesen_().filter((x) => x.status === 'bestätigt' && gleich_(x.was, fz));
-        const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], fz));
-        const bereit = z ? fzBereit_(z[t.s.bereit]) : '';
-        if (!rest.length) { if (bereit && bereit !== 'Ja') { fzSetzen_(fz, 'Ja', '', wer); frei = ' ' + fz + ' ist wieder einsatzbereit.'; } }
-        else if (bereit && bereit !== 'Ja') fzSetzen_(fz, bereit, rest.map((x) => x.text).join(' · ').slice(0, 300), wer);
+      if (fz && warBestaetigt) {
+        const ist = jetzt_();
+        if (ist.bereit !== 'Ja' && ist.mangel.indexOf(m.text) !== -1) {
+          const rest = ist.mangel.split(' · ').filter((x) => x && x !== m.text);
+          let sperre = false;
+          try { sperre = sperren_().some((x) => x.aktiv && x.ablauf === 'läuft' && gleich_(x.fahrzeug, fz)); } catch (e) { /* keine Sperren */ }
+          if (rest.length || sperre) fzSetzen_(fz, ist.bereit, (rest.join(' · ') || ist.mangel).slice(0, 300), wer);
+          else { fzSetzen_(fz, 'Ja', '', wer); frei = ' ' + fz + ' ist wieder einsatzbereit.'; }
+        }
       }
       return { ok: true, text: 'Als behoben markiert.' + frei };
     }

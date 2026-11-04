@@ -853,13 +853,20 @@
 
   // ---------- Mangel oder Schaden melden (alle) ----------
   // Foto verkleinern: lange Seite max. px, JPEG → Base64 ohne Präfix
-  const verkleinern = (datei, max, q) => new Promise((ok, nein) => {
+  const verkleinern = (datei) => new Promise((ok, nein) => {
     const url = URL.createObjectURL(datei), img = new Image();
+    const bild = (quelle, w0, h0, max, q) => {
+      const f = Math.min(1, max / Math.max(w0, h0));
+      const c = document.createElement('canvas'); c.width = Math.round(w0 * f); c.height = Math.round(h0 * f);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(quelle, 0, 0, c.width, c.height);
+      return c;
+    };
     img.onload = () => {
-      const f = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-      ok(c.toDataURL('image/jpeg', q).split(',')[1]);
+      URL.revokeObjectURL(url);
+      const gross = bild(img, img.naturalWidth, img.naturalHeight, 1600), klein = bild(gross, gross.width, gross.height, 360);
+      const v = gross.toDataURL('image/jpeg', 0.8).split(',')[1], k = klein.toDataURL('image/jpeg', 0.7).split(',')[1];
+      if (!v || !k) { nein(new Error('Dieses Foto kann nicht gelesen werden.')); return; }
+      ok({ voll: v, klein: k });
     };
     img.onerror = () => { URL.revokeObjectURL(url); nein(new Error('Dieses Foto kann nicht gelesen werden.')); };
     img.src = url;
@@ -877,7 +884,7 @@
     const fotoEingabe = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: async (e) => {
       const dateien = [...e.target.files].slice(0, 3 - v.fotos.length); e.target.value = '';
       for (const d of dateien) {
-        try { v.fotos.push({ voll: await verkleinern(d, 1600, 0.8), klein: await verkleinern(d, 360, 0.7) }); } catch (x) { fehler(x); }
+        try { const f = await verkleinern(d); if (v.fotos.length < 3) v.fotos.push(f); } catch (x) { fehler(x); }
       }
       neu();
     } });
@@ -946,7 +953,7 @@
               h('button', { type: 'button', class: 'opt gelb an', style: 'justify-content:center', onclick: () => tun('eingeschraenkt', m.was + ' eingeschränkt?', 'Grund: ' + m.text + '\nAm Infoscreen steht es dann orange.', 'Ja, eingeschränkt') }, 'Eingeschränkt'),
               h('button', { type: 'button', class: 'opt rot an', style: 'justify-content:center', onclick: () => tun('ausser', m.was + ' außer Dienst?', 'Grund: ' + m.text + '\nDas Fahrzeug kann dann nicht gebucht werden.', 'Ja, außer Dienst') }, 'Außer Dienst')));
           }
-          if (!fz || fzRecht || m.status === 'offen') kn.appendChild(h('button', { type: 'button', class: 'btn zweit', style: 'min-height:56px;font-size:19px', onclick: () => tun('behoben', 'Als behoben markieren?', m.was + ' · ' + m.text + (fz && m.status === 'bestätigt' ? '\nIst es der letzte offene Mangel, wird das Fahrzeug wieder einsatzbereit.' : ''), 'Ja, behoben') }, 'Behoben'));
+          if (!fz || fzRecht) kn.appendChild(h('button', { type: 'button', class: 'btn zweit', style: 'min-height:56px;font-size:19px', onclick: () => tun('behoben', 'Als behoben markieren?', m.was + ' · ' + m.text + (fz && m.status === 'bestätigt' ? '\nIst es der letzte offene Mangel, wird das Fahrzeug wieder einsatzbereit.' : ''), 'Ja, behoben') }, 'Behoben'));
           k.appendChild(kn);
         }
         return k;
