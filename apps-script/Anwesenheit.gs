@@ -356,6 +356,8 @@ function doPost(e) {
   const antwort = (o) => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
   try {
     const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (d.aktion === 'einsatzEnde') return antwort(einsatzEnde_(d));      // Pi meldet einen beendeten Einsatz (Nachbereitung.gs, EINSATZ_KEY)
+    if (d.aktion === 'fristen') return antwort(fristenAusFdisk_(d));     // Fristen aus dem FDISK (Fristen.gs, FDISK_KEY)
     const soll = (PropertiesService.getScriptProperties().getProperty('DA_KEY') || '').trim();
     if (!soll || String(d.key || '') !== soll) return antwort({ ok: false, fehler: 'Schlüssel falsch oder DA_KEY nicht eingerichtet.' });
     if (d.aktion === 'start') { const s = daStart(); return antwort({ ok: true, termine: s.termine, arten: s.arten }); }

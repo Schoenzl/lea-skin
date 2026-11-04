@@ -394,7 +394,111 @@ chrome.alarms.onAlarm.addListener((a) => {
 chrome.runtime.onMessage.addListener((m) => {
   if (m === 'leaskin-refresh') refresh();
   else if (m && m.mobil && C.mobilPush) mobilSenden(m.mobil);
+  else if (m && m.lage && (C.kommandoPushTopic || C.einsatzUrl)) lageVerarbeiten(m.lage).catch(() => {});
 });
+
+// ---------- Alarm-Push mit Lagebild + Einsatz-Nachbereitung (nur der Pi mit kommandoPushTopic / einsatzUrl) ----------
+// Push: 3 min nach dem Alarm das erste Lagebild, danach nur bei Änderung der Besetzung (höchstens jede Minute),
+// bis 20 min nach dem Alarm. Ist das Fahrzeug nach 5 min noch „nicht besetzbar“, kommt einmal eine Warnung mit hoher Priorität.
+// Der Push enthält keine Namen, nur Stufe, Einsatzart, Ort und Zahlen je Rolle.
+// Nachbereitung: verschwindet ein Einsatz bei frischen LEA-Daten 5 min lang aus der Liste, gilt er als beendet.
+// Dann gehen Stufe, Ort, Meldebild, Zeiten und die Zusagen (Namen, Funktionen) an die Web-App (Tab „Einsätze“).
+const LAGE = { erstNachMin: 3, bisMin: 20, warnNachMin: 5, abstandSek: 60, endeNachMin: 5 };
+let lageMem = null, lageSchreiben = Promise.resolve();
+const lageLaden = async () => {
+  if (!lageMem) lageMem = (await chrome.storage.local.get('lage')).lage || { ev: {}, queue: [] };
+  return lageMem;
+};
+const lageSichern = () => { const s = JSON.stringify(lageMem); lageSchreiben = lageSchreiben.then(() => chrome.storage.local.set({ lage: JSON.parse(s) })).catch(() => {}); return lageSchreiben; };
+const ortText = (o, mitNr) => [[o.strasse, mitNr ? o.nr : ''].filter(Boolean).join(' ') || o.objekt, o.ort].filter(Boolean).join(', ');
+// „Änderung“ = Ampel oder Besetzung der Rollen bis zum Soll; weitere Zusagen über dem Soll lösen keinen Push aus
+const lageSig = (e) => (e.ampel ? e.ampel.status + '|' + e.ampel.rows.map((r) => (r.ok ? 'ok' : r.ist)).join(',') : String(e.ja));
+const AMPEL_TAG = { 'besetzbar': 'green_circle', 'knapp': 'yellow_circle', 'nicht besetzbar': 'red_circle' };
+const lagePush = async (e, art, jetzt) => {
+  const min = Math.max(0, Math.round((jetzt - e.alarm) / 60000));
+  const st = e.ampel ? e.ampel.status : '';
+  const titel = (art === 'warnung' ? 'ACHTUNG ' + (C.fahrzeug && C.fahrzeug.name || '') + ' nicht besetzbar · ' : art === 'update' ? 'Update · ' : '') +
+    [e.stufe, e.text].filter(Boolean).join(' ') + (st && art !== 'warnung' ? ' · ' + st : '');
+  const rollen = e.ampel ? e.ampel.rows.map((r) => r.label.replace(/^.*\((.+)\)$/, '$1') + ' ' + r.ist + '/' + r.soll + (r.ok ? ' ✓' : ' ✗')).join(' · ') : '';
+  const body = [ortText(e.ort, true), 'Zusagen ' + e.ja + ' · Absagen ' + e.nein + ' · offen ' + e.offen, rollen,
+    'Alarm ' + new Date(e.alarm).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }) + ' · vor ' + min + ' min'].filter(Boolean).join('\n');
+  const q = '?title=' + encodeURIComponent(titel) + '&tags=' + (AMPEL_TAG[st] || 'rotating_light') +
+    '&priority=' + (art === 'warnung' || (st === 'nicht besetzbar' && min >= LAGE.warnNachMin) ? 'high' : 'default') +
+    (C.kommandoPushLink ? '&click=' + encodeURIComponent(C.kommandoPushLink) : '');
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+  await fetch('https://ntfy.sh/' + encodeURIComponent(C.kommandoPushTopic) + q, { method: 'POST', body, signal: ctl.signal }).finally(() => clearTimeout(t));
+};
+let lageLaeuft = false;
+const lageVerarbeiten = async (json) => {
+  if (lageLaeuft) return;   // ein Durchlauf nach dem anderen (sonst doppelte Pushes)
+  lageLaeuft = true;
+  try { await lageDurchlauf(json); } finally { lageLaeuft = false; }
+};
+const lageDurchlauf = async (json) => {
+  const d = JSON.parse(json), jetzt = Date.now(), L = await lageLaden();
+  let geaendert = false;
+  const aktiv = new Set();
+  for (const e of (d.frisch && d.events) || []) {
+    if (!e.id || !e.alarm) continue;
+    aktiv.add(e.id);
+    let s = L.ev[e.id];
+    if (!s) { s = L.ev[e.id] = { erstPush: 0, letzterPush: 0, sig: '', warnung: false, personen: {}, gesehen: jetzt, gemeldet: false }; geaendert = true; }
+    // Stammdaten und alle, die irgendwann zugesagt haben (wer später absagt, bleibt drin – die Nachbereitung entscheidet)
+    s.stufe = e.stufe; s.text = e.text; s.alarm = e.alarm; s.ort = e.ort; s.meldebild = e.meldebild;
+    if (jetzt - s.gesehen > 60000) { s.gesehen = jetzt; geaendert = true; }
+    (e.personen || []).forEach((p) => { const k = (p.vn + ' ' + p.nn).trim().toLowerCase(); if (k && !s.personen[k]) { s.personen[k] = p; geaendert = true; } });
+    if (C.kommandoPushTopic) {
+      const alter = jetzt - e.alarm, sig = lageSig(e);
+      if (alter >= LAGE.erstNachMin * 60000 && alter <= LAGE.bisMin * 60000) {
+        let art = '';
+        const warn = e.ampel && e.ampel.status === 'nicht besetzbar' && alter >= LAGE.warnNachMin * 60000 && !s.warnung;
+        if (!s.erstPush) art = warn ? 'warnung' : 'erst';
+        else if (warn) art = 'warnung';
+        else if (sig !== s.sig && jetzt - s.letzterPush >= LAGE.abstandSek * 1000) art = 'update';
+        if (art) {
+          try {
+            await lagePush(e, art, jetzt);
+            s.letzterPush = jetzt; s.sig = sig; if (!s.erstPush) s.erstPush = jetzt; if (art === 'warnung') s.warnung = true; geaendert = true;
+          } catch (x) { /* kein Netz → beim nächsten Durchlauf (5 s) wieder */ }
+        }
+      }
+    }
+  }
+  // beendete Einsätze: nur bei frischen Daten, 5 min nicht mehr in der Liste
+  if (d.frisch) {
+    Object.keys(L.ev).forEach((id) => {
+      const s = L.ev[id];
+      if (aktiv.has(id)) return;
+      if (!s.gemeldet && jetzt - s.gesehen > LAGE.endeNachMin * 60000) {
+        s.gemeldet = true; geaendert = true;
+        if (C.einsatzUrl && C.einsatzKey) L.queue.push({ id, stufe: s.stufe, text: s.text, alarm: s.alarm, ende: s.gesehen, ort: s.ort, meldebild: s.meldebild, personen: Object.values(s.personen), versuche: 0, naechster: 0 });
+      }
+      if (s.gemeldet && jetzt - s.gesehen > 3 * 864e5) { delete L.ev[id]; geaendert = true; }
+    });
+  }
+  // Warteschlange an die Web-App (Wiederholung alle 5 min, nach 3 Tagen aufgeben)
+  for (const q of L.queue.slice()) {
+    if (q.naechster > jetzt) continue;
+    if (jetzt - q.ende > 3 * 864e5) { L.queue.splice(L.queue.indexOf(q), 1); geaendert = true; continue; }
+    q.versuche++; q.naechster = jetzt + 5 * 60000; geaendert = true;
+    try {
+      const { versuche, naechster, ...einsatz } = q;
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 30000);
+      const r = await fetch(C.einsatzUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ aktion: 'einsatzEnde', key: C.einsatzKey, einsatz }), signal: ctl.signal }).finally(() => clearTimeout(t));
+      const a = await r.json();
+      if (a && a.ok) {
+        L.queue.splice(L.queue.indexOf(q), 1);
+        if (C.kommandoPushTopic && a.neu) {
+          await fetch('https://ntfy.sh/' + encodeURIComponent(C.kommandoPushTopic) + '?title=' + encodeURIComponent('Einsatz beendet: ' + [q.stufe, q.text].filter(Boolean).join(' ')) +
+            '&tags=memo' + (C.einsatzAppLink ? '&click=' + encodeURIComponent(C.einsatzAppLink) : ''),
+          { method: 'POST', body: 'Nachbereitung liegt in der App unter Verwaltung › Einsätze bereit (' + q.personen.length + ' Zusagen aus der LEA).' }).catch(() => {});
+        }
+      }
+    } catch (x) { /* nächster Versuch in 5 min */ }
+  }
+  if (geaendert) await lageSichern();
+};
 
 // ---------- Handy-Ansicht: Stand an den Server am Pi (mobil/server.py, nur 127.0.0.1) ----------
 const MOBIL_CFG = ['feuerwehr', 'elListe', 'funktionen', 'fahrzeug', 'farben', 'fahrzeuge', 'pickerlLkw', 'eigeneFF',

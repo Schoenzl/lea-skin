@@ -153,7 +153,9 @@
     warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5"/><path d="M12 18h.01"/>',
     kamera: '<path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/>',
     stift: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
-    schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
+    schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    alarm: '<path d="M6 18V11a6 6 0 0 1 12 0v7"/><path d="M4 18h16"/><path d="M10 21h4"/><path d="M12 2v2"/><path d="M3.5 6.5l1.5 1"/><path d="M20.5 6.5l-1.5 1"/>',
+    uhr: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'
   };
   // Kinder anhängen: Listen werden aufgelöst, leere Werte übersprungen
   const add = (el, ...kids) => { kids.flat(9).forEach((k) => { if (k == null || k === false) return; el.appendChild(typeof k === 'object' ? k : document.createTextNode(String(k))); }); return el; };
@@ -317,6 +319,8 @@
         kl('warn', 'Mängel', zahlen && zahlen.maengel != null ? h('span', { class: 'pill ' + (zahlen.maengel ? 'rot' : 'gruen') }, zahlen.maengel ? zahlen.maengel + ' neu' : 'nichts offen') : null, { s: 'maengel' }),
         r.fz ? kl('stift', 'Tätigkeiten', h('span', { class: 'pill' }, 'eintragen · FDISK'), { s: 'taet' }) : null,
         kl('werkzeug', 'Geräteprüfung', g ? (g.rot || g.gelb ? h('span', { class: 'pill ' + (g.rot ? 'rot' : 'gelb') }, (g.rot + g.gelb) + ' fällig') : h('span', { class: 'pill gruen' }, 'alles geprüft')) : null, { s: 'geraete' }),
+        r.anw ? kl('alarm', 'Einsätze', zahlen && zahlen.einsaetze != null ? h('span', { class: 'pill ' + (zahlen.einsaetze ? 'gelb' : 'gruen') }, zahlen.einsaetze ? zahlen.einsaetze + ' nachbereiten' : 'alles erledigt') : null, { s: 'einsl' }) : null,
+        r.anw ? kl('uhr', 'Fristen', zahlen && zahlen.fristen ? (zahlen.fristen.rot || zahlen.fristen.gelb ? h('span', { class: 'pill ' + (zahlen.fristen.rot ? 'rot' : 'gelb') }, (zahlen.fristen.rot ? zahlen.fristen.rot + ' abgelaufen' : '') + (zahlen.fristen.rot && zahlen.fristen.gelb ? ' · ' : '') + (zahlen.fristen.gelb ? zahlen.fristen.gelb + ' bald' : '')) : h('span', { class: 'pill gruen' }, 'alles gültig')) : null, { s: 'fristen' }) : null,
         r.anw ? kl('liste', 'Anwesenheit prüfen', zahlen && zahlen.anwOffen != null ? h('span', { class: 'pill ' + (zahlen.anwOffen ? 'gelb' : 'gruen') }, zahlen.anwOffen ? zahlen.anwOffen + ' offen' : 'alles erledigt') : null, { s: 'anwp' }) : null,
         h('button', { type: 'button', class: 'link', style: 'justify-self:start', onclick: () => frage({ titel: 'Verwaltung abmelden?', text: 'Zum Anmelden brauchst du dann wieder deinen PIN.', ja: 'Ja, abmelden', aktion: () => { verw = null; zahlen = null; schreib('ff-verw', null); zeichne(false); melde('Verwaltung abgemeldet.'); } }) }, 'Verwaltung abmelden')));
     } else {
@@ -966,16 +970,135 @@
     return [kopfZurueck('Start'), h('h1', null, 'Mängel'), box];
   };
 
+  // ---------- Verwaltung › Einsätze (Nachbereitung, nur Kommando) ----------
+  const EIN_ST = { entwurf: ['nachbereiten', 'gelb'], abgeschlossen: ['abgeschlossen', 'gruen'], eingetragen: ['im FDISK', 'gruen'], verworfen: ['verworfen', ''] };
+  const datumKurz = (t) => { const d = new Date(t); return WT[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+  let einDaten = null;
+  const einLaden = async () => { const r = await run('einsatzListe', verw.pin); if (!r.ok) throw new Error(r.fehler); einDaten = r; return r; };
+  SEITEN.einsl = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    einLaden().then((r) => {
+      box.textContent = '';
+      if (!r.liste.length) { box.appendChild(h('p', { class: 'sub' }, 'Noch keine Einsätze. Nach jedem Einsatz legt der Infoscreen hier automatisch einen Entwurf an.')); return; }
+      add(box, h('div', { class: 'gitter', style: 'gap:10px' }, r.liste.map((e) => {
+        const [st, farbe] = EIN_ST[e.status] || [e.status, ''];
+        return h('button', { type: 'button', class: 'kachel k', style: 'min-height:76px;align-items:flex-start', onclick: () => zeige({ s: 'eins', id: e.id }) },
+          h('span', { class: 't' }, h('b', null, [e.stufe, e.art].filter(Boolean).join(' · ') || 'Einsatz'),
+            h('span', null, datumKurz(e.alarm), ' · ', uhr(e.alarm), '–', uhr(e.ende), e.ort ? ' · ' + e.ort.replace(/^\d{4}\s*/, '') : ''),
+            h('span', { style: 'display:block' }, e.teilnehmer.length + (e.teilnehmer.length === 1 ? ' Person' : ' Personen') + (e.fahrzeuge.length ? ' · ' + e.fahrzeuge.join(', ') : ''))),
+          h('span', { class: 'pill ' + farbe }, st));
+      })));
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Start'), h('h1', null, 'Einsätze'), box];
+  };
+  SEITEN.eins = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    (einDaten ? Promise.resolve(einDaten) : einLaden()).then((r) => {
+      const e = r.liste.find((x) => x.id === seite.id);
+      if (!e) throw new Error('Einsatz nicht gefunden.');
+      const offen = e.status === 'entwurf';
+      const v = seite.v || (seite.v = { teilnehmer: e.teilnehmer.slice(), fahrzeuge: e.fahrzeuge.slice(), alarm: isoLokal(e.alarm), ende: isoLokal(e.ende), bericht: e.bericht, q: '' });
+      box.textContent = '';
+      const leute = h('div', { class: 'liste' }), zahl = h('span');
+      const leaNamen = e.zusagen.map((z) => norm(z.replace(/\s*\(.*\)$/, '')));
+      const ausLea = (n) => { const t = norm(n).split(' ').sort().join(' '); return leaNamen.some((l) => l.split(' ').sort().join(' ') === t); };
+      const fuelle = () => {
+        leute.textContent = '';
+        zahl.textContent = v.teilnehmer.length ? ' (' + v.teilnehmer.length + ' gewählt)' : '';
+        const q = norm(v.q);
+        const liste = r.namen.filter((n) => v.teilnehmer.indexOf(n) !== -1 || (offen && (!q || norm(n).indexOf(q) !== -1)))
+          .sort((a, b) => (v.teilnehmer.indexOf(b) !== -1) - (v.teilnehmer.indexOf(a) !== -1) || a.localeCompare(b, 'de'));
+        liste.forEach((n) => {
+          const an = v.teilnehmer.indexOf(n) !== -1;
+          leute.appendChild(h('button', { type: 'button', class: 'zeile', disabled: offen ? null : true, 'aria-pressed': an ? 'true' : 'false', onclick: () => { const i = v.teilnehmer.indexOf(n); if (i === -1) v.teilnehmer.push(n); else v.teilnehmer.splice(i, 1); fuelle(); } },
+            h('span', { class: 'logo rund', style: an ? 'background:var(--gruen-btn);color:#fff' : '' }, an ? icon('haken', 22) : kuerzel(n)), h('span', { class: 't' }, h('b', null, n), ausLea(n) ? h('span', null, 'hat in der LEA zugesagt') : null), an ? h('span', { class: 'pill gruen' }, 'dabei') : null));
+        });
+        if (!liste.length) leute.appendChild(h('div', { class: 'sub', style: 'padding:16px 0' }, offen ? 'Kein Treffer.' : 'Niemand eingetragen.'));
+      };
+      const fzChips = h('div', { class: 'chips' });
+      const fzMalen = () => { fzChips.textContent = ''; r.fahrzeuge.forEach((f) => { const an = v.fahrzeuge.indexOf(f) !== -1; fzChips.appendChild(h('button', { type: 'button', class: 'chip' + (an ? ' an' : ''), disabled: offen ? null : true, 'aria-pressed': an ? 'true' : 'false', onclick: () => { const i = v.fahrzeuge.indexOf(f); if (i === -1) v.fahrzeuge.push(f); else v.fahrzeuge.splice(i, 1); fzMalen(); } }, f)); }); };
+      const senden = async (aktion, b) => {
+        const alt = b.textContent; b.disabled = true; b.textContent = 'Wird gespeichert …';
+        try {
+          const a = antwort(await run('einsatzSpeichern', verw.pin, e.id, { aktion, teilnehmer: v.teilnehmer, fahrzeuge: v.fahrzeuge, alarm: v.alarm, ende: v.ende, bericht: v.bericht }));
+          einDaten = null; seite.v = null; zahlenLaden();
+          if (aktion === 'speichern') { b.disabled = false; b.textContent = alt; await einLaden(); } else zeichne(false);
+          return a;
+        } catch (x) { b.disabled = false; b.textContent = alt; fehler(x); }
+      };
+      const [st, farbe] = EIN_ST[e.status] || [e.status, ''];
+      add(box,
+        h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px' }, h('span', { class: 'pill ' + farbe }, st), e.fdisk ? h('span', { class: 'sub klein' }, e.fdisk) : null),
+        h('div', { class: 'karte' }, h('b', { style: 'display:block;font-size:20px' }, [e.stufe, e.art].filter(Boolean).join(' · ')),
+          h('div', { class: 'sub' }, [e.strasse, e.ort].filter(Boolean).join(', ')),
+          e.meldebild ? h('p', { style: 'margin:8px 0 0' }, e.meldebild) : null,
+          e.zusagen.length ? h('div', { class: 'sub klein', style: 'margin-top:8px' }, 'Zusagen in der LEA: ' + e.zusagen.join(', ')) : null),
+        h('div', { style: 'margin-top:6px' },
+          h('div', null, h('label', { class: 'label', for: 'e-a' }, 'Alarm'), h('input', { id: 'e-a', type: 'datetime-local', value: v.alarm, disabled: offen ? null : true, onchange: (x) => { v.alarm = x.target.value; } })),
+          h('div', null, h('label', { class: 'label', for: 'e-e' }, 'Einsatzende'), h('input', { id: 'e-e', type: 'datetime-local', value: v.ende, disabled: offen ? null : true, onchange: (x) => { v.ende = x.target.value; } }))),
+        h('div', { class: 'label' }, 'Fahrzeuge'), fzChips,
+        h('div', { class: 'label' }, 'Wer war dabei?', zahl),
+        offen ? h('input', { id: 'e-suche', type: 'search', placeholder: 'Name suchen', 'aria-label': 'Name suchen', value: v.q, oninput: (x) => { v.q = x.target.value; fuelle(); } }) : null,
+        leute,
+        h('label', { class: 'label', for: 'e-ber' }, 'Was war? (kommt in den Facebook-Text und ins FDISK)'),
+        h('textarea', { id: 'e-ber', maxlength: '1500', disabled: offen ? null : true, value: v.bericht, placeholder: 'z. B. Bei Eintreffen brannte ein Müllcontainer. Wir löschten mit einem HD-Rohr unter schwerem Atemschutz.', oninput: (x) => { v.bericht = x.target.value; } }));
+      if (offen) {
+        add(box, h('div', { class: 'sticky gitter', style: 'gap:10px' },
+          h('button', { type: 'button', class: 'btn haupt', onclick: (x) => { const b = x.currentTarget; frage({ titel: 'Einsatz abschließen?', text: v.teilnehmer.length + (v.teilnehmer.length === 1 ? ' Person' : ' Personen') + (v.fahrzeuge.length ? ' · ' + v.fahrzeuge.join(', ') : ' · kein Fahrzeug') + '\nDanach gibt es den Facebook-Text, und der Einsatz ist bereit fürs FDISK.', ja: 'Ja, abschließen', aktion: () => senden('abschliessen', b) }); } }, 'Abschließen'),
+          h('button', { type: 'button', class: 'btn zweit', onclick: (x) => senden('speichern', x.currentTarget) }, 'Zwischenspeichern')),
+          h('button', { type: 'button', class: 'link', style: 'margin-top:16px', onclick: (x) => { const b = x.currentTarget; frage({ titel: 'Einsatz verwerfen?', text: 'Zum Beispiel bei einem Probealarm oder einem Einsatz, zu dem wir nicht ausgerückt sind. Er kommt dann nicht ins FDISK.', ja: 'Ja, verwerfen', aktion: () => senden('verwerfen', b) }); } }, 'Verwerfen (kein Einsatz für uns)'));
+      } else {
+        if (e.fb) {
+          const ta = h('textarea', { id: 'e-fb', readonly: 'readonly', style: 'min-height:260px', value: e.fb });
+          add(box, h('div', { class: 'label', style: 'margin-top:26px' }, 'Facebook-Text'), ta,
+            h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:10px', onclick: async () => {
+              try { await navigator.clipboard.writeText(e.fb); melde('Kopiert.'); } catch (x) { ta.focus(); ta.select(); melde('Text markiert – jetzt kopieren.'); }
+            } }, 'Text kopieren'),
+            h('p', { class: 'sub klein' }, 'Vor dem Posten bitte durchlesen: keine Namen von Betroffenen, keine Kennzeichen, nichts zu Ursache oder Schuld.'));
+        }
+        if (e.status === 'abgeschlossen') add(box, h('p', { class: 'sub', style: 'margin-top:18px' }, 'Bereit fürs FDISK. Sag Claude „Einsatzbericht eintragen“, dann wird er übertragen.'));
+        if (e.status !== 'eingetragen') add(box, h('button', { type: 'button', class: 'link', style: 'margin-top:12px', onclick: (x) => senden('oeffnen', x.currentTarget) }, 'Wieder öffnen und ändern'));
+      }
+      fuelle(); fzMalen();
+    }).catch((x) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, x.message)); });
+    return [kopfZurueck('Einsätze'), h('h1', null, 'Nachbereitung'), box];
+  };
+
+  // ---------- Verwaltung › Fristen (nur Kommando) ----------
+  const FR_TXT = { rot: 'abgelaufen', gelb: 'läuft bald ab', grau: 'kein Datum', gruen: 'gültig' };
+  const tagDatum = (t) => { const d = new Date(t); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); };
+  SEITEN.fristen = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const filter = seite.filter || (seite.filter = 'faellig');
+    run('fristenUebersicht', verw.pin).then((r) => {
+      if (!r.ok) throw new Error(r.fehler);
+      box.textContent = '';
+      r.fehler.forEach((f) => box.appendChild(h('div', { class: 'warn', style: 'margin-top:0;margin-bottom:12px' }, f)));
+      const liste = filter === 'alle' ? r.personen : r.personen.filter((p) => p.ampel === 'rot' || p.ampel === 'gelb');
+      add(box,
+        h('div', { class: 'chips', style: 'margin-bottom:16px' },
+          h('button', { type: 'button', class: 'chip' + (filter === 'faellig' ? ' an' : ''), onclick: () => { seite.filter = 'faellig'; zeichne(true); } }, 'Fällig (' + (r.rot + r.gelb) + ')'),
+          h('button', { type: 'button', class: 'chip' + (filter === 'alle' ? ' an' : ''), onclick: () => { seite.filter = 'alle'; zeichne(true); } }, 'Alle (' + r.personen.length + ')')),
+        liste.length ? h('div', { class: 'gitter', style: 'gap:10px' }, liste.map((p) => h('div', { class: 'karte' },
+          h('b', { style: 'display:block;font-size:20px' }, p.name), p.mitglied ? null : h('div', { class: 'sub klein' }, 'nicht im Tab „Mitglieder“ gefunden'),
+          p.fristen.filter((x) => filter === 'alle' || x.ampel === 'rot' || x.ampel === 'gelb').map((x) => h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px' },
+            h('span', { style: 'flex:1;min-width:150px;font-size:18px' }, x.art), h('span', { class: 'sub' }, x.bis ? 'bis ' + tagDatum(x.bis) : ''), h('span', { class: 'pill ' + (x.ampel === 'grau' ? '' : x.ampel) }, FR_TXT[x.ampel])))))) :
+          h('p', { class: 'sub' }, 'Nichts fällig – alle Fristen sind länger als 60 Tage gültig.'),
+        h('p', { class: 'sub klein', style: 'margin-top:20px' }, 'Atemschutz aus der ATS-Tabelle im Drive' + (r.fdiskStand ? ', übrige Fristen aus dem FDISK (Stand ' + tagDatum(r.fdiskStand) + ')' : '; FDISK-Fristen sind noch nicht abgeglichen') + '. Gelb = in den nächsten 60 Tagen. 30 Tage vorher geht eine Erinnerung per Mail.'));
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Start'), h('h1', null, 'Fristen'), box];
+  };
+
   // ---------- Zeichnen ----------
-  const ADMIN = { maengel: 1, fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1 };
+  const ADMIN = { maengel: 1, fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1, einsl: 1, eins: 1, fristen: 1 };
   function zeichne(nachOben) {
     if (!daten) return;
     if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
     else if (ADMIN[seite.s] && !verw) seite = { s: 'pin' };
     else if ((seite.s === 'fzstatus' || seite.s === 'taet' || seite.s === 'taetneu') && !rollen().fz) seite = { s: 'start' };
-    else if ((seite.s === 'anwp' || seite.s === 'anwt') && !rollen().anw) seite = { s: 'start' };
+    else if ((seite.s === 'anwp' || seite.s === 'anwt' || seite.s === 'einsl' || seite.s === 'eins' || seite.s === 'fristen') && !rollen().anw) seite = { s: 'start' };
     // Verwaltungsseiten laden ihre Daten selbst – beim automatischen Aktualisieren nicht neu zeichnen
-    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1 }[seite.s]) return;
+    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1, eins: 1 }[seite.s]) return;
     const y = window.scrollY, aktiv = document.activeElement && document.activeElement.id;
     $app.textContent = '';
     $app.dataset.seite = seite.s;
@@ -993,6 +1116,7 @@
   else if (startArt === 'fahrzeuge') seite = { s: 'fahrzeuge' };
   else if (startArt === 'mangel') seite = { s: 'mangel' };
   else if (startArt === 'maengel') seite = verw ? { s: 'maengel' } : { s: 'pin' };
+  else if (startArt === 'einsaetze' || startArt === 'fristen') seite = verw ? { s: startArt === 'einsaetze' ? 'einsl' : 'fristen' } : { s: 'pin' };
   else if (startArt === 'verwaltung') seite = verw ? { s: 'start' } : { s: 'pin' };
   if (seite.s !== 'start') stapel.push({ s: 'start' });
   if (seite.s === 'fahrzeug') stapel.push({ s: 'fahrzeuge' });

@@ -666,6 +666,29 @@
     }, 5000);
   }
 
+  // Lagebild für den Hintergrund-Dienst: Push ans Kommando (kommandoPushTopic) und Einsatz-Nachbereitung (einsatzUrl).
+  // Nur auf dem Pi, wo eins davon in config.local.js gesetzt ist, nie im Demo-Modus.
+  if ((C.kommandoPushTopic || C.einsatzUrl) && !DEMO) {
+    setInterval(() => {
+      const frisch = !!state.events && Date.now() - state.lastData < (C.datenTimeoutSek || 45) * 1000;
+      const evs = frisch ? listOf(state.events).map((ev) => {
+        const alle = ev.alarmedpersons || [];
+        const ja = alle.filter((p) => p.response && p.response.basicresponse === 'Ja');
+        const a = ampel(ja);
+        const loc = ev.location || {};
+        return {
+          id: String(ev.id || (ev.alarmtime + ':' + ev.eventtype)), stufe: ev.eventtype || '', text: ev.eventtypetext || '', alarm: ev.alarmtime || 0,
+          ort: { strasse: loc.street || '', nr: loc.housenumber || '', plz: loc.zipcode || '', ort: loc.city || '', objekt: loc.objectname || '' },
+          meldebild: meldebild(ev).slice(0, 300),
+          ja: ja.length, nein: alle.filter((p) => p.response && p.response.basicresponse === 'Nein').length, offen: alle.filter((p) => !p.response || !p.response.basicresponse).length,
+          ampel: a ? { status: a.status, rows: a.rows.map((r) => ({ label: r.label, ist: r.ist, soll: r.soll, ok: r.ok })) } : null,
+          personen: ja.map((p) => ({ vn: p.firstname || '', nn: p.lastname || '', fn: (p.functions || []).map((f) => f.shortname).filter(Boolean) }))
+        };
+      }) : null;
+      window.postMessage({ type: 'leaskin:lage', json: JSON.stringify({ frisch, events: evs }) }, location.origin);
+    }, 5000);
+  }
+
   setInterval(tick, 1000);
   document.addEventListener('DOMContentLoaded', tick);
 })();

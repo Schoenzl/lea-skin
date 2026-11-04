@@ -130,6 +130,8 @@ function verwaltungZahlen(pin) {
   try { const g = pruefUebersicht(pin); if (g.ok && g.gesamt) out.geraete = g.gesamt; } catch (e) { /* Geräte nicht eingerichtet */ }
   if (r.rolle === 'kommando') {
     try { const a = anwUebersicht(pin); if (a.ok) out.anwOffen = (a.termine || []).filter((t) => t.status === 'offen').length; } catch (e) { /* Anwesenheit nicht eingerichtet */ }
+    out.einsaetze = einsatzAnzahl_();
+    try { out.fristen = fristenZahl_(); } catch (e) { /* ATS-Tabelle nicht lesbar */ }
   }
   return out;
 }

@@ -128,6 +128,7 @@ function fdiskAbfrage_(p) {
   const aus = (o) => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
   const soll = (PropertiesService.getScriptProperties().getProperty('FDISK_KEY') || '').trim();
   if (!soll || soll.length < 20 || String(p.key || '') !== soll) { Utilities.sleep(1000); return aus({ ok: false, fehler: 'Schlüssel falsch oder FDISK_KEY nicht eingerichtet.' }); }
+  if (p.aktion === 'fdiskEinsaetze' || p.aktion === 'einsatzErledigt') return aus(einsatzFdisk_(p));   // Einsatzberichte (Nachbereitung.gs)
   const ss = anwSS_(), T = anwLesen_(ss, 'Termine'), A = anwLesen_(ss, 'Anwesenheit').zeilen;
   if (p.aktion === 'fdisk') {
     const liste = T.zeilen.filter((t) => t.Status === 'abgeschlossen' && /^freigegeben/.test(String(t['FDISK-Bericht'] || ''))).map((t) => {

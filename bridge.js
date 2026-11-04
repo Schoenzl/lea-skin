@@ -17,6 +17,11 @@
     if (e.source !== window || !e.data || e.data.type !== 'leaskin:mobil') return;
     try { chrome.runtime.sendMessage({ mobil: e.data.json }); } catch (err) {}
   });
+  // Lagebild (Alarm-Push ans Kommando, Einsatz-Nachbereitung): an den Hintergrund-Dienst
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.type !== 'leaskin:lage') return;
+    try { chrome.runtime.sendMessage({ lage: e.data.json }); } catch (err) {}
+  });
   pull();
   setTimeout(pull, 2000);
   setInterval(pull, 60000);

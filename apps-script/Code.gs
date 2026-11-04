@@ -10,14 +10,14 @@ const MAX_TAGE = 7;                              // längste Buchung
 
 function doGet(e) {
   const a = (e && e.parameter && e.parameter.aktion) || '';
-  if (a === 'fdisk' || a === 'fdiskErledigt') return fdiskAbfrage_(e.parameter);   // automatischer FDISK-Übertrag (Taetigkeit.gs)
+  if (a === 'fdisk' || a === 'fdiskErledigt' || a === 'fdiskEinsaetze' || a === 'einsatzErledigt') return fdiskAbfrage_(e.parameter);   // automatischer FDISK-Übertrag (Taetigkeit.gs)
   const t = HtmlService.createTemplateFromFile('Buchung');
   const seite = (e && e.parameter && e.parameter.seite) || '';
   // Alte Links bleiben gültig: ?seite=da (Anwesenheit), ?seite=intern/status (Verwaltung), ?seite=einsatz; neu ?fz=KLF-W (Fahrzeug-QR)
   // Fahrzeug-QR: ?seite=klfw / mtf / vfa (die Hülle ff.html gibt nur „seite“ weiter, nur Buchstaben) oder ?fz=KLF-W
   const nurBuchstaben = (x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
   const fzWunsch = nurBuchstaben((e && e.parameter && e.parameter.fz) || seite);
-  t.start = seite === 'status' || seite === 'intern' || seite === 'kommando' ? 'verwaltung' : seite === 'da' || seite === 'anwesenheit' ? 'da' : seite === 'einsatz' ? 'einsatz' : seite === 'buchen' ? 'fahrzeuge' : seite === 'maengel' ? 'maengel' : seite === 'mangel' ? 'mangel' : '';
+  t.start = seite === 'status' || seite === 'intern' || seite === 'kommando' ? 'verwaltung' : seite === 'da' || seite === 'anwesenheit' ? 'da' : seite === 'einsatz' ? 'einsatz' : seite === 'buchen' ? 'fahrzeuge' : seite === 'maengel' ? 'maengel' : seite === 'mangel' ? 'mangel' : seite === 'einsaetze' ? 'einsaetze' : seite === 'fristen' ? 'fristen' : '';
   t.fz = FAHRZEUGE.find((f) => nurBuchstaben(f) === fzWunsch) || '';
   return t.evaluate()
     .setTitle('FF Deutsch Haslau')
