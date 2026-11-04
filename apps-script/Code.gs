@@ -65,7 +65,91 @@ function startdaten() {
   const kommend = alle.filter((b) => b.bis >= jetzt && b.von <= jetzt + 30 * 864e5)
     .sort((a, b) => a.von - b.von)
     .map((b) => ({ zeile: b.zeile, fahrzeug: b.fahrzeug, name: b.name, zweck: b.zweck, von: b.von, bis: b.bis, text: fmt_(b.von) + ' – ' + fmt_(b.bis) }));
-  return { fahrzeuge: FAHRZEUGE, namen, kommend };
+  const bewegung = alle.filter((b) => BF_LAEUFT.test(b.zweck)).map((b) => ({ zeile: b.zeile, fahrzeug: b.fahrzeug, name: b.name, von: b.von, bis: b.bis, seit: fmt_(b.von) }));
+  return { fahrzeuge: FAHRZEUGE, namen, kommend, bewegung };
+}
+
+// ---------- Bewegungsfahrt: Start sofort, Ende mit „Einrücken“ ----------
+// Läuft als normale Buchung mit Zweck „Bewegungsfahrt (läuft)“ und vorläufigem Ende; der Zeitauslöser verlängert sie,
+// bis eingerückt wird (höchstens BF_MAX_H Stunden und nie in die nächste Buchung hinein).
+const BF_ZWECK = 'Bewegungsfahrt', BF_LAEUFT = /^Bewegungsfahrt \(läuft\)/, BF_START_H = 2, BF_MAX_H = 8, BF_MIN_FREI = 15 * 60e3;
+
+function bewegungStart(daten) {
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const fz = FAHRZEUGE.find((f) => gleich_(f, daten && daten.fahrzeug));
+    const name = String(daten && daten.name || '').trim().slice(0, 80), mail = String(daten && daten.mail || '').trim().toLowerCase().slice(0, 120);
+    if (!fz) return { ok: false, fehler: 'Bitte ein Fahrzeug auswählen.' };
+    if (name.length < 3) return { ok: false, fehler: 'Bitte deinen vollen Namen eintragen.' };
+    const jetzt = Date.now(), alle = buchungen_();
+    // außer Dienst (Status im Tab „Fahrzeuge“ oder geplante Sperre)?
+    try {
+      const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], fz));
+      if (z && fzBereit_(z[t.s.bereit]) === 'Nein') return { ok: false, fehler: fz + ' ist außer Dienst' + (String(z[t.s.mangel] || '').trim() ? ': ' + String(z[t.s.mangel]).trim() : '') + '.' };
+    } catch (e) { /* Tab fehlt – dann ohne Statusprüfung */ }
+    const gesperrt = sperrKonflikt_({ fahrzeug: fz, von: jetzt, bis: jetzt + BF_MIN_FREI });
+    if (gesperrt.length) return { ok: false, fehler: fz + ' ist außer Dienst: ' + gesperrt[0].grund + '.' };
+    const eigene = alle.filter((b) => gleich_(b.fahrzeug, fz));
+    const jetztB = eigene.find((b) => b.von <= jetzt && jetzt < b.bis);
+    if (jetztB) return { ok: false, fehler: fz + ' ist gerade unterwegs: ' + jetztB.name + (jetztB.zweck ? ' · ' + jetztB.zweck : '') + ' bis ' + fmt_(jetztB.bis) + '.' };
+    const naechste = eigene.filter((b) => b.von > jetzt).sort((a, b) => a.von - b.von)[0];
+    if (naechste && naechste.von - jetzt < BF_MIN_FREI) return { ok: false, fehler: fz + ' ist ab ' + fmt_(naechste.von) + ' gebucht (' + naechste.name + '). Für eine Bewegungsfahrt ist das zu knapp.' };
+    const bis = Math.min(jetzt + BF_START_H * 3600e3, naechste ? naechste.von : Infinity, bfSperreAb_(fz, jetzt));
+    const sh = blatt_();
+    mailSpalte_(sh);
+    const s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
+    if (s.zweck < 0) return { ok: false, fehler: 'Spalte „Zweck“ fehlt in der Tabelle.' };
+    const zeile = new Array(sh.getLastColumn()).fill('');
+    zeile[s.zeit] = new Date(); zeile[s.fz] = fz; zeile[s.name] = name;
+    zeile[s.von] = new Date(jetzt); zeile[s.bis] = new Date(bis); zeile[s.zweck] = BF_ZWECK + ' (läuft)';
+    if (s.mail >= 0 && MAIL_.test(mail)) zeile[s.mail] = mail;
+    sh.appendRow(zeile);
+    const r = sh.getLastRow();
+    [s.zeit, s.von, s.bis].forEach((c) => sh.getRange(r, c + 1).setNumberFormat('dd.MM.yyyy HH:mm:ss'));
+    SpreadsheetApp.flush();
+    let hinweis = naechste && naechste.von === bis ? ' Achtung: ' + fz + ' ist ab ' + fmt_(naechste.von) + ' gebucht, bis dahin bitte einrücken.' : '';
+    try { ausloeserPruefen_(); } catch (e) { hinweis += ' (Automatische Verlängerung nicht aktiv: im Editor ▶ sperrenEinrichten ausführen.)'; }
+    return { ok: true, text: 'Bewegungsfahrt ' + fz + ' läuft seit ' + fmt_(jetzt) + '. Nach der Fahrt „Einrücken“ drücken.' + hinweis };
+  } finally { lock.releaseLock(); }
+}
+
+function bewegungEnde(zeile, name) {
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const wer = String(name || '').trim().slice(0, 80);
+    if (wer.length < 3) return { ok: false, fehler: 'Bitte deinen Namen eintragen.' };
+    const b = buchungen_().find((x) => x.zeile === +zeile && BF_LAEUFT.test(x.zweck));
+    if (!b) return { ok: false, fehler: 'Diese Bewegungsfahrt ist schon beendet. Ansicht wird neu geladen.' };
+    const sh = blatt_(), s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
+    const alle = buchungen_(), naechste = alle.filter((x) => x.zeile !== b.zeile && gleich_(x.fahrzeug, b.fahrzeug) && x.von >= b.von).sort((x, y) => x.von - y.von)[0];
+    const jetzt = Date.now(), ende = Math.max(b.von + 60e3, Math.min(jetzt, naechste ? naechste.von : Infinity));
+    sh.getRange(b.zeile, s.bis + 1).setValue(new Date(ende)).setNumberFormat('dd.MM.yyyy HH:mm:ss');
+    sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + (gleich_(wer, b.name) ? '' : ' (eingerückt: ' + wer + ')'));
+    SpreadsheetApp.flush();
+    const min = Math.round((ende - b.von) / 60e3);
+    return { ok: true, text: b.fahrzeug + ' eingerückt um ' + fmt_(ende).slice(-5) + ' · Bewegungsfahrt ' + (min < 60 ? min + ' min' : Math.floor(min / 60) + ' h ' + String(min % 60).padStart(2, '0') + ' min') + '.' };
+  } finally { lock.releaseLock(); }
+}
+
+// Beginn der nächsten geplanten Außerdienststellung ab „ab“ (sonst Infinity)
+function bfSperreAb_(fz, ab) {
+  let t = Infinity;
+  try { sperren_().forEach((x) => { if (x.aktiv && x.ablauf !== 'beendet' && x.status === 'Nein' && gleich_(x.fahrzeug, fz) && x.von > ab) t = Math.min(t, x.von); }); } catch (e) { /* ohne Sperren */ }
+  return t;
+}
+// Vom Zeitauslöser: laufende Bewegungsfahrten vor ihrem vorläufigen Ende um 30 min verlängern
+function bewegungVerlaengern_() {
+  const jetzt = Date.now(), alle = buchungen_();
+  const laufend = alle.filter((b) => BF_LAEUFT.test(b.zweck) && b.bis - jetzt < 10 * 60e3);
+  if (!laufend.length) return;
+  const sh = blatt_(), s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
+  laufend.forEach((b) => {
+    const naechste = alle.filter((x) => x.zeile !== b.zeile && gleich_(x.fahrzeug, b.fahrzeug) && x.von >= b.bis).sort((x, y) => x.von - y.von)[0];
+    const grenze = Math.min(b.von + BF_MAX_H * 3600e3, naechste ? naechste.von : Infinity, bfSperreAb_(b.fahrzeug, b.von));
+    const neu = Math.min(Math.max(b.bis, jetzt) + 30 * 60e3, grenze);
+    if (neu > b.bis) sh.getRange(b.zeile, s.bis + 1).setValue(new Date(neu)).setNumberFormat('dd.MM.yyyy HH:mm:ss');
+    else if (jetzt >= b.bis) sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + ' (nicht eingerückt)');
+  });
 }
 
 // ---------- Buchen ----------
@@ -422,6 +506,7 @@ function spFreigeben_(x, name) {
 function sperrenAnwenden() {
   const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
   try {
+    try { bewegungVerlaengern_(); } catch (e) { console.error('Bewegungsfahrt: ' + e.message); }
     const jetzt = Date.now();
     sperren_().filter((x) => x.aktiv && x.ablauf !== 'beendet').sort((a, b) => a.von - b.von).forEach((x) => {
       try {

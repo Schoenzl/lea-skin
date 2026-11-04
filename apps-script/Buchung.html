@@ -170,6 +170,14 @@
   .meldung { display: none; white-space: pre-line; margin-top: 14px; padding: 12px; border-radius: 8px; font-weight: 600; }
   .meldung.fehler { display: block; background: #FDECEC; color: #991B1B; box-shadow: inset 4px 0 0 #DC2626; }
   .meldung.ok { display: block; background: #E8F7EE; color: #166534; box-shadow: inset 4px 0 0 #16A34A; }
+  .bf-reihe { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linie); }
+  .bf-reihe:first-child { border-top: 0; }
+  .bf-reihe b { flex: none; width: 56px; font-size: 17px; }
+  .bf-reihe .bf-info { flex: 1; min-width: 0; font-size: 14px; color: var(--grau); }
+  .bf-reihe.laeuft .bf-info { color: #92400E; font-weight: 600; }
+  .bf-reihe button { flex: none; font: inherit; font-size: 15px; font-weight: 700; padding: 11px 14px; border-radius: 9px; border: 2px solid var(--rot); background: #fff; color: var(--rot); }
+  .bf-reihe button.ein { border-color: #16A34A; background: #16A34A; color: #fff; }
+  .bf-reihe button:disabled { opacity: .5; }
   h2 { font-size: 15px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
   .b { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linie); }
   .b:first-of-type { border-top: 0; }
@@ -251,6 +259,13 @@
 </header>
 <main>
 <section id="buchen">
+  <div class="karte">
+    <h2>Bewegungsfahrt</h2>
+    <label for="bf-name">Dein Name</label>
+    <input id="bf-name" list="namen" autocomplete="name" placeholder="z. B. Max Mustermann">
+    <div id="bf-liste" style="margin-top:10px"><div class="leer">wird geladen …</div></div>
+    <div class="meldung" id="bf-meldung"></div>
+  </div>
   <div class="karte">
     <label>Fahrzeug</label>
     <div class="fzwahl" id="fz"></div>
@@ -394,8 +409,49 @@
       row.append(k, i, a); l.appendChild(row);
     });
   };
-  const laden = () => google.script.run.withSuccessHandler(zeigen)
-    .withFailureHandler((e) => { $('liste').textContent = 'Konnte nicht geladen werden: ' + e.message; }).startdaten();
+  // Bewegungsfahrt: pro Fahrzeug „Bewegungsfahrt“ bzw. „Einrücken“
+  try { $('bf-name').value = localStorage.getItem('fz-name') || ''; } catch (e) {}
+  const bfMelden = (text, art) => { const m = $('bf-meldung'); m.textContent = text; m.className = 'meldung ' + art; };
+  const bfName = () => {
+    const n = $('bf-name').value.trim();
+    if (n.length < 3) { bfMelden('Bitte zuerst deinen Namen eintragen.', 'fehler'); $('bf-name').focus(); return ''; }
+    try { localStorage.setItem('fz-name', n); } catch (e) {}
+    $('name').value = n;
+    return n;
+  };
+  $('name').addEventListener('change', () => { if ($('name').value.trim()) $('bf-name').value = $('name').value.trim(); });
+  const bfZeigen = (d) => {
+    const l = $('bf-liste'); l.textContent = '';
+    d.fahrzeuge.forEach((f) => {
+      const lauf = (d.bewegung || []).find((x) => x.fahrzeug === f);
+      const r = document.createElement('div'); r.className = 'bf-reihe' + (lauf ? ' laeuft' : '');
+      const n = document.createElement('b'); n.textContent = f;
+      const heute = lauf && new Date(lauf.von).toDateString() === new Date().toDateString();
+      const i = document.createElement('div'); i.className = 'bf-info'; i.textContent = lauf ? 'unterwegs seit ' + (heute ? lauf.seit.slice(-5) : lauf.seit) + ' · ' + lauf.name : 'in der Halle';
+      const k = document.createElement('button'); k.type = 'button';
+      if (lauf) {
+        k.className = 'ein'; k.textContent = 'Einrücken';
+        k.onclick = () => {
+          const wer = bfName(); if (!wer) return;
+          k.disabled = true; k.textContent = '…';
+          google.script.run.withSuccessHandler((x) => { bfMelden(x.ok ? '✓ ' + x.text : x.fehler, x.ok ? 'ok' : 'fehler'); laden(); })
+            .withFailureHandler((e) => { bfMelden('Fehler: ' + e.message, 'fehler'); laden(); }).bewegungEnde(lauf.zeile, wer);
+        };
+      } else {
+        k.textContent = 'Bewegungsfahrt';
+        k.onclick = () => {
+          const wer = bfName(); if (!wer) return;
+          if (k.dataset.sicher !== '1') { k.dataset.sicher = '1'; k.textContent = 'Jetzt starten?'; setTimeout(() => { if (k.isConnected) { k.dataset.sicher = ''; k.textContent = 'Bewegungsfahrt'; } }, 4000); return; }
+          k.disabled = true; k.textContent = '…';
+          google.script.run.withSuccessHandler((x) => { bfMelden(x.ok ? '✓ ' + x.text : x.fehler, x.ok ? 'ok' : 'fehler'); laden(); })
+            .withFailureHandler((e) => { bfMelden('Fehler: ' + e.message, 'fehler'); laden(); }).bewegungStart({ fahrzeug: f, name: wer, mail: $('mail').value.trim() });
+        };
+      }
+      r.append(n, i, k); l.appendChild(r);
+    });
+  };
+  const laden = () => google.script.run.withSuccessHandler((d) => { zeigen(d); bfZeigen(d); })
+    .withFailureHandler((e) => { $('liste').textContent = $('bf-liste').textContent = 'Konnte nicht geladen werden: ' + e.message; }).startdaten();
 
   $('los').onclick = () => {
     if (!fahrzeug) return melden('Bitte ein Fahrzeug auswählen.', 'fehler');
