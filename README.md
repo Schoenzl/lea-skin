@@ -66,6 +66,7 @@ Seite auf „Einsatz“.
   `config.local.js`, installiert Tailscale und startet den Kiosk neu. Am Handy die Tailscale-App mit demselben Konto, dann die
   angezeigte Adresse öffnen und „Zum Home-Bildschirm“.
 - Kein Push bei Alarm (dafür die LEA-App); die Seite aktualisiert sich alle 5 s, solange sie offen ist.
+- Ab v0.20.0 im selben Stil wie die Handy-App der Mitglieder (`apps-script/Buchung.html`): Schrift Atkinson Hyperlegible (`fonts/`, SIL OFL), hell mit automatischem Dunkelmodus, große Schrift und Knöpfe; das Alarmband behält die Farbe der Alarmstufe.
 
 ## Buchungsseite mit Prüfung auf Doppelbuchung (apps-script/, ab v0.16.0)
 Ersetzt das Google-Formular „Fahrzeugnutzung“: eigene Seite als Google-Apps-Script an der Tabelle, prüft vor dem Speichern auf Überschneidungen und schreibt in denselben Tab („Formularantworten 1“).

@@ -3,146 +3,161 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0E13">
+<meta name="theme-color" content="#F2F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1318" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Einsatz">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <title>Einsatzmonitor</title>
 <style>
-@font-face { font-family: B; font-weight: 400; src: url(/fonts/barlow-latin-400-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: B; font-weight: 500; src: url(/fonts/barlow-latin-500-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: B; font-weight: 600; src: url(/fonts/barlow-latin-600-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: B; font-weight: 700; src: url(/fonts/barlow-latin-700-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: BC; font-weight: 600; src: url(/fonts/barlow-condensed-latin-600-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: BC; font-weight: 700; src: url(/fonts/barlow-condensed-latin-700-normal.woff2) format('woff2'); font-display: swap; }
-@font-face { font-family: BC; font-weight: 800; src: url(/fonts/barlow-condensed-latin-800-normal.woff2) format('woff2'); font-display: swap; }
-:root { --bg: #0B0E13; --karte: #161B23; --tief: #0F1319; --linie: #222935; --text: #F2F4F7; --grau: #A9B1BC; --grau2: #6B7684;
-  --gruen: #22C55E; --gelb: #FACC15; --orange: #FB923C; --rot: #EF4444; }
+@font-face { font-family: A; font-weight: 400; src: url(/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: A; font-weight: 700; src: url(/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2'); font-display: swap; }
+/* gleiche Farben und Bausteine wie die Handy-App (apps-script/Buchung.html) */
+:root { --bg: #F2F4F7; --karte: #FFFFFF; --tief: #E9EDF2; --linie: #D5DBE3; --text: #111827; --grau: #475263; --grau2: #6B7684;
+  --rotbtn: #B3122E; --gruen: #15803D; --gruen-t: #166534; --gruen-bg: #E3F4E8; --gelb: #D97706; --gelb-t: #8A3B0A; --gelb-bg: #FEF3C7;
+  --orange: #D97706; --rot: #DC2626; --rot-t: #991B1B; --rot-bg: #FDE7E7; --tab: #FFFFFF; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0F1318; --karte: #1A2028; --tief: #262E39; --linie: #38414E; --text: #F3F4F6; --grau: #B4BCC8; --grau2: #8A94A3;
+    --rotbtn: #C81E3A; --gruen: #22C55E; --gruen-t: #7EE2A8; --gruen-bg: #12301E; --gelb: #F59E0B; --gelb-t: #FCD34D; --gelb-bg: #3A2E10;
+    --orange: #FB923C; --rot: #EF4444; --rot-t: #FCA5A5; --rot-bg: #3A1A1A; --tab: #161B23; }
+}
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; background: var(--bg); color: var(--text); font-family: B, -apple-system, BlinkMacSystemFont, sans-serif; }
-body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); min-height: 100vh; }
-.cond { font-family: BC, 'Arial Narrow', sans-serif; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 19px/1.4 A, 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; }
+.cond { font-family: inherit; }
 #app { max-width: 560px; margin: 0 auto; }
-.kopf { padding: calc(env(safe-area-inset-top) + 10px) 16px 14px; }
-main { padding: 12px; display: grid; gap: 12px; }
-.card { background: var(--karte); border-radius: 14px; padding: 14px; }
-.lab { font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--grau); text-transform: uppercase; margin-bottom: 8px; }
-.leer { color: var(--grau); font-size: 14px; }
-.hinweis { margin: 12px 12px 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; background: #3B2A0A; color: #FCD34D; }
-.hinweis.rot { background: #3A1010; color: #FCA5A5; }
+.kopf { padding: calc(env(safe-area-inset-top) + 16px) 18px 6px; }
+.marke { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.logo { flex: none; width: 42px; height: 42px; border-radius: 10px; background: var(--rotbtn); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; }
+.marke span { font-size: 17px; font-weight: 700; color: var(--grau); }
+.titel { font-size: 32px; font-weight: 700; line-height: 1.15; margin: 4px 0 2px; }
+main { padding: 12px 18px; display: grid; gap: 14px; }
+.card { background: var(--karte); border: 1px solid var(--linie); border-radius: 18px; padding: 16px; }
+.lab { font-size: 17px; font-weight: 700; color: var(--grau); margin-bottom: 8px; }
+.leer { color: var(--grau); font-size: 17px; }
+.hinweis { margin: 12px 18px 0; padding: 12px 14px; border-radius: 12px; font-size: 17px; font-weight: 700; background: var(--gelb-bg); color: var(--gelb-t); }
+.hinweis.rot { background: var(--rot-bg); color: var(--rot-t); }
 
-/* Alarmband */
-.band .z1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.stufe { font-family: BC; font-weight: 800; font-size: 46px; line-height: 1; }
-.art { font-family: BC; font-weight: 700; font-size: 26px; line-height: 1.1; }
-.band .z2 { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 15px; opacity: .95; gap: 8px; }
-.timer { font-family: BC; font-weight: 700; font-size: 22px; background: rgba(0,0,0,.25); padding: 2px 10px; border-radius: 6px; }
+/* Alarmband – Farbe der Alarmstufe */
+.band { margin: calc(env(safe-area-inset-top) + 12px) 18px 0; border-radius: 20px; padding: 18px; color: #fff; }
+.band .z1 { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.stufe { font-weight: 700; font-size: 44px; line-height: 1; }
+.art { font-weight: 700; font-size: 24px; line-height: 1.15; }
+.band .z2 { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 18px; gap: 8px; }
+.timer { font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; background: rgba(0,0,0,.22); padding: 2px 12px; border-radius: 10px; }
 .band.hell { color: #111827; } .band.hell .timer { background: rgba(0,0,0,.12); }
-.mehr { display: flex; gap: 6px; margin-top: 10px; }
-.mehr button { font: inherit; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: inherit; }
-.mehr button.an { background: rgba(255,255,255,.9); color: #111827; }
+.mehr { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.mehr button { font: inherit; font-weight: 700; font-size: 16px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid rgba(255,255,255,.6); background: transparent; color: inherit; }
+.band.hell .mehr button { border-color: rgba(0,0,0,.45); }
+.mehr button.an { background: rgba(255,255,255,.92); color: #111827; border-color: transparent; }
 
-.strasse { font-family: BC; font-weight: 700; font-size: 30px; line-height: 1.05; }
-.stadt { font-size: 16px; color: #C8CFD8; margin-top: 2px; }
-.zusatz { margin-top: 8px; font-size: 14px; color: var(--gelb); }
-.karte { position: relative; height: 200px; border-radius: 10px; margin-top: 12px; overflow: hidden; background: #E9E5DC; }
+.strasse { font-weight: 700; font-size: 30px; line-height: 1.1; }
+.stadt { font-size: 18px; color: var(--grau); margin-top: 2px; }
+.zusatz { margin-top: 10px; padding: 10px 12px; border-radius: 12px; font-size: 17px; font-weight: 700; background: var(--gelb-bg); color: var(--gelb-t); }
+.karte { position: relative; height: 220px; border-radius: 14px; margin-top: 12px; overflow: hidden; background: #E9E5DC; }
 .karte img { position: absolute; width: 256px; height: 256px; }
 .karte .pin { position: absolute; left: 50%; top: 50%; width: 30px; height: 40px; transform: translate(-50%, -100%); }
-.karte .nav { position: absolute; right: 8px; bottom: 8px; background: #fff; color: #111; font-weight: 700; font-size: 14px; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.35); text-decoration: none; }
-.karte .hyd { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #1D4ED8; color: #fff; border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,.45); font: 700 11px/18px BC, sans-serif; text-align: center; }
+.karte .nav { position: absolute; right: 10px; bottom: 10px; background: var(--rotbtn); color: #fff; font-weight: 700; font-size: 17px; min-height: 48px; display: flex; align-items: center; padding: 0 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.3); text-decoration: none; }
+.karte .hyd { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: #1D4ED8; color: #fff; border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45); font: 700 12px/20px A, sans-serif; text-align: center; }
 .karte .hyd.winter { background: #64748B; }
-.hyd-liste { margin-top: 10px; display: grid; gap: 6px; }
-.hyd-z { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
-.hyd-z .n { flex: none; min-width: 24px; text-align: center; border-radius: 5px; background: #1D4ED8; color: #fff; font: 700 13px/20px BC, sans-serif; }
-.hyd-z .w { flex: 1; min-width: 0; }
-.hyd-z .w small { display: block; color: var(--grau); font-size: 12px; }
-.hyd-z .m { flex: none; font-family: BC; font-weight: 700; font-size: 16px; }
-.karte .keine { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; font-size: 14px; }
-.mb { font-size: 15px; color: #DDE2E8; line-height: 1.4; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.chip { font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: #2A3340; }
-.chip.warn { background: #F97316; color: #fff; } .chip.stop { background: #DC2626; color: #fff; }
+.hyd-liste { margin-top: 12px; display: grid; gap: 0; }
+.hyd-z { display: flex; gap: 12px; align-items: center; min-height: 56px; padding: 6px 0; border-top: 1px solid var(--linie); font-size: 17px; }
+.hyd-z .n { flex: none; min-width: 30px; text-align: center; border-radius: 8px; background: #1D4ED8; color: #fff; font: 700 15px/26px A, sans-serif; }
+.hyd-z .w { flex: 1; min-width: 0; font-weight: 700; }
+.hyd-z .w small { display: block; color: var(--grau); font-size: 15px; font-weight: 400; }
+.hyd-z .m { flex: none; font-weight: 700; font-size: 17px; }
+.karte .keine { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; font-size: 17px; }
+.mb { font-size: 18px; line-height: 1.45; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { font-size: 16px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--tief); }
+.chip.warn { background: var(--gelb-bg); color: var(--gelb-t); } .chip.stop { background: var(--rot-bg); color: var(--rot-t); }
 
-.ampel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ampel .dot { width: 18px; height: 18px; border-radius: 50%; flex: none; }
-.ampel b { font-family: BC; font-size: 26px; font-weight: 700; }
-.ampel span { color: var(--grau); font-size: 14px; }
-.zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px; margin-top: 12px; }
-.zahl { background: var(--tief); border-radius: 10px; padding: 8px 4px; text-align: center; }
-.zahl .n { font-family: BC; font-weight: 800; font-size: 30px; line-height: 1; }
-.zahl .t { font-size: 11px; color: var(--grau); margin-top: 2px; }
-.p { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--linie); }
+.ampel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; background: var(--tief); }
+.ampel .dot { width: 20px; height: 20px; border-radius: 50%; flex: none; }
+.ampel b { font-size: 24px; font-weight: 700; }
+.ampel span { color: var(--grau); font-size: 17px; }
+.zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; margin-top: 12px; }
+.zahl { background: var(--tief); border-radius: 14px; padding: 10px 4px; text-align: center; }
+.zahl .n { font-weight: 700; font-size: 30px; line-height: 1; }
+.zahl .t { font-size: 15px; color: var(--grau); margin-top: 4px; }
+.p { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 0; border-top: 1px solid var(--linie); }
 .p:first-child { border-top: 0; }
-.p .r { width: 24px; flex: none; color: var(--grau2); font-family: BC; font-weight: 700; font-size: 18px; }
-.p .nm { font-weight: 600; font-size: 16px; flex: 1; min-width: 0; }
-.p .nm small { display: block; color: var(--grau); font-weight: 500; font-size: 12px; }
+.p .r { width: 26px; flex: none; color: var(--grau2); font-weight: 700; font-size: 18px; }
+.p .nm { font-weight: 700; font-size: 18px; flex: 1; min-width: 0; }
+.p .nm small { display: block; color: var(--grau); font-weight: 400; font-size: 15px; }
 .tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.f { font-family: BC; font-weight: 700; font-size: 13px; padding: 2px 6px; border-radius: 4px; }
-.p.nein { opacity: .45; } .p.nein .nm { text-decoration: line-through; }
-.offen { color: var(--grau); font-size: 13px; padding-top: 10px; border-top: 1px solid var(--linie); margin-top: 4px; }
+.f { font-weight: 700; font-size: 15px; padding: 2px 8px; border-radius: 6px; }
+.p.nein { opacity: .5; } .p.nein .nm { text-decoration: line-through; }
+.offen { color: var(--grau); font-size: 16px; padding-top: 10px; border-top: 1px solid var(--linie); margin-top: 4px; }
 
 /* Lage */
-.uhr { font-family: BC; font-weight: 700; font-size: 58px; line-height: 1; }
-.dat { color: var(--grau); font-size: 15px; margin-top: 2px; }
-.wet { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 15px; color: #DDE2E8; }
-.wet b { font-family: BC; font-size: 32px; color: var(--text); }
-.ruhig { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
-.ruhig .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--gruen); }
-.zeile { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--linie); font-size: 15px; align-items: baseline; }
+.uhr { font-weight: 700; font-size: 56px; line-height: 1; font-variant-numeric: tabular-nums; }
+.dat { color: var(--grau); font-size: 18px; margin-top: 4px; }
+.wet { display: flex; gap: 12px; align-items: center; margin-top: 12px; font-size: 17px; color: var(--grau); }
+.wet b { font-size: 32px; color: var(--text); }
+.ruhig { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
+.ruhig .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--gruen); flex: none; }
+.zeile { display: flex; gap: 12px; min-height: 56px; padding: 10px 0; border-top: 1px solid var(--linie); font-size: 17px; align-items: baseline; }
 .zeile:first-of-type, .lab + .zeile { border-top: 0; }
-.zeile .d { width: 84px; flex: none; color: var(--grau); font-size: 13px; }
+.zeile .d { width: 92px; flex: none; color: var(--grau); font-size: 16px; }
 .zeile .w { flex: 1; min-width: 0; }
-.zeile .w small { display: block; color: var(--grau); font-size: 13px; }
-.cd { font-family: BC; font-weight: 700; font-size: 13px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
-.eigen { color: #FDBA74; font-weight: 700; }
-.knopf { display: block; text-align: center; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border-radius: 10px; border: 0; background: #B3122E; color: #fff; text-decoration: none; width: 100%; }
-.knopf.grau { background: #2A3340; }
-.da-wahl { display: grid; gap: 8px; margin-top: 10px; }
-.da-wahl button { text-align: left; font: inherit; font-size: 15px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
-.da-wahl button small { display: block; color: var(--grau); font-size: 12px; margin-top: 2px; }
-.da-wahl select { font: inherit; padding: 11px; border-radius: 10px; border: 1px solid var(--linie); background: var(--tief); color: var(--text); }
-.nachbar { background: #3A1A0A; border: 1px solid #9A3412; }
-.nachbar .lab { color: #FDBA74; }
-.nachbar .zeile { border-color: #5B2A12; }
-.haus-t { padding: 8px 0; border-top: 1px solid var(--linie); font-size: 14px; }
+.zeile .w small { display: block; color: var(--grau); font-size: 15px; }
+.cd { font-weight: 700; font-size: 15px; padding: 1px 8px; border-radius: 6px; margin-right: 6px; }
+.eigen { color: var(--rot-t); font-weight: 700; }
+.knopf { display: flex; align-items: center; justify-content: center; text-align: center; font: inherit; font-weight: 700; font-size: 20px; min-height: 60px; padding: 0 16px; border-radius: 16px; border: 0; background: var(--rotbtn); color: #fff; text-decoration: none; width: 100%; }
+.knopf.grau { background: var(--karte); color: var(--text); border: 2px solid var(--linie); }
+.da-wahl { display: grid; gap: 10px; margin-top: 10px; }
+.da-wahl button { text-align: left; font: inherit; font-size: 18px; font-weight: 700; min-height: 60px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--linie); background: var(--karte); color: var(--text); }
+.da-wahl button small { display: block; color: var(--grau); font-size: 15px; font-weight: 400; margin-top: 2px; }
+.da-wahl select { font: inherit; font-size: 18px; min-height: 58px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--linie); background: var(--karte); color: var(--text); }
+.nachbar { background: var(--rot-bg); border-color: transparent; }
+.nachbar .lab { color: var(--rot-t); }
+.nachbar .zeile { border-color: var(--linie); }
+.haus-t { padding: 10px 0; border-top: 1px solid var(--linie); font-size: 17px; cursor: pointer; }
 .haus-t:first-child { border-top: 0; padding-top: 0; }
-.haus-t b { font-size: 15px; }
-.haus-t small { color: var(--grau); }
-.haus-t .namen { margin-top: 3px; color: #DDE2E8; }
-.haus-t { cursor: pointer; }
-.haus-t .pf { float: right; color: var(--grau); transition: transform .15s; }
+.haus-t b { font-size: 18px; }
+.haus-t small { color: var(--grau); font-size: 15px; }
+.haus-t .namen { margin-top: 4px; }
+.haus-t .pf { float: right; color: var(--grau); transition: transform .15s; font-size: 22px; line-height: 1; }
 .haus-t.auf .pf { transform: rotate(90deg); }
 .haus-t .det { display: none; margin-top: 6px; }
 .haus-t.auf .det { display: block; }
-.haus-t .det div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13px; color: #DDE2E8; }
+.haus-t .det div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; font-size: 16px; }
+.haus-t .det div:nth-child(odd) { background: var(--tief); }
 .haus-t .det div span { color: var(--grau); white-space: nowrap; }
 .haus-t .det div.weg { color: var(--grau); text-decoration: line-through; }
 .haus-t .det div.weg span { text-decoration: none; }
-.da-ok { color: #4ADE80; font-weight: 700; margin-top: 10px; }
-.da-fehler { color: #FCA5A5; font-weight: 600; margin-top: 10px; }
+.da-ok { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--gruen-bg); color: var(--gruen-t); font-weight: 700; }
+.da-fehler { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--rot-bg); color: var(--rot-t); font-weight: 700; }
 
-/* Fahrzeuge */
-.fzk .k { display: flex; align-items: baseline; gap: 10px; }
-.fzk .k b { font-family: BC; font-size: 26px; font-weight: 800; }
-.fzk .st { font-weight: 700; font-size: 15px; }
-.fzk .det { color: #DDE2E8; font-size: 14px; margin-top: 6px; }
-.fzk .pk { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: #2A3340; color: var(--grau); }
-.pk-bald { background: #3B2A0A !important; color: #FCD34D !important; } .pk-rot { background: #3A1010 !important; color: #FCA5A5 !important; }
-.fahrten { margin-top: 10px; }
-.g { color: #4ADE80; } .y { color: var(--gelb); } .o { color: var(--orange); } .r { color: #F87171; }
+/* Fahrzeuge – Karte mit Farbstreifen wie in der App */
+.fzk { position: relative; padding-left: 26px; overflow: hidden; }
+.fzk::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--gruen); }
+.fzk.c-y::before, .fzk.c-o::before { background: var(--gelb); } .fzk.c-r::before { background: var(--rot); }
+.fzk .k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fzk .k b { font-size: 26px; font-weight: 700; }
+.st { display: inline-block; font-size: 16px; font-weight: 700; padding: 3px 12px; border-radius: 999px; }
+.st.g { background: var(--gruen-bg); color: var(--gruen-t); } .st.y, .st.o { background: var(--gelb-bg); color: var(--gelb-t); } .st.r { background: var(--rot-bg); color: var(--rot-t); }
+.fzk .det { font-size: 17px; margin-top: 8px; }
+.fzk .det.warnung { padding: 10px 12px; border-radius: 12px; background: var(--gelb-bg); color: var(--gelb-t); font-weight: 700; }
+.fzk .pk { display: inline-block; margin-top: 12px; font-size: 16px; font-weight: 700; padding: 3px 12px; border-radius: 999px; background: var(--tief); color: var(--grau); }
+.pk-bald { background: var(--gelb-bg) !important; color: var(--gelb-t) !important; } .pk-rot { background: var(--rot-bg) !important; color: var(--rot-t) !important; }
+.fahrten { margin-top: 12px; }
+.g { color: var(--gruen-t); } .y, .o { color: var(--gelb-t); } .r { color: var(--rot-t); }
 
-.fuss { text-align: center; font-size: 12px; color: var(--grau2); padding: 4px 12px 12px; }
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); background: #11151C; border-top: 1px solid var(--linie);
+.fuss { text-align: center; font-size: 15px; color: var(--grau); padding: 8px 18px 16px; }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--tab); border-top: 1px solid var(--linie);
   padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); text-align: center; z-index: 5; }
-.tabbar button { font: inherit; font-size: 12px; color: #8A94A3; background: none; border: 0; padding: 4px 0; position: relative; }
-.tabbar button.an { color: #fff; font-weight: 700; }
-.tabbar svg { display: block; margin: 0 auto 2px; width: 24px; height: 24px; }
-.tabbar .punkt { position: absolute; top: 2px; left: calc(50% + 8px); width: 10px; height: 10px; border-radius: 50%; background: var(--rot); box-shadow: 0 0 8px var(--rot); }
+.tabbar button { font: inherit; font-size: 15px; font-weight: 700; color: var(--grau2); background: none; border: 0; min-height: 60px; padding: 4px 0; position: relative; }
+.tabbar button.an { color: var(--text); }
+.tabbar button.an::after { content: ''; position: absolute; left: 30%; right: 30%; top: -7px; height: 4px; border-radius: 0 0 4px 4px; background: var(--rotbtn); }
+.tabbar svg { display: block; margin: 0 auto 2px; width: 26px; height: 26px; }
+.tabbar .punkt { position: absolute; top: 4px; left: calc(50% + 10px); width: 12px; height: 12px; border-radius: 50%; background: var(--rot); box-shadow: 0 0 8px var(--rot); }
+button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid var(--gelb); outline-offset: 2px; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -164,6 +179,7 @@ main { padding: 12px; display: grid; gap: 12px; }
     (kids || []).forEach((k) => { if (k == null || k === '' || k === false) return; e.appendChild(typeof k === 'string' || typeof k === 'number' ? document.createTextNode(String(k)) : k); });
     return e;
   };
+  const marke = () => h('div', 'marke', [h('div', 'logo', ['FF']), h('span', null, ['FF Deutsch Haslau'])]);
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '').toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
   const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -260,7 +276,7 @@ main { padding: 12px; display: grid; gap: 12px; }
     pin.setAttribute('viewBox', '0 0 30 40'); pin.setAttribute('class', 'pin');
     pin.innerHTML = '<path d="M15 39C6 27 2 21 2 14a13 13 0 0 1 26 0c0 7-4 13-13 25z" fill="#B3122E" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5" fill="#fff"/>';
     box.appendChild(pin);
-    const a = h('a', 'nav', ['Navigation ↗']); a.href = navLink(k); a.target = '_blank'; a.rel = 'noopener';
+    const a = h('a', 'nav', ['Navigation']); a.href = navLink(k); a.target = '_blank'; a.rel = 'noopener';
     box.appendChild(a);
     return box;
   };
@@ -288,7 +304,7 @@ main { padding: 12px; display: grid; gap: 12px; }
     refs.timer = h('span', 'timer cond', [dauer(jetzt() - ev.alarmtime)]); refs.alarm = ev.alarmtime;
     const gruppen = (ev.alarmedalarmgroups || []).map((g) => String(g.name || g.id).replace(/\s*-\s*Sammelruf$/i, ''))
       .filter((g) => !(cfg().eigeneFF && norm(g).indexOf(norm(cfg().eigeneFF)) !== -1));
-    const band = h('div', 'kopf band' + (istHell(c) ? ' hell' : ''), [
+    const band = h('div', 'band' + (istHell(c) ? ' hell' : ''), [
       h('div', 'z1', [h('span', 'stufe', [ev.eventtype || '–']), h('span', 'art', [ev.eventtypetext || 'Einsatz'])]),
       h('div', 'z2', [h('span', null, ['Alarm ' + (ev.alarmtime ? hhmm(ev.alarmtime) : '–')]), refs.timer]),
       evs.length > 1 ? h('div', 'mehr', evs.map((e, i) => { const b = h('button', i === evIdx ? 'an' : '', [(i + 1) + ' · ' + (e.eventtype || '')]); b.type = 'button'; b.onclick = () => { evIdx = i; zeichnen(true); }; return b; })) : null
@@ -326,7 +342,7 @@ main { padding: 12px; display: grid; gap: 12px; }
 
     app.append(band, h('main', null, [
       h('div', 'card', [h('div', 'lab', ['Wohin']), h('div', 'strasse cond', [strasse]), ort ? h('div', 'stadt', [ort]) : null,
-        zusatz ? h('div', 'zusatz', ['⚠ ' + zusatz]) : null, karte(ev), hydrantenListe(ev)]),
+        zusatz ? h('div', 'zusatz', [zusatz]) : null, karte(ev), hydrantenListe(ev)]),
       h('div', 'card', [h('div', 'lab', ['Was']), h('div', 'mb', [meldebild(ev)]),
         gruppen.length ? h('div', 'mb', [h('span', null, ['Mitalarmiert: ' + gruppen.join(', ')], { color: 'var(--grau)' })]) : null,
         warn.length ? h('div', 'chips', warn) : null]),
@@ -346,7 +362,7 @@ main { padding: 12px; display: grid; gap: 12px; }
     refs.timer = null;
     const hist = ((D && D.lea && D.lea.history) || []).slice(0, 5);
     refs.uhr = h('div', 'uhr cond', [hhmm(jetzt())]);
-    app.append(h('div', 'kopf', [refs.uhr, h('div', 'dat', ['Einsatz'])]), h('main', null, [
+    app.append(h('div', 'kopf', [marke(), h('div', 'titel', ['Einsatz'])]), h('main', null, [
       h('div', 'card', [h('div', 'ruhig', [h('span', 'dot', null, leaOk() ? null : { background: 'var(--grau2)' }), leaOk() ? 'Kein laufender Einsatz' : 'Kein aktueller LEA-Stand'])]),
       h('div', 'card', [h('div', 'lab', ['Letzte Einsätze'])].concat(hist.length ? hist.map(histZeile) : [h('div', 'leer', ['noch keine Daten'])]))
     ]));
@@ -371,10 +387,10 @@ main { padding: 12px; display: grid; gap: 12px; }
     const e = ex(), n = jetzt();
     const w = e.wetter && n - e.wetter.at < 3600e3 ? e.wetter : null;
     refs.uhr = h('div', 'uhr cond', [hhmm(n)]);
-    const kopf = h('div', 'kopf', [refs.uhr,
+    const kopf = h('div', 'kopf', [marke(), refs.uhr,
       h('div', 'dat', [new Date(n).toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })]),
       w ? h('div', 'wet', [h('b', null, [Math.round(w.temp) + '°']), h('span', null, [(WETTER[w.code] || '') + ' · Wind ' + (w.dir != null ? RICHT[Math.round((((w.dir % 360) + 360) % 360) / 45) % 8] + ' ' : '') + Math.round(w.wind) + ' km/h, Böen ' + Math.round(w.boeen)])]) : null
-    ], { background: 'var(--karte)' });
+    ]);
     const evs = einsaetze();
     const status = evs.length
       ? h('button', 'knopf', [evs.length === 1 ? 'Laufender Einsatz: ' + (evs[0].eventtype || '') + ' ' + (evs[0].eventtypetext || '') : evs.length + ' laufende Einsätze'])
@@ -382,7 +398,7 @@ main { padding: 12px; display: grid; gap: 12px; }
     if (evs.length) status.onclick = () => wechseln('einsatz');
     const hist = ((D && D.lea && D.lea.history) || []).slice(0, 1);
     const warn = (e.uwz || []).map((x) => h('span', 'chip', ['⚠ ' + (x.tag === 'heute' ? 'Heute' : 'Morgen') + ' · ' + x.art + ' · ' + UWZ[Math.max(0, Math.min(4, x.stufe))]],
-      { background: ['#94A3B8', '#FACC15', '#F97316', '#DC2626', '#9333EA'][Math.max(0, Math.min(4, x.stufe))], color: x.stufe === 1 ? '#111827' : '#fff' }));
+      { background: ['#94A3B8', '#FACC15', '#F97316', '#DC2626', '#9333EA'][Math.max(0, Math.min(4, x.stufe))], color: x.stufe <= 2 ? '#111827' : '#fff' }));
 
     // Ausgerückt im Bezirk (WASTL + LSZ), eigene FF zuerst
     const wa = e.wastl && n - e.wastl.at < 30 * 60000 ? e.wastl : null;
@@ -434,7 +450,7 @@ main { padding: 12px; display: grid; gap: 12px; }
       zeig(h('div', 'leer', ['Wird eingetragen …']));
       fetch('/da', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(wahl) })
         .then((r) => r.json()).then((r) => {
-          const ok = h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? '✓ ' + r.text : r.fehler]);
+          const ok = h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? r.text : r.fehler]);
           const zur = h('button', 'knopf grau', ['Fertig'], { marginTop: '10px' }); zur.type = 'button'; zur.onclick = start;
           zeig(ok, zur);
         }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
@@ -461,14 +477,14 @@ main { padding: 12px; display: grid; gap: 12px; }
       amStart = false; zeig(h('div', 'leer', ['Wird ausgetragen …']));
       fetch('/da/gehen', { method: 'POST' }).then((r) => r.json()).then((r) => {
         const zur = h('button', 'knopf grau', ['Fertig'], { marginTop: '10px' }); zur.type = 'button'; zur.onclick = () => { hausLaden(); start(); };
-        zeig(h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? '✓ ' + r.text : r.fehler]), zur);
+        zeig(h('div', r.ok ? 'da-ok' : 'da-fehler', [r.ok ? r.text : r.fehler]), zur);
       }).catch(() => zeig(h('div', 'da-fehler', ['Pi nicht erreichbar.'])));
     };
     function start() {
       amStart = true;
-      const b = h('button', 'knopf', ['Ich bin da ✓']); b.type = 'button'; b.onclick = () => { amStart = false; auswahl(); };
+      const b = h('button', 'knopf', ['Ich bin da']); b.type = 'button'; b.onclick = () => { amStart = false; auswahl(); };
       let g = null;
-      if (ichDa) { g = h('button', 'knopf grau', ['Ich gehe 👋'], { marginTop: '8px' }); g.type = 'button'; g.onclick = gehen; }
+      if (ichDa) { g = h('button', 'knopf grau', ['Ich gehe jetzt'], { marginTop: '10px' }); g.type = 'button'; g.onclick = gehen; }
       zeig(b, g);
     }
     // Wer ist heute im Haus (alle 60 s neu, solange die Karte sichtbar ist)
@@ -531,7 +547,7 @@ main { padding: 12px; display: grid; gap: 12px; }
       const i = fzInfo(fz);
       const zusatz = i.st && i.st.mangel ? i.st.mangel : i.detail ? i.detail : i.kommend[0] ? 'nächste: ' + wann(i.kommend[0].von) + ' · ' + i.kommend[0].name : '';
       return h('div', 'zeile', [h('span', 'd cond', [fz], { fontSize: '18px', fontWeight: 700, color: 'var(--text)', width: '64px' }),
-        h('span', 'w ' + i.cls, ['● ' + i.status, zusatz ? h('small', null, [zusatz]) : null])]);
+        h('span', 'w', [h('span', 'st ' + i.cls, [i.status.charAt(0).toUpperCase() + i.status.slice(1)]), zusatz ? h('small', null, [zusatz]) : null])]);
     })));
   };
   const renderFahrzeuge = (app) => {
@@ -539,9 +555,9 @@ main { padding: 12px; display: grid; gap: 12px; }
     const fzs = cfg().fahrzeuge || [];
     const karten = fzs.map((fz) => {
       const i = fzInfo(fz);
-      return h('div', 'card fzk', [
-        h('div', 'k', [h('b', null, [fz]), h('span', 'st ' + i.cls, ['● ' + i.status])]),
-        i.st && i.st.mangel ? h('div', 'det', ['⚠ ' + i.st.mangel]) : null,
+      return h('div', 'card fzk c-' + i.cls, [
+        h('div', 'k', [h('b', null, [fz]), h('span', 'st ' + i.cls, [i.status.charAt(0).toUpperCase() + i.status.slice(1)])]),
+        i.st && i.st.mangel ? h('div', 'det warnung', [i.st.mangel]) : null,
         i.unterwegs ? h('div', 'det', [i.detail + ' · seit ' + wann(i.unterwegs.von)]) : null,
         i.kommend.length ? h('div', 'fahrten', [h('div', 'lab', ['Gebucht'])].concat(i.kommend.slice(0, 5).map((e) =>
           h('div', 'zeile', [h('span', 'd', [wann(e.von)]), h('span', 'w', [e.name || '–', h('small', null, ['bis ' + wann(e.bis) + (e.zweck ? ' · ' + e.zweck : '')])])])))) : h('div', 'det', [h('span', null, ['keine Buchungen in den nächsten Tagen'], { color: 'var(--grau)' })]),
@@ -550,8 +566,8 @@ main { padding: 12px; display: grid; gap: 12px; }
     });
     const url = cfg().fahrtenbuchFormUrl;
     let knopf = null;
-    if (url) { knopf = h('a', 'knopf grau', ['Buchen / Kommando öffnen ↗']); knopf.href = url; knopf.target = '_blank'; knopf.rel = 'noopener'; }
-    app.append(h('div', 'kopf', [h('div', 'uhr cond', ['Fahrzeuge'], { fontSize: '40px' })]), h('main', null, karten.concat([knopf])));
+    if (url) { knopf = h('a', 'knopf grau', ['Handy-App öffnen (Buchen, Verwaltung)']); knopf.href = url; knopf.target = '_blank'; knopf.rel = 'noopener'; }
+    app.append(h('div', 'kopf', [marke(), h('div', 'titel', ['Fahrzeuge'])]), h('main', null, karten.concat([knopf])));
   };
 
   // ---------- Zeichnen ----------
@@ -559,8 +575,8 @@ main { padding: 12px; display: grid; gap: 12px; }
     const app = $('#app');
     const y = window.scrollY;
     app.textContent = '';
-    if (fehler && !D) { app.append(h('div', 'kopf', [h('div', 'uhr cond', ['Einsatzmonitor'], { fontSize: '36px' })]), h('div', 'hinweis rot', [fehler])); return; }
-    if (!D) { app.append(h('div', 'kopf', [h('div', 'leer', ['Noch keine Daten vom Pi. Läuft der Infoscreen?'])])); return; }
+    if (fehler && !D) { app.append(h('div', 'kopf', [marke(), h('div', 'titel', ['Einsatzmonitor'])]), h('div', 'hinweis rot', [fehler])); return; }
+    if (!D) { app.append(h('div', 'kopf', [marke(), h('div', 'titel', ['Einsatzmonitor']), h('div', 'leer', ['Noch keine Daten vom Pi. Läuft der Infoscreen?'])])); return; }
     if (!piOk()) app.append(h('div', 'hinweis rot', ['Keine Verbindung zum Pi seit ' + (empfangen ? wann(empfangen) : '–') + (fehler ? ' (' + fehler + ')' : '') + '. Angezeigt wird der letzte Stand.']));
     else if (!leaOk()) app.append(h('div', 'hinweis', ['Am Pi kommen gerade keine LEA-Daten an. Einsätze werden nicht angezeigt.']));
     if (tab === 'einsatz') renderEinsatz(app);
