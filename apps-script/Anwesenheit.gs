@@ -198,7 +198,7 @@ function daEinchecken(d) {
     if (id) {
       termin = T.zeilen.find((t) => t.ID === id);
       if (!termin && id.indexOf('k:') === 0) {
-        const k = kalenderJetzt_(ss).find((x) => x.id === id);
+        const k = kalenderHeute_(ss).find((x) => x.id === id);
         if (!k) return { ok: false, fehler: 'Der Termin ist nicht mehr offen. Bitte Seite neu laden.' };
         T.sh.appendRow([k.id, k.titel, k.art, k.unterart, new Date(k.von), new Date(k.bis), 'offen', '', '', '']);
         termin = { ID: k.id, Titel: k.titel, Status: 'offen' };
@@ -218,7 +218,14 @@ function daEinchecken(d) {
       }
     }
     if (termin.Status !== 'offen') return { ok: false, fehler: '„' + termin.Titel + '“ ist schon abgeschlossen. Bitte beim Kommando melden.' };
-    const A = anwLesen_(ss, 'Anwesenheit');
+    let A = anwLesen_(ss, 'Anwesenheit');
+    // „Falscher Termin“: eigene, gerade erst gemachte Eintragung beim anderen Termin entfernen
+    const statt = String((d && d.statt) || '');
+    if (statt && statt !== termin.ID) {
+      const alt = A.zeilen.filter((a) => a['Termin-ID'] === statt && anwNorm_(a.Name) === anwNorm_(m.name) && a.Quelle === 'QR' && jetzt.getTime() - anwZeit_(a.Zeitstempel) < 3 * 3600e3);
+      alt.reverse().forEach((a) => A.sh.deleteRow(a._zeile));
+      if (alt.length) A = anwLesen_(ss, 'Anwesenheit');
+    }
     const schon = A.zeilen.find((a) => a['Termin-ID'] === termin.ID && anwNorm_(a.Name) === anwNorm_(m.name));
     if (schon && anwZeit_(schon.Gegangen)) {          // wieder zurück: „Gegangen“ löschen
       A.sh.getRange(schon._zeile, 6).setValue('');

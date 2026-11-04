@@ -11,7 +11,12 @@ const MAX_TAGE = 7;                              // längste Buchung
 function doGet(e) {
   const t = HtmlService.createTemplateFromFile('Buchung');
   const seite = (e && e.parameter && e.parameter.seite) || '';
-  t.start = seite === 'status' || seite === 'intern' ? 'kommando' : seite === 'da' ? 'anwesenheit' : seite === 'einsatz' ? 'einsatz' : 'buchen';
+  // Alte Links bleiben gültig: ?seite=da (Anwesenheit), ?seite=intern/status (Verwaltung), ?seite=einsatz; neu ?fz=KLF-W (Fahrzeug-QR)
+  // Fahrzeug-QR: ?seite=klfw / mtf / vfa (die Hülle ff.html gibt nur „seite“ weiter, nur Buchstaben) oder ?fz=KLF-W
+  const nurBuchstaben = (x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
+  const fzWunsch = nurBuchstaben((e && e.parameter && e.parameter.fz) || seite);
+  t.start = seite === 'status' || seite === 'intern' || seite === 'kommando' ? 'verwaltung' : seite === 'da' || seite === 'anwesenheit' ? 'da' : seite === 'einsatz' ? 'einsatz' : seite === 'buchen' ? 'fahrzeuge' : '';
+  t.fz = FAHRZEUGE.find((f) => nurBuchstaben(f) === fzWunsch) || '';
   return t.evaluate()
     .setTitle('FF Deutsch Haslau')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
@@ -162,7 +167,7 @@ function lokal_(s) {
 function pruefe_(neu, alle) {
   if (FAHRZEUGE.indexOf(neu.fahrzeug) === -1) return 'Bitte ein Fahrzeug auswählen.';
   if (!neu.name || neu.name.length < 3) return 'Bitte den vollen Namen eintragen.';
-  if (!MAIL_.test(neu.mail)) return 'Bitte eine gültige E-Mail-Adresse eintragen (für Nachrichten zur Buchung).';
+  if (neu.mail && !MAIL_.test(neu.mail)) return 'Die E-Mail-Adresse stimmt nicht.';
   if (!(neu.bis > neu.von)) return '„Bis“ muss nach „Von“ liegen.';
   if (neu.bis - neu.von > MAX_TAGE * 864e5) return 'Eine Buchung darf höchstens ' + MAX_TAGE + ' Tage dauern.';
   if (neu.bis < Date.now()) return 'Der Zeitraum liegt in der Vergangenheit.';
@@ -186,7 +191,7 @@ function buchen(daten) {
       fahrzeug: String(daten.fahrzeug || '').trim(),
       name: String(daten.name || '').trim().slice(0, 80),
       zweck: String(daten.zweck || '').trim().slice(0, 120),
-      mail: String(daten.mail || '').trim().toLowerCase().slice(0, 120),
+      mail: String(daten.mail || '').trim().toLowerCase().slice(0, 120) || mitgliedMail_(daten.name),
       von: lokal_(daten.von).getTime(),
       bis: lokal_(daten.bis).getTime()
     };
@@ -196,7 +201,7 @@ function buchen(daten) {
     mailSpalte_(sh);
     const s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
     const zeile = new Array(sh.getLastColumn()).fill('');
-    zeile[s.mail] = neu.mail;
+    if (MAIL_.test(neu.mail)) zeile[s.mail] = neu.mail;
     zeile[s.zeit] = new Date(); zeile[s.fz] = neu.fahrzeug; zeile[s.name] = neu.name;
     zeile[s.von] = new Date(neu.von); zeile[s.bis] = new Date(neu.bis);
     if (s.zweck >= 0) zeile[s.zweck] = neu.zweck;

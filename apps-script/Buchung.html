@@ -3,1153 +3,775 @@
 <head>
 <base target="_top">
 <meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { --rot: #B3122E; --text: #111827; --grau: #5B6573; --linie: #DDE2E9; --bg: #EEF1F5; }
+  :root {
+    --bg: #F2F4F7; --card: #FFFFFF; --text: #111827; --sub: #475263; --linie: #D5DBE3; --grau: #E9EDF2;
+    --rot: #B3122E;
+    --gruen: #166534; --gruen-bg: #E3F4E8; --gruen-btn: #15803D;
+    --gelb: #8A3B0A; --gelb-bg: #FEF3C7; --gelb-band: #D97706;
+    --aus: #991B1B; --aus-bg: #FDE7E7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F1318; --card: #1A2028; --text: #F3F4F6; --sub: #B4BCC8; --linie: #38414E; --grau: #262E39;
+      --rot: #C81E3A;
+      --gruen: #7EE2A8; --gruen-bg: #12301E; --gruen-btn: #15803D;
+      --gelb: #FCD34D; --gelb-bg: #3A2E10; --gelb-band: #F59E0B;
+      --aus: #FCA5A5; --aus-bg: #3A1A1A;
+    }
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-  header { background: var(--rot); color: #fff; padding: 16px; }
-  header h1 { margin: 0; font-size: 20px; } header p { margin: 2px 0 0; opacity: .85; font-size: 14px; }
-  main { max-width: 760px; margin: 0 auto; padding: 16px; }
-  #buchen { max-width: 560px; margin: 0 auto; }
-  nav.tabs { display: flex; gap: 6px; margin-top: 12px; }
-  nav.tabs button { flex: 0 1 auto; min-width: 0; white-space: nowrap; font: inherit; font-weight: 700; font-size: 15px; padding: 8px 14px; border-radius: 8px 8px 0 0; border: 0; background: rgba(255,255,255,.18); color: #fff; }
-  nav.tabs button.an { background: var(--bg); color: var(--rot); }
-  header { padding-bottom: 0 !important; }
-  header .titel { padding-bottom: 4px; }
-  :root { --gruen: #16A34A; --gruen-bg: #E8F7EE; --gelb: #D97706; --gelb-bg: #FEF3C7; --rot-bg: #FDECEC; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 19px/1.4 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+  #app { max-width: 560px; margin: 0 auto; padding: 0 18px 48px; min-height: 100vh; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  svg { flex: none; }
+  h1 { margin: 10px 0 16px; font-size: 32px; line-height: 1.15; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--sub); }
+  .klein { font-size: 17px; }
+  .kopf { display: flex; align-items: center; gap: 12px; padding-top: 22px; }
+  .logo { flex: none; width: 42px; height: 42px; border-radius: 10px; background: var(--rot); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; }
+  .logo.rund { background: var(--grau); color: var(--text); border-radius: 50%; width: 46px; height: 46px; }
+  .kopf .ff { flex: 1; font-size: 17px; font-weight: 700; color: var(--sub); }
+  .bar { display: flex; align-items: center; height: 64px; margin-left: -8px; }
+  .zurueck { display: flex; align-items: center; gap: 2px; min-height: 52px; padding: 0 14px 0 4px; border: 0; border-radius: 12px; background: transparent; font-size: 19px; font-weight: 700; }
+  .label { display: block; font-size: 17px; font-weight: 700; color: var(--sub); margin: 22px 0 8px; }
+  input, select, textarea { width: 100%; min-height: 58px; padding: 0 16px; font-size: 19px; border: 2px solid var(--linie); border-radius: 14px; background: var(--card); }
+  textarea { padding: 12px 16px; min-height: 96px; resize: vertical; }
+  input:disabled, select:disabled, textarea:disabled { opacity: .7; }
+  input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3px solid var(--gelb-band); outline-offset: 2px; }
+  .karte { background: var(--card); border: 1px solid var(--linie); border-radius: 18px; padding: 16px; }
+  .liste { background: var(--card); border: 1px solid var(--linie); border-radius: 18px; padding: 0 16px; margin-top: 12px; }
+  .zeile { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 66px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--linie); background: transparent; text-align: left; color: inherit; text-decoration: none; }
+  .liste > .zeile:last-child { border-bottom: 0; }
+  .zeile .t { flex: 1; min-width: 0; }
+  .zeile .t b { display: block; }
+  .gitter { display: grid; gap: 12px; }
+  .zwei { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .kachel { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 98px; padding: 16px; border-radius: 20px; border: 1px solid var(--linie); background: var(--card); text-align: left; }
+  .kachel .ic { flex: none; width: 56px; height: 56px; border-radius: 16px; background: var(--grau); display: flex; align-items: center; justify-content: center; }
+  .kachel .t { flex: 1; min-width: 0; }
+  .kachel .t b { display: block; font-size: 22px; }
+  .kachel .t span { color: var(--sub); font-size: 17px; }
+  .kachel.k { min-height: 66px; padding: 10px 14px; border-radius: 16px; gap: 12px; }
+  .kachel.k .ic { width: 42px; height: 42px; border-radius: 12px; }
+  .kachel.k .t b { font-size: 19px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 64px; padding: 0 16px; border-radius: 16px; font-size: 21px; font-weight: 700; border: 0; text-align: center; }
+  .btn.haupt { background: var(--rot); color: #fff; }
+  .btn.gruen { background: var(--gruen-btn); color: #fff; }
+  .btn.zweit { background: var(--card); border: 2px solid var(--linie); }
+  .btn.gross { min-height: 84px; font-size: 24px; }
+  .btn:disabled { opacity: .55; }
+  .knopf { flex: none; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--linie); background: var(--card); font-size: 17px; font-weight: 700; }
+  .link { min-height: 48px; border: 0; background: transparent; font-size: 17px; font-weight: 700; padding: 0 6px; text-decoration: underline; }
+  .leise { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; margin: 24px auto 0; padding: 0 18px; border: 0; border-radius: 12px; background: transparent; font-size: 18px; font-weight: 700; text-decoration: underline; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { min-height: 52px; padding: 0 18px; border-radius: 999px; font-size: 18px; font-weight: 700; border: 2px solid var(--linie); background: var(--card); }
+  .chip.an { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .pill { display: inline-block; font-size: 16px; font-weight: 700; padding: 3px 12px; border-radius: 999px; white-space: nowrap; background: var(--grau); }
+  .pill.gruen, .box.gruen { background: var(--gruen-bg); color: var(--gruen); }
+  .pill.gelb, .box.gelb { background: var(--gelb-bg); color: var(--gelb); }
+  .pill.rot, .box.rot { background: var(--aus-bg); color: var(--aus); }
+  .box { border-radius: 18px; padding: 16px; }
+  .box .gross { font-size: 24px; font-weight: 700; }
+  .fz { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border-radius: 20px; border: 1px solid var(--linie); background: var(--card); text-align: left; overflow: hidden; }
+  .fz .band { flex: none; width: 10px; align-self: stretch; }
+  .fz .t { flex: 1; min-width: 0; padding: 16px 0 16px 4px; }
+  .fz .t b { font-size: 26px; margin-right: 8px; }
+  .fz .t .info { display: block; color: var(--sub); font-size: 17px; margin-top: 4px; }
+  .fz .pf { padding-right: 14px; display: flex; }
+  .band.gruen { background: var(--gruen-btn); } .band.gelb { background: var(--gelb-band); } .band.rot { background: var(--aus); }
+  .laeuft { background: var(--gelb-bg); border-radius: 20px; padding: 16px; margin-bottom: 16px; }
+  .punkt { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--gelb-band); margin-right: 8px; }
+  .dabox { display: flex; align-items: center; gap: 12px; background: var(--gruen-bg); color: var(--gruen); border-radius: 18px; padding: 14px 16px; margin-bottom: 16px; font-weight: 700; }
+  .dabox span { display: block; color: var(--text); font-weight: 400; font-size: 17px; }
+  .haken { width: 96px; height: 96px; border-radius: 50%; margin: 0 auto; background: var(--gruen-bg); color: var(--gruen); display: flex; align-items: center; justify-content: center; }
+  .namen { display: flex; gap: 8px; flex-wrap: wrap; }
+  .namen span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--grau); font-size: 17px; }
+  .warn { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--aus-bg); color: var(--aus); font-weight: 700; font-size: 17px; white-space: pre-line; }
+  .hinweis { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--grau); font-size: 17px; }
+  .typ { flex: none; width: 56px; text-align: center; font-size: 15px; font-weight: 700; padding: 6px 0; border-radius: 8px; background: var(--grau); }
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 0 14px; border-radius: 12px; font-size: 18px; font-weight: 700; text-align: left; border: 2px solid var(--linie); background: var(--card); }
+  .opt i { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; }
+  .opt.an.gruen { border-color: var(--gruen); background: var(--gruen-bg); color: var(--gruen); }
+  .opt.an.gelb { border-color: var(--gelb); background: var(--gelb-bg); color: var(--gelb); }
+  .opt.an.rot { border-color: var(--aus); background: var(--aus-bg); color: var(--aus); }
+  .opt.an i { background: currentColor; }
+  .wahl2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .wahl2 button { min-height: 54px; border-radius: 12px; font-size: 18px; font-weight: 700; border: 2px solid var(--linie); background: var(--card); }
+  .wahl2 button.ok { border-color: var(--gruen); background: var(--gruen-bg); color: var(--gruen); }
+  .wahl2 button.m { border-color: var(--aus); background: var(--aus-bg); color: var(--aus); }
+  .kpi { padding: 14px; border-radius: 16px; font-weight: 700; border: 0; text-align: left; font-size: 18px; }
+  .kpi b { display: block; font-size: 32px; }
+  .sticky { position: sticky; bottom: 12px; margin-top: 18px; }
+  .lade { padding: 60px 0; text-align: center; color: var(--sub); }
+  .fuss { text-align: center; color: var(--sub); font-size: 15px; margin-top: 32px; }
+  .hg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .blatt { width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; background: var(--card); border-radius: 24px 24px 0 0; padding: 24px 18px 28px; }
+  .blatt h2 { margin: 0; font-size: 25px; }
+  .blatt p { margin: 8px 0 16px; color: var(--sub); font-size: 18px; white-space: pre-line; }
+  .blatt .btn { margin-top: 10px; }
+  #toast { position: fixed; left: 16px; right: 16px; top: 16px; max-width: 528px; margin: 0 auto; padding: 16px; border-radius: 16px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 18px; text-align: center; z-index: 20; white-space: pre-line; }
+  #toast.fehler { background: var(--aus); color: #fff; }
+  @media (prefers-color-scheme: dark) { #toast.fehler { background: #991B1B; } }
   [hidden] { display: none !important; }
-  #kommando .kbar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; font-size: 13px; color: var(--grau); margin-bottom: 12px; }
-  #kommando .nur-pruefer .nur-kdo { display: none !important; }
-  #kommando #k-rolle { margin-right: auto; font-weight: 700; color: var(--text); }
-  #kommando .nur-pruefer:not(.fm) .nur-fz { display: none !important; }
-  #kommando .fst { padding: 12px 0; border-top: 1px solid var(--linie); }
-  #kommando .fst:first-child { border-top: 0; padding-top: 0; }
-  #kommando .fst .fk { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-  #kommando .fst .fk b { font-size: 18px; }
-  #kommando .fst .fk small { color: var(--grau); font-size: 12px; margin-left: auto; text-align: right; }
-  #kommando .fst .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  #kommando .fst .seg button { font: inherit; font-size: 13px; font-weight: 700; padding: 9px 4px; border-radius: 8px; border: 1.5px solid #C5CCD6; background: #fff; color: var(--grau); }
-  #kommando .fst .seg button.an.ja { background: var(--gruen-bg); border-color: var(--gruen); color: var(--gruen); }
-  #kommando .fst .seg button.an.eing { background: var(--gelb-bg); border-color: var(--gelb); color: #92400E; }
-  #kommando .fst .seg button.an.nein { background: var(--rot-bg); border-color: #DC2626; color: #991B1B; }
-  #kommando .fst .zeile2 { display: flex; gap: 6px; margin-top: 8px; }
-  #kommando .fst .zeile2 input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; }
-  #kommando .fst .zeile2 button { font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--rot); color: #fff; }
-  #kommando .fst .zeile2 button:disabled { opacity: .4; }
-  #kommando .fst .klein { font-size: 12px; color: #92400E; margin-top: 6px; }
-  #kommando .fst .sp { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #F3F5F8; font-size: 13px; }
-  #kommando .fst .sp.laeuft { background: var(--rot-bg); }
-  #kommando .fst .sp.eing { background: var(--gelb-bg); }
-  #kommando .fst .sp div { flex: 1; min-width: 0; }
-  #kommando .fst .sp small { display: block; color: var(--grau); }
-  #kommando .fst .sp button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 7px; border: 1px solid #E5A3A3; background: #fff; color: #991B1B; }
-  #kommando .fst .plan-auf { margin-top: 8px; font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px dashed #C5CCD6; background: #fff; color: var(--grau); width: 100%; }
-  #kommando .fst .plan { display: grid; gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid var(--linie); border-radius: 10px; }
-  #kommando .fst .plan label { font-size: 12px; font-weight: 700; color: var(--grau); }
-  #kommando .fst .plan input, #kommando .fst .plan select { display: block; width: 100%; margin-top: 3px; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; box-sizing: border-box; }
-  #kommando .fst .plan .zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  #kommando .fst .plan .los2 { font: inherit; font-size: 14px; font-weight: 700; padding: 9px; border-radius: 8px; border: 0; background: var(--rot); color: #fff; }
-  #kommando .ortwahl { display: grid; gap: 6px; }
-  #kommando .ortwahl button { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: inherit; font-weight: 700; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--linie); background: #fff; color: var(--text); }
-  #kommando .ortwahl button small { font-weight: 400; color: var(--grau); }
-  #kommando .pp { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-  #kommando .pp.gruen { background: var(--gruen-bg); color: var(--gruen); } #kommando .pp.gelb { background: var(--gelb-bg); color: #92400E; }
-  #kommando .pp.rot { background: var(--rot-bg); color: #991B1B; } #kommando .pp.grau { background: #F3F5F8; color: var(--grau); }
-  #kommando .pk-kopf { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  #kommando .pk-kopf b { flex: 1; font-size: 16px; }
-  #kommando .pk-kopf button, #kommando .pk-werkz button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; color: var(--text); }
-  #kommando .pk-werkz { display: flex; gap: 6px; margin: 8px 0; }
-  #kommando .pk-werkz input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px; border: 1px solid #C5CCD6; border-radius: 8px; }
-  #kommando .gz { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--linie); }
-  #kommando .gz:first-child { border-top: 0; }
-  #kommando .gz .bx { flex: none; width: 28px; height: 28px; border-radius: 7px; border: 2px solid #C5CCD6; background: #fff; font: 900 15px/24px sans-serif; color: #fff; text-align: center; padding: 0; }
-  #kommando .gz .bx.ok { background: var(--gruen); border-color: var(--gruen); }
-  #kommando .gz .bx.m { background: #DC2626; border-color: #DC2626; }
-  #kommando .gz .t { flex: 1; min-width: 0; font-size: 14px; }
-  #kommando .gz .t b { font-size: 15px; }
-  #kommando .gz .t small { display: block; color: var(--grau); font-size: 12px; }
-  #kommando .gz .t select, #kommando .gz .t input { margin-top: 6px; width: 100%; font: inherit; font-size: 13px; padding: 7px; border: 1px solid #C5CCD6; border-radius: 7px; }
-  #kommando .gz .t input.mb { border-color: #E5A3A3; background: var(--rot-bg); }
-  #kommando .gz .rechts { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
-  #kommando .gz .ed { font: inherit; font-size: 14px; padding: 3px 9px; border-radius: 7px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
-  #kommando .gform { display: grid; gap: 10px; }
-  #kommando .gform label > span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin-bottom: 4px; }
-  #kommando .gform input { width: 100%; font: inherit; font-size: 15px; padding: 9px; border: 1px solid #C5CCD6; border-radius: 8px; }
-  #kommando .gform .arten { display: grid; gap: 4px; max-height: 220px; overflow: auto; border: 1px solid var(--linie); border-radius: 8px; padding: 8px; }
-  #kommando .gform .art { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 400; }
-  #kommando .gform .art input { width: auto; margin-top: 2px; flex: none; }
-  #kommando .aus { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--linie); }
-  #kommando .aus .pk-werkz button { color: #991B1B; border-color: #E5A3A3; }
-  #kommando .pk-speichern { position: sticky; bottom: 10px; margin-top: 10px; }
-  #kommando #k-pinbox label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin: 12px 0 6px; }
-  #kommando #k-name { width: 100%; font: inherit; font-size: 17px; padding: 11px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
-  #kommando .kbar button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
-  #kommando .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
-  #kommando h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
-
-  /* PIN */
-  #kommando #pinbox { max-width: 360px; margin: 40px auto; text-align: center; }
-  #kommando #pin { width: 100%; font: inherit; font-size: 28px; letter-spacing: 8px; text-align: center; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; }
-  #kommando .los { width: 100%; margin-top: 14px; font: inherit; font-weight: 700; font-size: 18px; padding: 14px; border: 0; border-radius: 10px; background: var(--rot); color: #fff; }
-  #kommando .meldung { display: block; white-space: pre-line; margin-top: 14px; padding: 12px; border-radius: 8px; font-weight: 600; background: var(--rot-bg); color: #991B1B; box-shadow: inset 4px 0 0 #DC2626; text-align: left; }
-
-  /* Fahrzeugkarten */
-  #kommando .fzs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  #kommando .fz { background: #fff; border-radius: 12px; box-shadow: 0 0 0 1px var(--linie); overflow: hidden; display: flex; flex-direction: column; }
-  #kommando .fz .kopf { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
-  #kommando .fz .name { font-size: 24px; font-weight: 800; letter-spacing: .5px; }
-  #kommando .fz .pille { margin-left: auto; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 4px 10px; border-radius: 999px; }
-  #kommando .frei .pille { background: var(--gruen-bg); color: var(--gruen); }
-  #kommando .unterwegs .pille { background: var(--gelb-bg); color: #92400E; }
-  #kommando .fz .band { height: 6px; }
-  #kommando .frei .band { background: var(--gruen); } .unterwegs .band { background: var(--gelb); }
-  #kommando .fz .koerper { padding: 0 14px 14px; flex: 1; }
-  #kommando .fz .wer { font-size: 18px; font-weight: 700; }
-  #kommando .fz .klein { font-size: 14px; color: var(--grau); }
-  #kommando .fz .rest { margin-top: 6px; font-weight: 700; color: #92400E; }
-  #kommando .fz .zst { margin: 0 14px 14px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
-  #kommando .zst.ja { background: #F3F5F8; color: var(--grau); }
-  #kommando .zst.eing { background: var(--gelb-bg); color: #92400E; }
-  #kommando .zst.nein { background: var(--rot-bg); color: #991B1B; }
-  #kommando .unterwegs .wer::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gelb); margin-right: 8px; animation: puls 1.6s infinite; vertical-align: 1px; }
-  @keyframes puls { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
-
-  /* Zeitleiste */
-  #kommando .tl { position: relative; }
-  #kommando .tl .zeile { display: grid; grid-template-columns: 54px 1fr; align-items: center; gap: 8px; height: 38px; }
-  #kommando .tl .lab { font-weight: 800; font-size: 14px; }
-  #kommando .tl .spur { position: relative; height: 28px; background: #F3F5F8; border-radius: 6px; overflow: hidden; }
-  #kommando .tl .balken { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: #93A3B8; color: #fff; font-size: 11px; font-weight: 700; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 22px; }
-  #kommando .tl .balken.jetzt { background: var(--gelb); }
-  #kommando .tl .balken.spaeter { background: #3B6FB6; }
-  #kommando .tl .achse { display: grid; grid-template-columns: 54px 1fr; gap: 8px; }
-  #kommando .tl .ticks { position: relative; height: 18px; font-size: 11px; color: var(--grau); }
-  #kommando .tl .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-  #kommando .tl .ticks span.tag { font-weight: 800; color: var(--text); }
-  #kommando .tl .nl { position: absolute; top: 0; bottom: 18px; width: 2px; background: var(--rot); z-index: 2; }
-  #kommando .tl .nl::after { content: 'jetzt'; position: absolute; top: -16px; left: -12px; font-size: 10px; font-weight: 800; color: var(--rot); }
-  #kommando .tl .gitter { position: absolute; top: 0; bottom: 18px; width: 1px; background: var(--linie); }
-  #kommando .legende { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--grau); }
-  #kommando .legende i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
-
-  /* Liste */
-  #kommando .b { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--linie); font-size: 14px; }
-  #kommando .b:first-child { border-top: 0; }
-  #kommando .b .fzk { flex: none; width: 54px; font-weight: 800; }
-  #kommando .b .info span { color: var(--grau); }
-  #kommando .leer { color: var(--grau); font-size: 14px; }
-  #kommando .b .info { flex: 1; min-width: 0; }
-  #kommando .b.vorbei { opacity: .55; }
-  #kommando .weg { flex: none; font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #E5A3A3; background: #fff; color: #991B1B; }
-  #kommando .weg:disabled { opacity: .5; }
-  #kommando .fz .weg { margin-top: 10px; }
-  #kommando .fuss { text-align: center; font-size: 12px; color: var(--grau); }
-  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 92vw; padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; color: #fff; background: #166534; box-shadow: 0 6px 20px rgba(0,0,0,.2); z-index: 9; }
-  .toast.fehler { background: #991B1B; }
-  .dlg { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
-  .dlg .box { background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-  .dlg h3 { margin: 0 0 8px; font-size: 18px; }
-  .dlg .was { font-size: 14px; color: var(--grau); white-space: pre-line; margin-bottom: 12px; }
-  .dlg label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin-bottom: 6px; }
-  .dlg textarea { width: 100%; min-height: 84px; font: inherit; padding: 10px; border: 1px solid #C5CCD6; border-radius: 8px; resize: vertical; }
-  .dlg .hinw { font-size: 12px; color: var(--grau); margin-top: 6px; }
-  .dlg .knoepfe { display: flex; gap: 10px; margin-top: 14px; }
-  .dlg .knoepfe button { flex: 1; font: inherit; font-weight: 700; padding: 12px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; }
-  .dlg .knoepfe .ja { background: var(--rot); border-color: var(--rot); color: #fff; }
-  .karte { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px var(--linie); margin-bottom: 16px; }
-  label { display: block; font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); margin: 14px 0 6px; }
-  label:first-child { margin-top: 0; }
-  input { width: 100%; font: inherit; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
-  .fzwahl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .fzwahl button { font: inherit; font-weight: 700; padding: 14px 0; border-radius: 8px; border: 2px solid #C5CCD6; background: #fff; color: var(--text); }
-  .fzwahl button.an { border-color: var(--rot); background: #FDECEF; color: var(--rot); }
-  .zeit { display: grid; grid-template-columns: 1fr; gap: 0; }
-  input { min-width: 0; max-width: 100%; }
-  .los { width: 100%; margin-top: 18px; font: inherit; font-weight: 700; font-size: 18px; padding: 14px; border: 0; border-radius: 10px; background: var(--rot); color: #fff; }
-  .los:disabled { opacity: .5; }
-  .meldung { display: none; white-space: pre-line; margin-top: 14px; padding: 12px; border-radius: 8px; font-weight: 600; }
-  .meldung.fehler { display: block; background: #FDECEC; color: #991B1B; box-shadow: inset 4px 0 0 #DC2626; }
-  .meldung.ok { display: block; background: #E8F7EE; color: #166534; box-shadow: inset 4px 0 0 #16A34A; }
-  .bf-reihe { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linie); }
-  .bf-reihe:first-child { border-top: 0; }
-  .bf-reihe b { flex: none; width: 56px; font-size: 17px; }
-  .bf-reihe .bf-info { flex: 1; min-width: 0; font-size: 14px; color: var(--grau); }
-  .bf-reihe.laeuft .bf-info { color: #92400E; font-weight: 600; }
-  .bf-reihe button { flex: none; font: inherit; font-size: 15px; font-weight: 700; padding: 11px 14px; border-radius: 9px; border: 2px solid var(--rot); background: #fff; color: var(--rot); }
-  .bf-reihe button.ein { border-color: #16A34A; background: #16A34A; color: #fff; }
-  .bf-reihe button:disabled { opacity: .5; }
-  h2 { font-size: 15px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .5px; color: var(--grau); }
-  .b { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linie); }
-  .b:first-of-type { border-top: 0; }
-  .b .fzk { flex: none; width: 58px; font-weight: 800; }
-  .b .info { flex: 1; min-width: 0; font-size: 14px; }
-  .b .info span { color: var(--grau); }
-  .b button { flex: none; font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
-  .leer { color: var(--grau); font-size: 14px; }
-  /* Anwesenheit */
-  .wahl { display: grid; gap: 8px; }
-  .wahl button { text-align: left; font: inherit; padding: 12px 14px; border-radius: 10px; border: 2px solid #C5CCD6; background: #fff; color: var(--text); }
-  .wahl button small { display: block; color: var(--grau); font-size: 13px; margin-top: 2px; }
-  .wahl button.an { border-color: var(--rot); background: #FDECEF; }
-  select { width: 100%; font: inherit; padding: 12px; border: 1px solid #C5CCD6; border-radius: 8px; background: #fff; color: var(--text); }
-  .ich { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #F3F5F8; font-weight: 700; font-size: 18px; }
-  .ich button { font: inherit; font-size: 13px; font-weight: 400; border: 0; background: none; color: var(--grau); text-decoration: underline; }
-  .gross-ok { text-align: center; padding: 26px 10px; }
-  #a-gehen { background: #fff; color: var(--rot); border: 2px solid var(--rot); margin-top: 10px; }
-  .haus-t { border-top: 1px solid var(--linie); }
-  .haus-t:first-of-type { border-top: 0; }
-  .haus-t > button { display: block; width: 100%; text-align: left; font: inherit; background: none; border: 0; padding: 10px 0; color: var(--text); cursor: pointer; }
-  .haus-t > button b { font-size: 16px; }
-  .haus-t > button small { color: var(--grau); font-size: 13px; }
-  .haus-t > button .namen { margin-top: 3px; font-size: 14px; color: var(--text); }
-  .haus-t > button .pf { float: right; color: #9AA3AF; transition: transform .15s; }
-  .haus-t.auf > button .pf { transform: rotate(90deg); }
-  .haus-t .det { display: none; padding: 0 0 10px; }
-  .haus-t.auf .det { display: block; }
-  .haus-t .det div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 6px; font-size: 14px; }
-  .haus-t .det div:nth-child(odd) { background: #F5F7FA; }
-  .haus-t .det div span { color: var(--grau); white-space: nowrap; }
-  .haus-t .det div.weg { color: var(--grau); }
-  .haus-t .det div.weg b { font-weight: 400; text-decoration: line-through; }
-  .gross-ok .haken { font-size: 56px; line-height: 1; color: #16A34A; }
-  .gross-ok p { font-size: 18px; font-weight: 700; margin: 10px 0 0; }
-  #kommando .anw-t { border-top: 1px solid var(--linie); padding: 14px 0; }
-  #kommando .anw-t:first-of-type { border-top: 0; padding-top: 0; }
-  #kommando .anw-kopf { display: flex; align-items: center; gap: 8px; }
-  #kommando .anw-kopf b { flex: 1; font-size: 16px; }
-  #kommando .badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 3px 8px; border-radius: 999px; background: var(--gelb-bg); color: #92400E; }
-  #kommando .badge.zu { background: var(--gruen-bg); color: var(--gruen); }
-  #kommando .anw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-  #kommando .anw-grid label { margin: 0 0 4px; font-size: 11px; }
-  #kommando .anw-grid .breit { grid-column: 1 / -1; }
-  #kommando .anw-grid > div { min-width: 0; }
-  #kommando .anw-grid input, #kommando .anw-grid select { width: 100%; min-width: 0; }
-  #kommando .nachtragen input { flex: 1; min-width: 0; }
-  #kommando .anw-grid input, #kommando .anw-grid select { padding: 9px; font-size: 14px; }
-  #kommando .pchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  #kommando .pchip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 4px 4px 10px; border-radius: 999px; background: #F3F5F8; }
-  #kommando .pchip.warn { background: var(--gelb-bg); }
-  #kommando .pchip button { border: 0; background: #DDE2E9; color: var(--grau); width: 22px; height: 22px; border-radius: 50%; font: inherit; font-size: 13px; line-height: 1; padding: 0; }
-  #kommando .nachtragen { display: flex; gap: 8px; margin-top: 10px; }
-  #kommando .nachtragen input { padding: 9px; font-size: 14px; }
-  #kommando .nachtragen button, #kommando .anw-knoepfe button { flex: none; font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; border-radius: 8px; border: 1px solid #C5CCD6; background: #fff; color: var(--text); }
-  #kommando .anw-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-  #kommando .anw-knoepfe .rot { background: var(--rot); border-color: var(--rot); color: #fff; }
-  #kommando .anw-knoepfe .weg2 { color: #991B1B; border-color: #E5A3A3; margin-left: auto; }
-  @media (max-width: 430px) { nav.tabs { gap: 4px; } nav.tabs button { font-size: 14px; padding: 8px 10px; } }
-  #einsatz .e-suche { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid #C5CCD6; border-radius: 8px; margin-bottom: 4px; }
-  #einsatz .e-rubrik { margin-top: 14px; }
-  #einsatz .e-rubrik h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: .5px; text-transform: uppercase; color: var(--grau); }
-  #einsatz a.e-dok { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-top: 1px solid var(--linie); color: var(--text); text-decoration: none; }
-  #einsatz a.e-dok:active { background: #F3F5F8; }
-  #einsatz .e-typ { flex: none; width: 46px; text-align: center; font-size: 11px; font-weight: 800; padding: 6px 0; border-radius: 6px; background: #F3F5F8; color: var(--grau); }
-  #einsatz .e-typ.PDF { background: var(--rot-bg); color: #991B1B; }
-  #einsatz .e-typ.Bild { background: #E0F2FE; color: #075985; }
-  #einsatz .e-dok b { display: block; font-weight: 600; }
-  #einsatz .e-dok small { color: var(--grau); font-size: 12px; }
-  #einsatz .e-dok .pf { margin-left: auto; color: #C5CCD6; font-size: 20px; }
-  #einsatz .e-fuss { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 12px; color: var(--grau); }
-  #einsatz .e-fuss button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 6px; border: 1px solid #C5CCD6; background: #fff; color: var(--grau); }
 </style>
 </head>
-<body data-start="<?= start ?>">
-<header>
-  <div class="titel"><h1>FF Deutsch Haslau</h1><p>Fahrzeuge · Anwesenheit · Einsatz</p></div>
-  <nav class="tabs"><button type="button" id="tab-buchen" class="an">Buchen</button><button type="button" id="tab-anwesenheit">Anwesenheit</button><button type="button" id="tab-einsatz">Einsatz</button><button type="button" id="tab-kommando">Intern</button></nav>
-</header>
-<main>
-<section id="buchen">
-  <div class="karte">
-    <h2>Bewegungsfahrt</h2>
-    <label for="bf-name">Dein Name</label>
-    <input id="bf-name" list="namen" autocomplete="name" placeholder="z. B. Max Mustermann">
-    <div id="bf-liste" style="margin-top:10px"><div class="leer">wird geladen …</div></div>
-    <div class="meldung" id="bf-meldung"></div>
-  </div>
-  <div class="karte">
-    <label>Fahrzeug</label>
-    <div class="fzwahl" id="fz"></div>
-    <label for="name">Name (Vor- und Nachname)</label>
-    <input id="name" list="namen" autocomplete="name" placeholder="z. B. Max Mustermann">
-    <datalist id="namen"></datalist>
-    <label for="mail">E-Mail (für Nachrichten zur Buchung)</label>
-    <input id="mail" type="email" autocomplete="email" inputmode="email" placeholder="name@beispiel.at">
-    <div class="zeit">
-      <div><label for="von">Von</label><input id="von" type="datetime-local"></div>
-      <div><label for="bis">Bis</label><input id="bis" type="datetime-local"></div>
-    </div>
-    <label for="zweck">Zweck</label>
-    <input id="zweck" maxlength="120" placeholder="z. B. Übung, Besorgung, Werkstatt">
-    <button class="los" id="los">Buchen</button>
-    <div class="meldung" id="meldung"></div>
-  </div>
-  <div class="karte">
-    <h2>Gebucht – nächste 30 Tage</h2>
-    <div id="liste"><div class="leer">wird geladen …</div></div>
-  </div>
-</section>
-<section id="anwesenheit" hidden>
-  <div class="karte" id="a-form">
-    <h2>Anwesenheit</h2>
-    <div id="a-ichbox" hidden><div class="ich"><span id="a-ich"></span><button type="button" id="a-wechsel">nicht du?</button></div></div>
-    <div id="a-namebox">
-      <label for="a-name">Dein Name</label>
-      <input id="a-name" list="a-namen" autocomplete="off" placeholder="Namen eintippen und aus der Liste wählen">
-      <datalist id="a-namen"></datalist>
-    </div>
-    <label>Wofür?</label>
-    <div class="wahl" id="a-termine"><div class="leer">wird geladen …</div></div>
-    <div id="a-artbox" hidden>
-      <label for="a-art">Was machst du?</label>
-      <select id="a-art"></select>
-      <label for="a-titel">Kurz beschreiben (optional)</label>
-      <input id="a-titel" maxlength="80" placeholder="z. B. Schlauchpflege, Funkgeräte laden">
-    </div>
-    <button class="los" id="a-los">Ich bin da ✓</button>
-    <button class="los" id="a-gehen" type="button" hidden>Ich gehe 👋</button>
-    <div class="meldung" id="a-meldung"></div>
-  </div>
-  <div class="karte" id="a-hauskarte" hidden>
-    <h2>Heute im Feuerwehrhaus</h2>
-    <div id="a-haus"></div>
-  </div>
-  <div class="karte gross-ok" id="a-ok" hidden><div class="haken">✓</div><p id="a-oktext"></p><button class="los" id="a-nochmal" type="button" style="background:#5B6573">Fertig</button></div>
-</section>
-<section id="einsatz" hidden>
-  <div class="karte">
-    <h2>Einsatzunterstützung</h2>
-    <input class="e-suche" id="e-suche" type="search" placeholder="Dokument suchen …" autocomplete="off">
-    <div id="e-liste"><div class="leer">wird geladen …</div></div>
-    <div class="e-fuss"><span id="e-stand"></span><button type="button" id="e-neu">Neu laden</button></div>
-  </div>
-</section>
-<section id="kommando" hidden>
-  <div id="k-pinbox" class="karte">
-    <h2>Anmelden</h2>
-    <label for="k-name">Wer bist du?</label>
-    <select id="k-name"><option value="">wird geladen …</option></select>
-    <label for="k-pin">PIN</label>
-    <input id="k-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12">
-    <button class="los" id="k-los">Anzeigen</button>
-    <div class="meldung" id="k-meldung" hidden></div>
-  </div>
-
-  <div id="k-inhalt" hidden>
-    <div class="kbar"><span id="k-rolle"></span><span id="k-stand"></span><button id="k-abmelden" type="button">Abmelden</button></div>
-    <div class="nur-kdo"><div class="fzs" id="k-fzs"></div></div>
-    <div class="karte nur-fz">
-      <h2>Fahrzeugstatus · Einsatzbereitschaft</h2>
-      <div id="k-fst"><div class="leer">wird geladen …</div></div>
-    </div>
-    <div class="karte" id="k-pruef-karte">
-      <h2>Geräteprüfungen</h2>
-      <div id="k-pruef"><div class="leer">wird geladen …</div></div>
-    </div>
-    <div class="karte nur-kdo">
-      <h2>Zeitleiste · heute &amp; morgen</h2>
-      <div class="tl" id="k-tl"></div>
-      <div class="legende"><span><i style="background:var(--gelb)"></i>unterwegs</span><span><i style="background:#3B6FB6"></i>gebucht</span><span><i style="background:#93A3B8"></i>vorbei</span></div>
-    </div>
-    <div class="karte nur-kdo">
-      <h2>Fahrten · letzte 24 h und nächste 7 Tage</h2>
-      <div id="k-liste"></div>
-    </div>
-    <div class="karte nur-kdo">
-      <h2>Anwesenheit · offen und abgeschlossen</h2>
-      <div id="k-anw"><div class="leer">wird geladen …</div></div>
-      <div class="anw-knoepfe"><button type="button" id="k-anw-neu">Aktualisieren</button></div>
-    </div>
-    <div class="fuss nur-kdo">Aktualisiert sich jede Minute von selbst.</div>
-  </div>
-</section>
-</main>
-<script>
-  let fahrzeug = '', daten = null;
-  const $ = (id) => document.getElementById(id);
-  const melden = (text, art) => { const m = $('meldung'); m.textContent = text; m.className = 'meldung ' + art; };
-  const pad = (n) => String(n).padStart(2, '0');
-  const lokal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  try { $('name').value = localStorage.getItem('fz-name') || ''; $('mail').value = localStorage.getItem('fz-mail') || ''; } catch (e) {}
-
-  // Vorschlag: nächste volle Stunde, 2 Stunden
-  const start = new Date(); start.setMinutes(0, 0, 0); start.setHours(start.getHours() + 1);
-  $('von').value = lokal(start); $('bis').value = lokal(new Date(start.getTime() + 2 * 3600e3));
-  $('von').addEventListener('change', () => {
-    const v = new Date($('von').value), b = new Date($('bis').value);
-    if (!(b > v)) $('bis').value = lokal(new Date(v.getTime() + 2 * 3600e3));
-  });
-
-  const zeigen = (d) => {
-    daten = d;
-    $('fz').textContent = '';
-    d.fahrzeuge.forEach((f) => {
-      const b = document.createElement('button'); b.type = 'button'; b.textContent = f;
-      if (f === fahrzeug) b.className = 'an';
-      b.onclick = () => { fahrzeug = f; zeigen(daten); };
-      $('fz').appendChild(b);
-    });
-    $('namen').textContent = '';
-    d.namen.forEach((n) => { const o = document.createElement('option'); o.value = n; $('namen').appendChild(o); });
-    const l = $('liste'); l.textContent = '';
-    const liste = fahrzeug ? d.kommend.filter((x) => x.fahrzeug === fahrzeug) : d.kommend;
-    if (!liste.length) { const e = document.createElement('div'); e.className = 'leer'; e.textContent = fahrzeug ? fahrzeug + ' ist in den nächsten 30 Tagen frei.' : 'Keine Buchungen.'; l.appendChild(e); }
-    liste.forEach((x) => {
-      const row = document.createElement('div'); row.className = 'b';
-      const k = document.createElement('div'); k.className = 'fzk'; k.textContent = x.fahrzeug;
-      const i = document.createElement('div'); i.className = 'info'; i.textContent = x.text;
-      const s = document.createElement('span'); s.textContent = ' · ' + x.name + (x.zweck ? ' · ' + x.zweck : ''); i.appendChild(s);
-      const a = document.createElement('button'); a.type = 'button'; a.textContent = 'Absagen';
-      a.onclick = () => {
-        const wer = $('name').value.trim();
-        if (wer.length < 3) { melden('Zum Absagen oben deinen Namen eintragen.', 'fehler'); $('name').focus(); return; }
-        if (!confirm('Buchung ' + x.fahrzeug + ' ' + x.text + ' (' + x.name + ') absagen?')) return;
-        google.script.run.withSuccessHandler((r) => { melden(r.ok ? r.text : r.fehler, r.ok ? 'ok' : 'fehler'); laden(); })
-          .withFailureHandler((e) => melden('Fehler: ' + e.message, 'fehler')).absagen(x.zeile, wer);
-      };
-      row.append(k, i, a); l.appendChild(row);
-    });
-  };
-  // Bewegungsfahrt: pro Fahrzeug „Bewegungsfahrt“ bzw. „Einrücken“
-  try { $('bf-name').value = localStorage.getItem('fz-name') || ''; } catch (e) {}
-  const bfMelden = (text, art) => { const m = $('bf-meldung'); m.textContent = text; m.className = 'meldung ' + art; };
-  const bfName = () => {
-    const n = $('bf-name').value.trim();
-    if (n.length < 3) { bfMelden('Bitte zuerst deinen Namen eintragen.', 'fehler'); $('bf-name').focus(); return ''; }
-    try { localStorage.setItem('fz-name', n); } catch (e) {}
-    $('name').value = n;
-    return n;
-  };
-  $('name').addEventListener('change', () => { if ($('name').value.trim()) $('bf-name').value = $('name').value.trim(); });
-  const bfZeigen = (d) => {
-    const l = $('bf-liste'); l.textContent = '';
-    d.fahrzeuge.forEach((f) => {
-      const lauf = (d.bewegung || []).find((x) => x.fahrzeug === f);
-      const r = document.createElement('div'); r.className = 'bf-reihe' + (lauf ? ' laeuft' : '');
-      const n = document.createElement('b'); n.textContent = f;
-      const heute = lauf && new Date(lauf.von).toDateString() === new Date().toDateString();
-      const i = document.createElement('div'); i.className = 'bf-info'; i.textContent = lauf ? 'unterwegs seit ' + (heute ? lauf.seit.slice(-5) : lauf.seit) + ' · ' + lauf.name : 'in der Halle';
-      const k = document.createElement('button'); k.type = 'button';
-      if (lauf) {
-        k.className = 'ein'; k.textContent = 'Einrücken';
-        k.onclick = () => {
-          const wer = bfName(); if (!wer) return;
-          k.disabled = true; k.textContent = '…';
-          google.script.run.withSuccessHandler((x) => { bfMelden(x.ok ? '✓ ' + x.text : x.fehler, x.ok ? 'ok' : 'fehler'); laden(); })
-            .withFailureHandler((e) => { bfMelden('Fehler: ' + e.message, 'fehler'); laden(); }).bewegungEnde(lauf.zeile, wer);
-        };
-      } else {
-        k.textContent = 'Bewegungsfahrt';
-        k.onclick = () => {
-          const wer = bfName(); if (!wer) return;
-          if (k.dataset.sicher !== '1') { k.dataset.sicher = '1'; k.textContent = 'Jetzt starten?'; setTimeout(() => { if (k.isConnected) { k.dataset.sicher = ''; k.textContent = 'Bewegungsfahrt'; } }, 4000); return; }
-          k.disabled = true; k.textContent = '…';
-          google.script.run.withSuccessHandler((x) => { bfMelden(x.ok ? '✓ ' + x.text : x.fehler, x.ok ? 'ok' : 'fehler'); laden(); })
-            .withFailureHandler((e) => { bfMelden('Fehler: ' + e.message, 'fehler'); laden(); }).bewegungStart({ fahrzeug: f, name: wer, mail: $('mail').value.trim() });
-        };
-      }
-      r.append(n, i, k); l.appendChild(r);
-    });
-  };
-  const laden = () => google.script.run.withSuccessHandler((d) => { zeigen(d); bfZeigen(d); })
-    .withFailureHandler((e) => { $('liste').textContent = $('bf-liste').textContent = 'Konnte nicht geladen werden: ' + e.message; }).startdaten();
-
-  $('los').onclick = () => {
-    if (!fahrzeug) return melden('Bitte ein Fahrzeug auswählen.', 'fehler');
-    const d = { fahrzeug, name: $('name').value.trim(), mail: $('mail').value.trim(), von: $('von').value, bis: $('bis').value, zweck: $('zweck').value.trim() };
-    try { localStorage.setItem('fz-name', d.name); localStorage.setItem('fz-mail', d.mail); } catch (e) {}
-    $('los').disabled = true; melden('Wird geprüft …', 'ok');
-    google.script.run
-      .withSuccessHandler((r) => { $('los').disabled = false; melden(r.ok ? '✓ ' + r.text : r.fehler, r.ok ? 'ok' : 'fehler'); if (r.ok) { $('zweck').value = ''; laden(); } })
-      .withFailureHandler((e) => { $('los').disabled = false; melden('Fehler: ' + e.message, 'fehler'); })
-      .buchen(d);
-  };
-  laden();
-
-  // Reiter Buchen / Kommando
-  const reiter = (r) => {
-    ['buchen', 'anwesenheit', 'einsatz', 'kommando'].forEach((x) => { $(x).hidden = r !== x; $('tab-' + x).className = r === x ? 'an' : ''; });
-    if (r === 'anwesenheit') window.anwStart();
-    if (r === 'einsatz') window.einsatzStart();
-    if (r === 'kommando') { window.kommandoStart(); if ($('k-pinbox') && !$('k-pinbox').hidden) $('k-pin').focus(); }
-  };
-  $('tab-buchen').onclick = () => reiter('buchen');
-  $('tab-kommando').onclick = () => reiter('kommando');
-  $('tab-anwesenheit').onclick = () => reiter('anwesenheit');
-  $('tab-einsatz').onclick = () => reiter('einsatz');
-  // Start-Reiter: ?seite=da → Anwesenheit, ?seite=status → Kommando.
-  // Apps Script setzt Werte in <script> mit Anführungszeichen ein, daher über ein data-Attribut und zusätzlich aus der Adresse.
-  const startReiter = (s) => { s = String(s || '').replace(/["']/g, ''); if (s === 'da') s = 'anwesenheit'; if (s === 'status' || s === 'intern') s = 'kommando'; if (s === 'kommando' || s === 'anwesenheit' || s === 'einsatz') reiter(s); };
-  window.addEventListener('load', () => {
-    startReiter(document.body.dataset.start);
-    try { google.script.url.getLocation((l) => { if (l && l.parameter && l.parameter.seite) startReiter(l.parameter.seite); }); } catch (e) {}
-  });
-</script>
+<body data-start="<?= start ?>" data-fz="<?= fz ?>">
+<div id="app"><div class="lade">wird geladen …</div></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 <script>
 (() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  // ---------- Werkzeuge ----------
+  const $app = document.getElementById('app');
+  const h = (tag, a, ...kids) => {
+    const e = document.createElement(tag);
+    if (a) Object.keys(a).forEach((k) => {
+      const v = a[k];
+      if (v == null || v === false) return;
+      if (k === 'class') e.className = v;
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+      else if (k === 'value') e.value = v;
+      else e.setAttribute(k, v === true ? '' : v);
+    });
+    kids.flat(9).forEach((k) => { if (k == null || k === false) return; e.appendChild(typeof k === 'object' ? k : document.createTextNode(String(k))); });
+    return e;
+  };
+  const IC = {
+    rechts: '<path d="M9 6l6 6-6 6"/>', links: '<path d="M15 6l-6 6 6 6"/>', haken: '<path d="M5 12l5 5 9-10"/>',
+    da: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7 1.7 0 3.2.6 4.4 1.5"/><path d="M15 18l2.5 2.5L22 16"/>',
+    auto: '<path d="M2 16V7a1 1 0 0 1 1-1h11v10"/><path d="M14 9h4l4 4v3h-2"/><path d="M2 16h2"/><path d="M10 16h6"/><circle cx="7" cy="17" r="2.2"/><circle cx="18" cy="17" r="2.2"/>',
+    doku: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
+    schild: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    werkzeug: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+    liste: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 13l2 2 4-4"/>',
+    schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
+  };
+  // Kinder anhängen: Listen werden aufgelöst, leere Werte übersprungen
+  const add = (el, ...kids) => { kids.flat(9).forEach((k) => { if (k == null || k === false) return; el.appendChild(typeof k === 'object' ? k : document.createTextNode(String(k))); }); return el; };
+  const icon = (n, gr) => { const s = h('span', { 'aria-hidden': 'true', style: 'display:flex' }); s.innerHTML = '<svg width="' + (gr || 24) + '" height="' + (gr || 24) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + IC[n] + '</svg>'; return s; };
+  const run = (fn, ...args) => new Promise((ok, nein) => {
+    if (!(window.google && google.script && google.script.run)) { nein(new Error('Nur in der Web-App verfügbar.')); return; }
+    google.script.run.withSuccessHandler(ok).withFailureHandler(nein)[fn](...args);
+  });
+  const lies = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const schreib = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* privat */ } };
   const pad = (n) => String(n).padStart(2, '0');
+  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   const uhr = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  const tag = (t) => { const d = new Date(t); return WT[d.getDay()] + ' ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; };
-  const heute = (t) => new Date(t).toDateString() === new Date().toDateString();
-  const wann = (t) => (heute(t) ? 'heute' : tag(t)) + ' ' + uhr(t);
-  const dauer = (ms) => { const m = Math.round(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); return h < 48 ? h + ' h ' + pad(m % 60) + ' min' : Math.round(h / 24) + ' Tage'; };
-  let pin = '', daten = null, timer = null, rolle = null;
-  try { pin = localStorage.getItem('fz-status-pin') || ''; } catch (e) {}
+  const tagName = (t) => {
+    const d = new Date(t), a = new Date(); a.setHours(0, 0, 0, 0);
+    const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - a) / 864e5);
+    return diff === 0 ? 'heute' : diff === 1 ? 'morgen' : diff === -1 ? 'gestern' : WT[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
+  };
+  const wann = (t) => tagName(t) + ' ' + uhr(t);
+  const spanne = (v, b) => tagName(v) + ' · ' + uhr(v) + ' – ' + (tagName(b) === tagName(v) ? uhr(b) : wann(b));
+  const dauer = (ms) => { const m = Math.max(1, Math.round(ms / 60000)); return m === 1 ? '1 Minute' : m < 60 ? m + ' Minuten' : Math.floor(m / 60) + ' h ' + pad(m % 60) + ' min'; };
+  const isoTag = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const isoLokal = (t) => isoTag(new Date(t)) + 'T' + uhr(t);
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const kuerzel = (n) => String(n).split(' ').filter(Boolean).map((x) => x[0]).join('').slice(0, 2).toUpperCase();
+  const vorname = (n) => String(n).split(' ')[0];
 
-  function laden() {
-    if (!pin) return;
-    if (!rolle && window.google && google.script) {
-      google.script.run.withSuccessHandler((r) => {
-        if (!r.ok) { abmelden(); fehler(r.fehler); return; }
-        rolle = r.rolle;
-        try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
-        $('k-inhalt').classList.toggle('nur-pruefer', rolle === 'pruefer' || rolle === 'fahrmeister');
-        $('k-inhalt').classList.toggle('fm', rolle === 'fahrmeister');
-        $('k-rolle').textContent = (rolle === 'pruefer' ? 'Prüfer: ' : rolle === 'fahrmeister' ? 'Fahrmeister: ' : '') + r.name;
-        if (window.pruefStart) window.pruefStart(pin);
-        if (window.fstStart && rolle !== 'pruefer') window.fstStart(pin);
-        if (rolle === 'pruefer' || rolle === 'fahrmeister') { $('k-pinbox').hidden = true; $('k-inhalt').hidden = false; return; }
-        laden();
-      }).withFailureHandler((e) => fehler(e.message)).anmelden(pin);
+  let toastT = null;
+  const melde = (t, istFehler) => {
+    const el = document.getElementById('toast'); el.textContent = t; el.className = istFehler ? 'fehler' : ''; el.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, istFehler ? 7000 : 5000);
+  };
+  const fehler = (e) => melde((e && e.message) || String(e), true);
+
+  // Rückfrage als Blatt von unten: { titel, text, ja, nein, gruen, felder: (box) => {}, aktion: async () => {} } – aktion gibt false zurück = offen lassen
+  const frage = (f) => {
+    const hg = h('div', { class: 'hg', onclick: (e) => { if (e.target === hg) hg.remove(); } });
+    const ja = h('button', { type: 'button', class: 'btn ' + (f.gruen ? 'gruen' : 'haupt') }, f.ja || 'Ja');
+    const extra = h('div');
+    const box = h('div', { class: 'blatt', role: 'dialog', 'aria-modal': 'true' }, h('h2', null, f.titel), f.text ? h('p', null, f.text) : null, extra, ja,
+      h('button', { type: 'button', class: 'btn zweit', onclick: () => hg.remove() }, f.nein || 'Abbrechen'));
+    if (f.felder) f.felder(extra);
+    ja.onclick = async () => {
+      ja.disabled = true; ja.textContent = '…';
+      try { const weiter = await f.aktion(); if (weiter !== false) hg.remove(); else { ja.disabled = false; ja.textContent = f.ja || 'Ja'; } }
+      catch (e) { ja.disabled = false; ja.textContent = f.ja || 'Ja'; fehler(e); }
+    };
+    hg.appendChild(box); document.body.appendChild(hg);
+    const erstes = box.querySelector('input, textarea, select'); if (erstes) erstes.focus(); else ja.focus();
+  };
+  // Server-Antwort { ok, text | fehler } → Meldung; wirft bei Fehler
+  const antwort = (r) => { if (!r || !r.ok) { setTimeout(() => { if (typeof laden === 'function') laden(); }, 0); throw new Error((r && r.fehler) || 'Hat nicht geklappt.'); } if (r.text) melde(r.text); return r; };
+
+  // ---------- Zustand ----------
+  let ich = lies('ff-ich');
+  let verw = lies('ff-verw');
+  if (verw && (!verw.bis || verw.bis < Date.now() || norm(verw.fuer) !== norm(ich))) { verw = null; schreib('ff-verw', null); }
+  let daten = null, zahlen = null, doks = null, anwDaten = null;
+  const stapel = [];
+  let seite = { s: 'start' }, ziel = null;   // ziel: gewünschte Seite (QR-Code), bevor der Name gewählt ist
+
+  const zeige = (neu) => {
+    stapel.push(seite); seite = neu; zeichne(true);
+    try { if (window.google && google.script && google.script.history) google.script.history.push({ n: stapel.length }); } catch (e) { /* egal */ }
+  };
+  const zurueck = () => { seite = stapel.pop() || { s: 'start' }; zeichne(true); };
+  const heim = () => { stapel.length = 0; seite = { s: 'start' }; zeichne(true); };
+  try { if (window.google && google.script && google.script.history) google.script.history.setChangeHandler(() => { if (stapel.length) zurueck(); }); } catch (e) { /* egal */ }
+
+  const laden = async () => {
+    try { daten = await run('appDaten', ich || ''); }
+    catch (e) {
+      if (!daten) { $app.textContent = ''; $app.appendChild(h('div', { class: 'lade' }, 'Konnte nicht laden: ' + e.message, h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:20px', onclick: () => { $app.textContent = 'wird geladen …'; laden(); } }, 'Nochmal versuchen'))); }
+      else fehler(e);
       return;
     }
-    if (rolle === 'pruefer' || rolle === 'fahrmeister') return;
-    const fertig = (d) => {
-      if (!d.ok) { abmelden(); fehler(d.fehler); return; }
-      try { localStorage.setItem('fz-status-pin', pin); } catch (e) {}
-      daten = d; zeigen();
-      if (window.anwKommando && !window.anwKommandoGeladen) { window.anwKommandoGeladen = true; window.anwKommando(pin); }
-    };
-    if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fehler(e.message)).statusdaten(pin);
-    else fertig(demo());
-  }
-  function fehler(t) { $('k-meldung').textContent = t; $('k-meldung').hidden = false; }
-  function abmelden() {
-    pin = ''; rolle = null; window.anwKommandoGeladen = false; try { localStorage.removeItem('fz-status-pin'); } catch (e) {}
-    clearInterval(timer); timer = null;
-    $('k-inhalt').hidden = true; $('k-pinbox').hidden = false; $('k-pin').value = '';
-    $('k-inhalt').classList.remove('fm'); $('k-fst').textContent = '';
-  }
-  $('k-los').onclick = () => {
-    const n = $('k-name').value;
-    if (!n) { fehler('Bitte zuerst deinen Namen wählen.'); return; }
-    pin = n + '|' + $('k-pin').value.trim(); $('k-meldung').hidden = true; laden();
+    if (ich && daten.mitglieder.length && !daten.mitglieder.some((n) => norm(n) === norm(ich))) { ich = null; schreib('ff-ich', null); verw = null; schreib('ff-verw', null); }
+    zeichne(false);
   };
-  // Namensliste laden (aktive Personen aus Tab „Prüfer“), zuletzt gewählter Name vorausgewählt
-  const namenLaden = () => {
-    if (!(window.google && google.script)) return;
-    google.script.run.withSuccessHandler((liste) => {
-      const sel = $('k-name'); sel.textContent = '';
-      const leer = document.createElement('option'); leer.value = ''; leer.textContent = '– Namen wählen –'; sel.appendChild(leer);
-      liste.forEach((x) => { const o = document.createElement('option'); o.value = x.name; o.textContent = x.name + (x.funktion ? ' (' + x.funktion + ')' : ''); sel.appendChild(o); });
-      try { const z = localStorage.getItem('fz-login-name'); if (z && liste.some((x) => x.name === z)) sel.value = z; } catch (e) {}
-    }).anmeldeNamen();
+  const zahlenLaden = async () => {
+    if (!verw) { zahlen = null; return; }
+    try {
+      const r = await run('verwaltungZahlen', verw.pin);
+      if (!r.ok) { verw = null; zahlen = null; schreib('ff-verw', null); melde('Verwaltung: bitte neu anmelden.'); }
+      else { zahlen = r; if (r.rolle !== verw.rolle) { verw.rolle = r.rolle; schreib('ff-verw', verw); } }
+    } catch (e) { /* Zahlen sind nur Komfort */ }
+    if (seite.s === 'start') zeichne(false);
   };
-  $('k-name').onchange = () => { try { localStorage.setItem('fz-login-name', $('k-name').value); } catch (e) {} $('k-pin').focus(); };
-  namenLaden();
-  $('k-pin').onkeydown = (e) => { if (e.key === 'Enter') $('k-los').click(); };
-  $('k-abmelden').onclick = abmelden;
 
-  function zeigen() {
-    $('k-pinbox').hidden = true; $('k-inhalt').hidden = false;
-    $('k-stand').textContent = 'Stand ' + uhr(Date.now());
-    if (!timer) timer = setInterval(laden, 60000);
-    const jetzt = Date.now();
-
-    // Karten
-    $('k-fzs').textContent = '';
-    daten.fahrzeuge.forEach((f) => {
-      const u = f.unterwegs;
-      const k = el('div', 'fz ' + (u ? 'unterwegs' : 'frei'));
-      k.appendChild(el('div', 'band'));
-      const kopf = el('div', 'kopf'); kopf.appendChild(el('div', 'name', f.fahrzeug)); kopf.appendChild(el('div', 'pille', u ? 'unterwegs' : 'frei'));
-      k.appendChild(kopf);
-      const kp = el('div', 'koerper');
-      if (u) {
-        kp.appendChild(el('div', 'wer', u.name || '–'));
-        kp.appendChild(el('div', 'klein', (u.zweck || 'ohne Zweck') + ' · seit ' + wann(u.von)));
-        kp.appendChild(el('div', 'rest', 'zurück bis ' + wann(u.bis) + ' (noch ' + dauer(u.bis - jetzt) + ')'));
-        if (f.naechste) kp.appendChild(el('div', 'klein', 'danach: ' + wann(f.naechste.von) + ' · ' + f.naechste.name));
-        kp.appendChild(knopf(f.fahrzeug, u, 'Fahrt löschen'));
-      } else {
-        kp.appendChild(el('div', 'wer', 'in der Halle'));
-        kp.appendChild(el('div', 'klein', f.naechste ? 'nächste Fahrt ' + wann(f.naechste.von) + ' · ' + f.naechste.name + (f.naechste.zweck ? ' · ' + f.naechste.zweck : '') : 'keine Fahrt geplant'));
-        if (f.zuletzt) kp.appendChild(el('div', 'klein', 'zuletzt ' + wann(f.zuletzt.bis) + ' · ' + f.zuletzt.name));
-      }
-      k.appendChild(kp);
-      const z = f.zustand;
-      if (z) {
-        const b = z.bereit;
-        const cls = b === 'nein' ? 'nein' : b.indexOf('einge') === 0 ? 'eing' : 'ja';
-        const t = (cls === 'nein' ? '⛔ nicht einsatzbereit' : cls === 'eing' ? '⚠ eingeschränkt einsatzbereit' : '✓ einsatzbereit') +
-          (z.mangel && cls !== 'ja' ? ': ' + z.mangel : '') + (z.pickerl ? ' · Pickerl ' + z.pickerl : '');
-        k.appendChild(el('div', 'zst ' + cls, t));
-      }
-      $('k-fzs').appendChild(k);
-    });
-
-    // Zeitleiste: heute 0 Uhr −6 h bis +48 h
-    const a0 = new Date(); a0.setHours(0, 0, 0, 0);
-    const start = a0.getTime() - 6 * 3600e3, ende = a0.getTime() + 48 * 3600e3, span = ende - start;
-    const x = (t) => Math.max(0, Math.min(100, (t - start) / span * 100));
-    const tl = $('k-tl'); tl.textContent = '';
-    const flaeche = el('div'); flaeche.style.position = 'relative';
-    daten.fahrzeuge.forEach((f) => {
-      const z = el('div', 'zeile'); z.appendChild(el('div', 'lab', f.fahrzeug));
-      const s = el('div', 'spur');
-      f.fahrten.filter((b) => b.bis > start && b.von < ende).forEach((b) => {
-        const art = b.von <= jetzt && jetzt < b.bis ? 'jetzt' : b.von > jetzt ? 'spaeter' : '';
-        const bk = el('div', 'balken ' + art, b.name);
-        bk.style.left = x(b.von) + '%'; bk.style.width = Math.max(1.2, x(b.bis) - x(b.von)) + '%';
-        bk.title = b.text + ' · ' + b.name + (b.zweck ? ' · ' + b.zweck : '');
-        s.appendChild(bk);
-      });
-      z.appendChild(s); flaeche.appendChild(z);
-    });
-    // Achse
-    const achse = el('div', 'achse'); achse.appendChild(el('div'));
-    const ticks = el('div', 'ticks');
-    for (let t = a0.getTime(); t < ende; t += 6 * 3600e3) {
-      const d = new Date(t), mitternacht = d.getHours() === 0;
-      const sp = el('span', mitternacht ? 'tag' : '', mitternacht ? (heute(t) ? 'heute' : WT[d.getDay()] + ' ' + pad(d.getDate()) + '.') : pad(d.getHours()) + 'h');
-      sp.style.left = x(t) + '%'; ticks.appendChild(sp);
-    }
-    achse.appendChild(ticks); flaeche.appendChild(achse);
-    // Gitter + Jetzt-Linie über die Spuren legen (Spalte 2 der Zeilen)
-    const ueber = el('div'); ueber.style.cssText = 'position:absolute;top:0;bottom:0;left:62px;right:0;pointer-events:none';
-    for (let t = a0.getTime(); t < ende; t += 24 * 3600e3) { const g = el('div', 'gitter'); g.style.left = x(t) + '%'; ueber.appendChild(g); }
-    const nl = el('div', 'nl'); nl.style.left = x(jetzt) + '%'; ueber.appendChild(nl);
-    flaeche.appendChild(ueber);
-    tl.appendChild(flaeche);
-
-    // Liste
-    const alle = [];
-    daten.fahrzeuge.forEach((f) => f.fahrten.forEach((b) => alle.push(Object.assign({ fahrzeug: f.fahrzeug }, b))));
-    alle.sort((a, b) => a.von - b.von);
-    $('k-liste').textContent = '';
-    if (!alle.length) $('k-liste').appendChild(el('div', 'leer', 'Keine Buchungen.'));
-    alle.forEach((b) => {
-      const r = el('div', 'b' + (b.bis <= jetzt ? ' vorbei' : '')); r.appendChild(el('div', 'fzk', b.fahrzeug));
-      const i = el('div', 'info'); i.appendChild(document.createTextNode(b.name + ' '));
-      i.appendChild(el('span', '', wann(b.von) + ' – ' + (heute(b.bis) || new Date(b.bis).toDateString() === new Date(b.von).toDateString() ? uhr(b.bis) : wann(b.bis)) + (b.zweck ? ' · ' + b.zweck : '')));
-      r.appendChild(i); r.appendChild(knopf(b.fahrzeug, b, 'Löschen')); $('k-liste').appendChild(r);
-    });
-  }
-
-  // Löschen (nur mit PIN, Server prüft nochmals)
-  function knopf(fahrzeug, b, text) {
-    const k = el('button', 'weg', text); k.type = 'button';
-    k.onclick = () => frage(fahrzeug, b, (grund) => {
-      k.disabled = true; k.textContent = '…';
-      const fertig = (r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); };
-      if (window.google && google.script) google.script.run.withSuccessHandler(fertig).withFailureHandler((e) => fertig({ ok: false, fehler: e.message }))
-        .statusLoeschen(pin, b.zeile, fahrzeug, b.von, b.bis, grund);
-      else fertig({ ok: true, text: 'Gelöscht (Vorschau). Benachrichtigung gesendet.' });
-    });
-    return k;
-  }
-  function toast(t, istFehler) {
-    const d = el('div', 'toast' + (istFehler ? ' fehler' : ''), t); document.body.appendChild(d);
-    setTimeout(() => d.remove(), 6000);
-  }
-  // Rückfrage mit Begründung
-  function frage(fahrzeug, b, weiter) {
-    const hg = el('div', 'dlg'), box = el('div', 'box');
-    box.appendChild(el('h3', '', 'Fahrt löschen?'));
-    box.appendChild(el('div', 'was', fahrzeug + ' · ' + b.name + '\n' + wann(b.von) + ' – ' + wann(b.bis) + (b.zweck ? '\n' + b.zweck : '')));
-    box.appendChild(el('label', '', 'Begründung'));
-    const ta = el('textarea'); ta.maxLength = 500; ta.placeholder = 'z. B. Fahrzeug wird für Einsatzbereitschaft beim Fest gebraucht';
-    box.appendChild(ta);
-    box.appendChild(el('div', 'hinw', 'Geht per E-Mail an den Buchenden, falls eine Adresse hinterlegt ist.'));
-    const kn = el('div', 'knoepfe'), nein = el('button', '', 'Abbrechen'), ja = el('button', 'ja', 'Löschen');
-    nein.type = ja.type = 'button';
-    nein.onclick = () => hg.remove();
-    hg.onclick = (e) => { if (e.target === hg) hg.remove(); };
-    ja.onclick = () => { const g = ta.value.trim(); hg.remove(); weiter(g); };
-    kn.append(nein, ja); box.appendChild(kn); hg.appendChild(box); document.body.appendChild(hg);
-    ta.focus();
-  }
-
-  // Vorschau ohne Google (nur lokal zum Testen)
-  function demo() {
-    const n = Date.now(), h = 3600e3; let z = 2; const b = (name, zweck, von, bis) => ({ zeile: z++, name, zweck, von: n + von * h, bis: n + bis * h, text: '' });
-    const fz = (fahrzeug, fahrten, zustand) => ({ fahrzeug, zustand, fahrten,
-      unterwegs: fahrten.find((x) => x.von <= n && n < x.bis), naechste: fahrten.find((x) => x.von > n), zuletzt: fahrten.filter((x) => x.bis <= n).pop() });
-    return { ok: true, jetzt: n, fahrzeuge: [
-      fz('KLF-W', [b('Christoph Schmid', 'Übung', -20, -17), b('Max Mustermann', 'Fahrtraining', 30, 33)], { bereit: 'ja', mangel: '', pickerl: '03/2027' }),
-      fz('MTF', [b('Raphael Schön', 'Besorgung', -1.2, 1.5), b('Anna Huber', 'Jugend', 8, 12)], { bereit: 'ja', mangel: '', pickerl: '10/2027' }),
-      fz('VFA', [b('Lukas Bauer', 'Werkstatt/Service', 20, 26)], { bereit: 'eingeschränkt', mangel: 'Rückfahrkamera defekt', pickerl: '06/2027' })
-    ] };
-  }
-  window.kommandoStart = () => { if (pin && !daten) laden(); };
-  window.kommandoNeu = () => { if (rolle === 'kommando') laden(); };
-})();
-</script>
-<script>
-// ---------- Anwesenheit: Mitglied scannt QR-Code ----------
-(() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const run = () => google.script.run;
-  let daten = null, wahl = null, ich = '';
-  try { ich = localStorage.getItem('da-name') || ''; } catch (e) {}
-  const melden = (t, art) => { const m = $('a-meldung'); m.textContent = t; m.className = 'meldung ' + art; };
-  const norm = (x) => String(x || '').trim().toLowerCase();
-  const wer = () => (ich && !$('a-ichbox').hidden ? ich : $('a-name').value.trim());
-  // „Ich gehe“ nur zeigen, wenn die Person gerade irgendwo eingetragen und nicht gegangen ist
-  const gehenZeigen = () => {
-    const n = norm(wer());
-    $('a-gehen').hidden = !(n && daten && (daten.haus || []).some((t) => t.status === 'offen' && t.personen.some((p) => norm(p.name) === n && !p.weg)));
+  // ---------- Bausteine ----------
+  const kopfZurueck = (text) => h('div', { class: 'bar' }, h('button', { type: 'button', class: 'zurueck', onclick: zurueck }, icon('links'), text || 'Zurück'));
+  const fzById = (id) => daten.fahrzeuge.find((f) => f.id === id);
+  const meineFahrt = () => { if (!daten || !ich) return null; for (const f of daten.fahrzeuge) { const u = f.unterwegs; if (u && u.laeuft && norm(u.name) === norm(ich)) return { fz: f.id, b: u }; } return null; };
+  // Status eines Fahrzeugs für die Anzeige
+  const lage = (f) => {
+    const u = f.unterwegs, mein = u && norm(u.name) === norm(ich);
+    const sp = f.sperren.find((x) => x.laeuft && x.status === 'Nein');
+    if (f.bereit === 'Nein' || sp) return { k: 'aus', farbe: 'rot', text: 'Außer Dienst', info: f.mangel || (sp && sp.grund) || 'außer Dienst' };
+    if (u && mein && u.laeuft) return { k: 'du', farbe: 'gelb', text: 'Du bist unterwegs', info: 'Bewegungsfahrt seit ' + uhr(u.von) };
+    if (u) return { k: 'weg', farbe: 'gelb', text: 'Unterwegs', info: (mein ? 'Du' : u.name) + (u.laeuft ? ' · Bewegungsfahrt seit ' + uhr(u.von) : ' · zurück ' + wann(u.bis)) };
+    if (f.bereit === 'Eingeschränkt') return { k: 'eing', farbe: 'gelb', text: 'Eingeschränkt', info: 'Einsatzbereit mit Einschränkung' + (f.mangel ? ': ' + f.mangel : '') };
+    const n = f.fahrten.find((b) => b.von > Date.now());
+    return { k: 'frei', farbe: 'gruen', text: 'Frei', info: n ? 'nächste Fahrt ' + wann(n.von) : 'In der Halle · einsatzbereit' };
   };
-  const zeigeIch = () => {
-    const bekannt = ich && daten && daten.namen.indexOf(ich) !== -1;
-    $('a-ichbox').hidden = !bekannt; $('a-namebox').hidden = !!bekannt;
-    if (bekannt) $('a-ich').textContent = ich;
-    gehenZeigen();
-  };
-  const pad = (n) => String(n).padStart(2, '0');
-  const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  const offenAuf = {};
-  const hausZeigen = () => {
-    const haus = (daten && daten.haus) || [], box = $('a-haus');
-    $('a-hauskarte').hidden = !haus.length; box.textContent = '';
-    haus.forEach((t) => {
-      const da = t.personen.filter((p) => !p.weg), weg = t.personen.filter((p) => p.weg);
-      const w = el('div', 'haus-t' + (offenAuf[t.id] ? ' auf' : ''));
-      const b = el('button'); b.type = 'button';
-      b.append(el('span', 'pf', '›'), el('b', '', t.titel),
-        el('small', '', ' · ' + (t.status === 'offen' ? 'seit ' + hm(t.beginn) : hm(t.beginn) + (t.ende ? '–' + hm(t.ende) : '') + ' · abgeschlossen') + ' · ' + (t.status === 'offen' ? da.length + ' da' + (weg.length ? ', ' + weg.length + ' gegangen' : '') : t.personen.length + ' Personen')),
-        el('div', 'namen', (t.status === 'offen' ? da : t.personen).map((p) => p.name).join(', ') || 'alle schon gegangen'));
-      b.onclick = () => { offenAuf[t.id] = !offenAuf[t.id]; w.classList.toggle('auf'); };
-      const det = el('div', 'det');
-      if (t.art) det.appendChild(el('div', '', 'Tätigkeit: ' + t.art));
-      t.personen.forEach((p) => { const z = el('div', p.weg ? 'weg' : ''); z.append(el('b', '', p.name), el('span', '', p.weg ? hm(p.seit) + '–' + hm(p.weg) : 'seit ' + hm(p.seit))); det.appendChild(z); });
-      w.append(b, det); box.appendChild(w);
-    });
-  };
-  const zeigen = (d) => {
-    daten = d;
-    $('a-namen').textContent = '';
-    d.namen.forEach((n) => { const o = document.createElement('option'); o.value = n; $('a-namen').appendChild(o); });
-    zeigeIch();
-    $('a-art').textContent = '';
-    [''].concat(d.arten).forEach((a) => { const o = document.createElement('option'); o.value = a; o.textContent = a || '– bitte wählen –'; $('a-art').appendChild(o); });
-    const t = $('a-termine'); t.textContent = '';
-    const opts = d.termine.map((x) => ({ id: x.id, titel: x.titel, sub: x.text + (x.anzahl ? ' · ' + x.anzahl + ' da' : '') }))
-      .concat([{ id: '', titel: d.termine.length ? 'Etwas anderes …' : 'Kein Termin eingetragen – auswählen, was du machst', sub: '' }]);
-    if (wahl === null || !opts.some((o) => o.id === wahl)) wahl = d.termine.length === 1 ? d.termine[0].id : d.termine.length ? null : '';
-    opts.forEach((o) => {
-      const b = el('button', o.id === wahl ? 'an' : '', o.titel); b.type = 'button';
-      if (o.sub) b.appendChild(el('small', '', o.sub));
-      b.onclick = () => { wahl = o.id; zeigen(daten); };
-      t.appendChild(b);
-    });
-    $('a-artbox').hidden = wahl !== '';
-    hausZeigen(); gehenZeigen();
-  };
-  const laden = () => run().withSuccessHandler(zeigen).withFailureHandler((e) => { $('a-termine').textContent = ''; melden(e.message, 'fehler'); }).daStart();
-  $('a-wechsel').onclick = () => { ich = ''; try { localStorage.removeItem('da-name'); } catch (e) {} zeigeIch(); $('a-name').value = ''; $('a-name').focus(); };
-  $('a-los').onclick = () => {
-    const name = ich && !$('a-ichbox').hidden ? ich : $('a-name').value.trim();
-    if (!name) return melden('Bitte deinen Namen wählen.', 'fehler');
-    if (wahl === null) return melden('Bitte auswählen, wofür du da bist.', 'fehler');
-    if (wahl === '' && !$('a-art').value) return melden('Bitte auswählen, was du machst.', 'fehler');
-    $('a-los').disabled = true; melden('Wird eingetragen …', 'ok');
-    run().withSuccessHandler((r) => {
-      $('a-los').disabled = false;
-      if (!r.ok) return melden(r.fehler, 'fehler');
-      ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
-      melden('', ''); $('a-meldung').className = 'meldung';
-      $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
-      laden();                                   // Liste „Heute im Feuerwehrhaus“ sofort mit dir
-    }).withFailureHandler((e) => { $('a-los').disabled = false; melden('Fehler: ' + e.message, 'fehler'); })
-      .daEinchecken({ name, termin: wahl, art: $('a-art').value, titel: $('a-titel').value.trim() });
-  };
-  $('a-nochmal').onclick = () => { $('a-ok').hidden = true; $('a-form').hidden = false; $('a-titel').value = ''; laden(); };
-  $('a-name').addEventListener('input', gehenZeigen);
-  $('a-gehen').onclick = () => {
-    const name = wer();
-    if (!name) return melden('Bitte deinen Namen wählen.', 'fehler');
-    $('a-gehen').disabled = true; melden('Wird ausgetragen …', 'ok');
-    run().withSuccessHandler((r) => {
-      $('a-gehen').disabled = false;
-      if (!r.ok) return melden(r.fehler, 'fehler');
-      ich = name; try { localStorage.setItem('da-name', name); } catch (e) {}
-      melden('', ''); $('a-meldung').className = 'meldung';
-      $('a-form').hidden = true; $('a-ok').hidden = false; $('a-oktext').textContent = r.text;
+  const rollen = () => ({
+    fz: !!verw && (verw.rolle === 'kommando' || verw.rolle === 'fahrmeister'),
+    anw: !!verw && verw.rolle === 'kommando',
+    text: verw ? (verw.funktion || { kommando: 'Kommando', fahrmeister: 'Fahrmeister', pruefer: 'Prüfer' }[verw.rolle] || '') : ''
+  });
+
+  // ---------- Seiten ----------
+  const SEITEN = {};
+
+  SEITEN.wer = () => {
+    let q = '';
+    const liste = h('div', { class: 'liste' });
+    const waehle = (n) => {
+      const gleich = norm(n) === norm(ich);
+      ich = n; schreib('ff-ich', n);
+      if (!gleich) { verw = null; zahlen = null; schreib('ff-verw', null); }
+      if (ziel) { stapel.length = 0; stapel.push({ s: 'start' }); seite = ziel; ziel = null; zeichne(true); } else heim();
       laden();
-    }).withFailureHandler((e) => { $('a-gehen').disabled = false; melden('Fehler: ' + e.message, 'fehler'); }).daGehen({ name });
+    };
+    const fuellen = () => {
+      liste.textContent = '';
+      const t = daten.mitglieder.filter((n) => !q || norm(n).indexOf(norm(q)) !== -1);
+      t.forEach((n) => liste.appendChild(h('button', { type: 'button', class: 'zeile', onclick: () => waehle(n) },
+        h('span', { class: 'logo rund' }, kuerzel(n)), h('span', { class: 't' }, h('b', null, n)), icon('rechts'))));
+      if (!t.length) liste.appendChild(h('div', { style: 'padding:16px 0', class: 'sub' }, daten.mitglieder.length ? 'Kein Treffer. Fehlt dein Name? Bitte beim Kommando melden.' : 'Die Mitgliederliste ist noch leer. Bitte beim Kommando melden.'));
+    };
+    fuellen();
+    return [ich ? kopfZurueck('Zurück') : null, h('div', { class: 'kopf', style: ich ? 'padding-top:0' : '' }, h('div', { class: 'logo' }, 'FF'), h('div', { class: 'ff' }, 'FF Deutsch Haslau')),
+      h('h1', null, 'Wer bist du?'), h('p', { class: 'sub' }, 'Einmal antippen. Dein Handy merkt sich das.'),
+      h('label', { class: 'label', for: 'suche' }, 'Name suchen'), h('input', { id: 'suche', type: 'search', placeholder: 'z. B. Huber', autocomplete: 'off', oninput: (e) => { q = e.target.value; fuellen(); } }), liste];
   };
-  let geladen = false;
-  window.anwStart = () => { if (!geladen) { geladen = true; laden(); setInterval(() => { if (!$('anwesenheit').hidden && document.visibilityState === 'visible') laden(); }, 60000); } };
-})();
 
-// ---------- Anwesenheit: Kommando prüft, trägt nach, schließt ab ----------
-(() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const pad = (n) => String(n).padStart(2, '0');
-  const lokal = (t) => { if (!t) return ''; const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  let pin = '';
-  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 5000); };
-  const feld = (label, input, breit) => { const w = el('div', breit ? 'breit' : ''); w.appendChild(el('label', '', label)); w.appendChild(input); return w; };
-  const auswahl = (werte, wert) => { const s = el('select'); werte.forEach((v) => { const o = el('option', '', v || '–'); o.value = v; if (v === wert) o.selected = true; s.appendChild(o); }); return s; };
-  const aktion = (a, knopf) => {
-    if (knopf) knopf.disabled = true;
-    google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); })
-      .withFailureHandler((e) => { toast(e.message, true); laden(); }).anwAktion(pin, a);
+  SEITEN.start = () => {
+    const mf = meineFahrt(), da = daten.da || {}, mein = da.mein, r = rollen();
+    const ausN = daten.fahrzeuge.filter((f) => lage(f).k === 'aus').length;
+    const out = [h('div', { class: 'kopf' }, h('div', { class: 'logo' }, 'FF'), h('div', { class: 'ff' }, 'FF Deutsch Haslau'),
+      h('button', { type: 'button', class: 'link', onclick: () => zeige({ s: 'wer' }) }, 'Nicht ' + vorname(ich) + '?')),
+      h('h1', null, 'Hallo ' + vorname(ich))];
+    if (mf) out.push(h('div', { class: 'laeuft' }, h('div', { style: 'font-weight:700' }, h('span', { class: 'punkt' }), 'Läuft gerade'),
+      h('div', { style: 'font-size:23px;font-weight:700;margin:6px 0 2px' }, 'Bewegungsfahrt ' + mf.fz),
+      h('div', null, 'seit ' + uhr(mf.b.von) + ' Uhr · ' + dauer(Date.now() - mf.b.von)),
+      h('button', { type: 'button', class: 'btn gruen', style: 'margin-top:14px', onclick: () => einruecken(mf) }, 'Einrücken')));
+    if (mein) out.push(h('div', { class: 'dabox' }, icon('haken', 28), h('div', { style: 'flex:1' }, 'Du bist eingetragen', h('span', null, mein.titel + ' · seit ' + uhr(mein.seit))),
+      h('button', { type: 'button', class: 'link', onclick: () => zeige({ s: 'da' }) }, 'Ändern')));
+    const fzKurz = daten.fahrzeuge.map((f) => { const l = lage(f); return f.id + ' ' + (l.k === 'frei' ? 'frei' : l.k === 'aus' ? 'außer Dienst' : l.k === 'eing' ? 'eingeschränkt' : 'unterwegs'); }).join(' · ');
+    const kachel = (ic, titel, text, ziel) => h('button', { type: 'button', class: 'kachel', onclick: () => zeige(ziel) }, h('span', { class: 'ic' }, icon(ic, 28)), h('span', { class: 't' }, h('b', null, titel), h('span', null, text)), icon('rechts'));
+    out.push(h('div', { class: 'gitter' },
+      kachel('da', 'Ich bin da', mein ? 'Eingetragen: ' + mein.titel : 'Anwesenheit eintragen', { s: 'da' }),
+      kachel('auto', 'Fahrzeuge', fzKurz, { s: 'fahrzeuge' }),
+      kachel('doku', 'Einsatz', 'Pläne und Unterlagen', { s: 'einsatz' })));
+    if (verw) {
+      const kl = (ic, titel, pill, ziel) => h('button', { type: 'button', class: 'kachel k', onclick: () => zeige(ziel) }, h('span', { class: 'ic' }, icon(ic, 22)), h('span', { class: 't' }, h('b', null, titel)), pill);
+      const g = zahlen && zahlen.geraete;
+      out.push(h('div', { class: 'label', style: 'margin-top:28px' }, 'Verwaltung · ' + r.text), h('div', { class: 'gitter', style: 'gap:10px' },
+        r.fz ? kl('schild', 'Fahrzeugstatus', ausN ? h('span', { class: 'pill rot' }, ausN + ' außer Dienst') : h('span', { class: 'pill gruen' }, 'alle bereit'), { s: 'fzstatus' }) : null,
+        kl('werkzeug', 'Geräteprüfung', g ? (g.rot || g.gelb ? h('span', { class: 'pill ' + (g.rot ? 'rot' : 'gelb') }, (g.rot + g.gelb) + ' fällig') : h('span', { class: 'pill gruen' }, 'alles geprüft')) : null, { s: 'geraete' }),
+        r.anw ? kl('liste', 'Anwesenheit prüfen', zahlen && zahlen.anwOffen != null ? h('span', { class: 'pill ' + (zahlen.anwOffen ? 'gelb' : 'gruen') }, zahlen.anwOffen ? zahlen.anwOffen + ' offen' : 'alles erledigt') : null, { s: 'anwp' }) : null,
+        h('button', { type: 'button', class: 'link', style: 'justify-self:start', onclick: () => frage({ titel: 'Verwaltung abmelden?', text: 'Zum Anmelden brauchst du dann wieder deinen PIN.', ja: 'Ja, abmelden', aktion: () => { verw = null; zahlen = null; schreib('ff-verw', null); zeichne(false); melde('Verwaltung abgemeldet.'); } }) }, 'Verwaltung abmelden')));
+    } else {
+      out.push(h('button', { type: 'button', class: 'leise', onclick: () => zeige({ s: 'pin' }) }, icon('schloss', 20), 'Verwaltung (mit PIN)'));
+    }
+    return out;
   };
-  const zeigen = (d) => {
-    const box = $('k-anw'); box.textContent = '';
-    if (!d.ok) { box.appendChild(el('div', 'leer', d.fehler)); return; }
-    if (d.fehlt) { box.appendChild(el('div', 'leer', d.fehlt)); return; }
-    if (!d.termine.length) { box.appendChild(el('div', 'leer', 'Keine offenen Termine. Abgeschlossene werden nach dem Eintragen ins FDISK ausgeblendet.')); return; }
-    const dl = el('datalist'); dl.id = 'k-anw-namen'; d.namen.forEach((n) => { const o = el('option'); o.value = n; dl.appendChild(o); }); box.appendChild(dl);
-    d.termine.forEach((t) => {
-      const w = el('div', 'anw-t');
-      const kopf = el('div', 'anw-kopf'); kopf.appendChild(el('b', '', t.titel + ' · ' + t.personen.length));
-      kopf.appendChild(el('span', 'badge' + (t.status === 'offen' ? '' : ' zu'), t.status)); w.appendChild(kopf);
-      w.appendChild(el('div', 'leer', t.text));
-      const titel = el('input'); titel.value = t.titel; titel.maxLength = 80;
-      const art = auswahl([''].concat(d.arten), t.art);
-      const unter = auswahl((d.unterarten[t.art] || ['']), t.unterart);
-      let unterRef = unter;
-      art.onchange = () => { const neu = auswahl(d.unterarten[art.value] || [''], ''); unterRef.replaceWith(neu); unterRef = neu; };
-      const beginn = el('input'); beginn.type = 'datetime-local'; beginn.value = lokal(t.beginn);
-      const ende = el('input'); ende.type = 'datetime-local'; ende.value = lokal(t.ende);
-      const bem = el('input'); bem.value = t.bemerkung; bem.maxLength = 300; bem.placeholder = 'Bemerkung fürs FDISK';
-      const grid = el('div', 'anw-grid');
-      grid.append(feld('Titel', titel, true), feld('FDISK-Art', art), feld('Unterart', unter), feld('Beginn', beginn), feld('Ende', ende), feld('Bemerkung', bem, true));
-      w.appendChild(grid);
-      const chips = el('div', 'pchips');
-      t.personen.forEach((p) => {
-        const c = el('span', 'pchip' + (p.fehlt ? ' warn' : ''), p.name + (p.quelle === 'nachgetragen' ? ' (nachgetr.)' : '') + (p.fehlt ? ' ⚠ Standesbuchnr. fehlt' : ''));
-        const x = el('button', '', '×'); x.type = 'button'; x.title = 'entfernen';
-        x.onclick = () => { if (confirm(p.name + ' aus „' + t.titel + '“ entfernen?')) aktion({ aktion: 'entfernen', id: t.id, name: p.name }, x); };
-        c.appendChild(x); chips.appendChild(c);
-      });
-      w.appendChild(chips);
-      const nt = el('div', 'nachtragen'); const ni = el('input'); ni.setAttribute('list', 'k-anw-namen'); ni.placeholder = 'Name nachtragen';
-      const nb = el('button', '', '+ Nachtragen'); nb.type = 'button';
-      nb.onclick = () => { if (ni.value.trim()) aktion({ aktion: 'nachtragen', id: t.id, name: ni.value.trim() }, nb); };
-      nt.append(ni, nb); w.appendChild(nt);
-      const kn = el('div', 'anw-knoepfe');
-      const sp = el('button', '', 'Speichern'); sp.type = 'button';
-      const daten = () => ({ id: t.id, titel: titel.value.trim(), art: art.value, unterart: unterRef.value, beginn: beginn.value, ende: ende.value, bemerkung: bem.value.trim() });
-      sp.onclick = () => aktion(Object.assign({ aktion: 'speichern' }, daten()), sp);
-      kn.appendChild(sp);
-      if (t.status === 'offen') {
-        const ab = el('button', 'rot', 'Abschließen'); ab.type = 'button';
-        ab.onclick = () => {
-          if (!art.value) return toast('Bitte zuerst die FDISK-Art wählen.', true);
-          if (!confirm('„' + titel.value + '“ mit ' + t.personen.length + ' Personen abschließen?')) return;
-          ab.disabled = true;
-          google.script.run.withSuccessHandler((r) => {
-            if (!r.ok) { toast(r.fehler, true); laden(); return; }
-            aktion({ aktion: 'abschliessen', id: t.id, wer: 'Kommando' }, ab);
-          }).withFailureHandler((e) => { toast(e.message, true); laden(); }).anwAktion(pin, Object.assign({ aktion: 'speichern' }, daten()));
-        };
-        kn.appendChild(ab);
-      } else {
-        const of = el('button', '', 'Wieder öffnen'); of.type = 'button';
-        of.onclick = () => aktion({ aktion: 'oeffnen', id: t.id }, of);
-        kn.appendChild(of);
-      }
-      const lo = el('button', 'weg2', 'Löschen'); lo.type = 'button';
-      lo.onclick = () => { if (confirm('„' + t.titel + '“ samt ' + t.personen.length + ' Einträgen löschen?')) aktion({ aktion: 'loeschen', id: t.id }, lo); };
-      kn.appendChild(lo);
-      w.appendChild(kn);
-      box.appendChild(w);
-    });
+
+  SEITEN.fahrzeuge = () => [kopfZurueck('Start'), h('h1', null, 'Fahrzeuge'), h('div', { class: 'gitter' }, daten.fahrzeuge.map((f) => {
+    const l = lage(f);
+    return h('button', { type: 'button', class: 'fz', onclick: () => zeige(l.k === 'du' ? { s: 'laeuft' } : { s: 'fahrzeug', id: f.id }) },
+      h('span', { class: 'band ' + l.farbe }), h('span', { class: 't' }, h('b', null, f.id), h('span', { class: 'pill ' + l.farbe }, l.text), h('span', { class: 'info' }, l.info)), h('span', { class: 'pf' }, icon('rechts')));
+  }))];
+
+  const bfStart = (f, mf) => {
+    if (mf) { melde('Du bist schon mit dem ' + mf.fz + ' unterwegs. Bitte zuerst einrücken.', true); return; }
+    frage({ titel: 'Bewegungsfahrt starten?', text: f.id + ' · ab jetzt · ' + ich, ja: 'Ja, jetzt losfahren', aktion: async () => { antwort(await run('bewegungStart', { fahrzeug: f.id, name: ich })); await laden(); stapel.length = 0; stapel.push({ s: 'start' }); seite = { s: 'laeuft' }; zeichne(true); } });
   };
-  const laden = () => google.script.run.withSuccessHandler(zeigen).withFailureHandler((e) => { $('k-anw').textContent = e.message; }).anwUebersicht(pin);
-  $('k-anw-neu').onclick = () => laden();
-  window.anwKommando = (p) => { pin = p; laden(); };
-})();
-</script>
-<script>
-// ---------- Geräteprüfungen (Kommando- und Prüfer-PIN) ----------
-(() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const box = () => $('k-pruef');
-  let pin = '', ansicht = null;
-  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 5000); };
-  const run = (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
-  const STATUS = { rot: 'überfällig / Mangel', gelb: 'bald fällig', grau: 'noch nie erfasst', gruen: 'ok' };
-  const pill = (st, txt) => el('span', 'pp ' + st, txt || STATUS[st]);
+  const einruecken = (mf) => frage({ titel: 'Einrücken?', text: mf.fz + ' · Bewegungsfahrt ' + dauer(Date.now() - mf.b.von), ja: 'Ja, ich bin zurück', gruen: true,
+    aktion: async () => { antwort(await run('bewegungEnde', mf.b.zeile, ich)); await laden(); heim(); } });
 
-  function uebersicht() {
-    ansicht = null; box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
-    run('pruefUebersicht', pin).then((d) => {
-      box().textContent = '';
-      if (!d.ok) { box().appendChild(el('div', 'leer', d.fehler)); return; }
-      if (d.fehlt) { box().appendChild(el('div', 'leer', d.fehlt)); return; }
-      const g = d.gesamt;
-      const kopf = el('div', 'pk-kopf'); kopf.appendChild(el('b', '', g.n + ' Geräte'));
-      if (g.rot) kopf.appendChild(pill('rot', g.rot + ' überfällig'));
-      if (g.gelb) kopf.appendChild(pill('gelb', g.gelb + ' bald'));
-      if (g.grau) kopf.appendChild(pill('grau', g.grau + ' nie erfasst'));
-      box().appendChild(kopf);
-      const w = el('div', 'pk-werkz'); const q = el('input'); q.placeholder = 'Suchen: Bezeichnung, Inventar- oder Seriennr.'; q.id = 'k-pruef-suche';
-      const qb = el('button', '', 'Suchen'); qb.type = 'button'; qb.onclick = () => { if (q.value.trim()) liste({ suche: q.value.trim() }, 'Suche „' + q.value.trim() + '“'); };
-      q.onkeydown = (e) => { if (e.key === 'Enter') qb.click(); };
-      const fb = el('button', '', 'Alle fälligen'); fb.type = 'button'; fb.onclick = () => liste({ faellig: true }, 'Alle fälligen');
-      const nb = el('button', '', '+ Gerät'); nb.type = 'button'; nb.onclick = () => formular(null, {});
-      w.append(q, qb, fb, nb); box().appendChild(w);
-      box().appendChild(el('h2', '', 'Wo prüfst du?'));
-      const ow = el('div', 'ortwahl');
-      d.orte.forEach((o) => {
-        const b = el('button'); b.type = 'button';
-        const l = el('span', '', o.ort); l.appendChild(el('small', '', ' · ' + o.n));
-        b.appendChild(l);
-        b.appendChild(o.rot ? pill('rot', o.rot + ' überfällig') : o.gelb ? pill('gelb', o.gelb + ' bald') : o.grau === o.n ? pill('grau', 'noch nie') : o.grau ? pill('grau', o.grau + ' offen') : pill('gruen', 'alles ok'));
-        b.onclick = () => liste({ ort: o.ort }, o.ort);
-        ow.appendChild(b);
-      });
-      box().appendChild(ow);
-    }).catch((e) => { box().textContent = e.message; });
-  }
+  SEITEN.fahrzeug = () => {
+    const f = fzById(seite.id); if (!f) return SEITEN.fahrzeuge();
+    const l = lage(f), mf = meineFahrt();
+    const out = [kopfZurueck('Fahrzeuge'), h('h1', { style: 'margin-bottom:2px' }, f.id), f.art ? h('div', { class: 'sub', style: 'margin-bottom:16px' }, f.art) : h('div', { style: 'height:12px' }),
+      h('div', { class: 'box ' + l.farbe }, h('div', { class: 'gross' }, l.text), h('div', { style: 'font-size:18px;margin-top:2px' }, l.info))];
+    const knoepfe = h('div', { class: 'gitter', style: 'margin-top:20px' });
+    if (l.k === 'frei' || l.k === 'eing') knoepfe.appendChild(h('button', { type: 'button', class: 'btn haupt gross', onclick: () => bfStart(f, mf) }, 'Bewegungsfahrt starten'));
+    if (l.k === 'du' && mf) knoepfe.appendChild(h('button', { type: 'button', class: 'btn gruen gross', onclick: () => einruecken(mf) }, 'Einrücken'));
+    if (l.k !== 'aus') knoepfe.appendChild(h('button', { type: 'button', class: 'btn zweit', onclick: () => zeige({ s: 'res', id: f.id }) }, 'Für später reservieren'));
+    else knoepfe.appendChild(h('p', null, 'Dieses Fahrzeug kann derzeit nicht gebucht werden.'));
+    out.push(knoepfe);
+    const geplant = f.sperren.filter((x) => !x.laeuft && x.status === 'Nein');
+    if (geplant.length) out.push(h('div', { class: 'hinweis' }, geplant.map((x) => h('div', null, 'Geplant außer Dienst: ' + (x.bis ? spanne(x.von, x.bis) : 'ab ' + wann(x.von) + ' (bis auf Weiteres)') + ' · ' + x.grund))));
+    const fl = f.fahrten.filter((b) => b.bis > Date.now());
+    out.push(h('div', { class: 'label', style: 'margin-top:28px' }, 'Nächste Fahrten'), h('div', { class: 'liste' },
+      fl.length ? fl.map((b) => h('div', { class: 'zeile' }, h('div', { class: 't' }, h('b', null, spanne(b.von, b.bis)), h('span', { class: 'sub klein' }, b.name + (b.zweck ? ' · ' + b.zweck : ''))),
+        norm(b.name) === norm(ich) && !b.laeuft ? h('button', { type: 'button', class: 'knopf', onclick: () => frage({ titel: 'Fahrt absagen?', text: f.id + ' · ' + spanne(b.von, b.bis) + (b.zweck ? '\n' + b.zweck : ''), ja: 'Ja, absagen', aktion: async () => { antwort(await run('absagen', b.zeile, ich)); await laden(); } }) }, 'Absagen') : null))
+        : h('div', { class: 'sub', style: 'padding:16px 0' }, 'Keine Fahrten geplant.')));
+    return out;
+  };
 
-  function liste(filter, titel) {
-    ansicht = { filter, titel };
-    box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
-    run('pruefListe', pin, filter).then((d) => {
-      box().textContent = '';
-      if (!d.ok) { box().appendChild(el('div', 'leer', d.fehler)); return; }
-      const kopf = el('div', 'pk-kopf');
-      const zur = el('button', '', '‹ Orte'); zur.type = 'button'; zur.onclick = uebersicht;
-      kopf.append(zur, el('b', '', titel + ' · ' + d.geraete.length));
-      const alle = el('button', '', 'Alle ok'); alle.type = 'button';
-      const hier = el('button', '', '+ Gerät'); hier.type = 'button'; hier.onclick = () => formular(null, { ort: filter.ort || '' });
-      kopf.append(alle, hier); box().appendChild(kopf);
-      if (!d.geraete.length) { box().appendChild(el('div', 'leer', 'Keine Geräte.')); return; }
-      const wahl = new Map();   // id → { art, ergebnis, bem }
-      const rows = el('div');
-      const zaehler = el('button', 'los pk-speichern', 'Prüfung speichern'); zaehler.type = 'button';
-      const neuZaehlen = () => { const v = Array.from(wahl.values()); const ok = v.filter((x) => x.ergebnis === 'OK').length, m = v.length - ok;
-        zaehler.textContent = v.length ? 'Prüfung speichern (' + ok + ' ok' + (m ? ' · ' + m + ' Mangel' : '') + ')' : 'Geräte antippen: ✓ ok, nochmal = Mangel'; zaehler.disabled = !v.length; };
-      const zeilen = [];
-      d.geraete.forEach((g) => {
-        const r = el('div', 'gz'); const bx = el('button', 'bx', ''); bx.type = 'button'; bx.title = 'antippen: ok · nochmal: Mangel · nochmal: leer';
-        const t = el('div', 't'); t.appendChild(el('b', '', g.bez + (g.anzahl > 1 ? ' (' + g.anzahl + ' Stk.)' : '')));
-        const p0 = g.pruefungen[0];
-        const sub = [g.inv ? 'Nr. ' + g.inv : '', g.serie ? 'SN ' + g.serie : '', filter.ort ? '' : g.ort].filter(Boolean).join(' · ');
-        if (sub) t.appendChild(el('small', '', sub));
-        const info = g.pruefungen.map((p) => p.art + ': ' + (p.letzte ? 'zuletzt ' + p.letzte + (p.ergebnis === 'Mangel' ? ' (Mangel: ' + p.bem + ')' : '') + ' · fällig ' + p.faellig : 'noch nie erfasst')).join(' | ');
-        t.appendChild(el('small', '', info));
-        let sel = null;
-        if (g.pruefungen.length > 1) { sel = el('select'); g.pruefungen.forEach((p) => { const o = el('option', '', p.art); o.value = p.art; sel.appendChild(o); }); sel.onchange = () => { const w = wahl.get(g.id); if (w) w.art = sel.value; }; t.appendChild(sel); }
-        const mb = el('input', 'mb'); mb.placeholder = 'Was ist der Mangel?'; mb.maxLength = 300; mb.hidden = true;
-        mb.oninput = () => { const w = wahl.get(g.id); if (w) w.bem = mb.value; };
-        t.appendChild(mb);
-        const setz = (zust) => {
-          bx.className = 'bx' + (zust === 'OK' ? ' ok' : zust === 'Mangel' ? ' m' : ''); bx.textContent = zust === 'OK' ? '✓' : zust === 'Mangel' ? '!' : '';
-          mb.hidden = zust !== 'Mangel';
-          if (zust) wahl.set(g.id, { id: g.id, art: sel ? sel.value : p0.art, ergebnis: zust, bem: mb.value }); else wahl.delete(g.id);
-          neuZaehlen();
-        };
-        bx.onclick = () => { const w = wahl.get(g.id); setz(!w ? 'OK' : w.ergebnis === 'OK' ? 'Mangel' : ''); if (!mb.hidden) mb.focus(); };
-        zeilen.push(setz);
-        const ed = el('button', 'ed', '✎'); ed.type = 'button'; ed.title = 'Gerät bearbeiten oder ausscheiden';
-        ed.onclick = () => formular(g, {});
-        const rechts = el('div', 'rechts'); rechts.append(pill(g.status), ed);
-        r.append(bx, t, rechts); rows.appendChild(r);
+  SEITEN.laeuft = () => {
+    const mf = meineFahrt();
+    if (!mf) return [kopfZurueck('Start'), h('h1', null, 'Keine laufende Fahrt'), h('p', { class: 'sub' }, 'Du bist gerade mit keinem Fahrzeug unterwegs.')];
+    return [h('div', { style: 'padding-top:40px;text-align:center' },
+      h('div', { style: 'width:22px;height:22px;border-radius:50%;margin:0 auto;background:var(--gelb-band);box-shadow:0 0 0 10px var(--gelb-bg)' }),
+      h('div', { class: 'sub', style: 'font-weight:700;margin-top:18px' }, 'Bewegungsfahrt läuft'),
+      h('div', { style: 'font-size:56px;font-weight:700;line-height:1.1;margin:8px 0' }, mf.fz),
+      h('div', { style: 'font-size:21px' }, 'seit ' + uhr(mf.b.von) + ' Uhr · ' + dauer(Date.now() - mf.b.von)),
+      h('p', { class: 'sub', style: 'margin:22px 8px 28px' }, 'Nach der Fahrt hier einrücken. Die Fahrt steht automatisch im Fahrtenbuch.'),
+      h('button', { type: 'button', class: 'btn gruen', style: 'min-height:92px;font-size:26px', onclick: () => einruecken(mf) }, 'Einrücken'),
+      h('button', { type: 'button', class: 'leise', onclick: heim }, 'Zur Startseite'))];
+  };
+
+  SEITEN.res = () => {
+    const f = fzById(seite.id); if (!f) return SEITEN.fahrzeuge();
+    if (seite.fertig) return [kopfZurueck(f.id), h('div', { style: 'text-align:center;padding-top:60px' }, h('div', { class: 'haken' }, icon('haken', 54)),
+      h('h1', { style: 'margin-top:20px' }, 'Reserviert'), h('p', { style: 'font-size:21px' }, seite.fertig),
+      h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:24px', onclick: zurueck }, 'Fertig'))];
+    const morgen = new Date(); morgen.setDate(morgen.getDate() + 1); const std = new Date().getHours();
+    const v = seite.form || (seite.form = { tag: std >= 21 ? 'morgen' : 'heute', datum: isoTag(morgen), bisDatum: isoTag(morgen), mehr: false,
+      von: std >= 21 ? '09:00' : pad(std + 1) + ':00', bis: std >= 21 ? '11:00' : pad(Math.min(23, std + 3)) + ':00', zweck: 'Übung', grund: '' });
+    const box = h('div');
+    const meld = h('div', { class: 'warn', hidden: true });
+    const neu = () => { box.textContent = ''; box.appendChild(inhalt()); };
+    const chip = (an, text, fn) => h('button', { type: 'button', class: 'chip' + (an ? ' an' : ''), 'aria-pressed': an ? 'true' : 'false', onclick: () => { fn(); neu(); } }, text);
+    const reservieren = async (knopf) => {
+      meld.hidden = true;
+      const tag = v.tag === 'heute' ? isoTag(new Date()) : v.tag === 'morgen' ? isoTag(morgen) : v.datum;
+      const bisTag = v.mehr ? v.bisDatum : tag;
+      const zweck = v.zweck === 'Sonstiges' ? v.grund.trim() : v.zweck;
+      const fehl = (t) => { meld.textContent = t; meld.hidden = false; };
+      if (!tag || !v.von || !v.bis || !bisTag) return fehl('Bitte Tag und Uhrzeit wählen.');
+      if (v.zweck === 'Sonstiges' && !zweck) return fehl('Bitte kurz den Grund eintragen.');
+      if (!(bisTag + 'T' + v.bis > tag + 'T' + v.von)) return fehl('„Bis“ muss nach „Von“ liegen.');
+      knopf.disabled = true; knopf.textContent = 'Wird geprüft …';
+      try {
+        const r = await run('buchen', { fahrzeug: f.id, name: ich, mail: '', zweck, von: tag + 'T' + v.von, bis: bisTag + 'T' + v.bis });
+        if (!r.ok) { knopf.disabled = false; knopf.textContent = 'Reservieren'; return fehl(r.fehler); }
+        seite.fertig = r.text.replace(/ gebucht:/, ':'); zeichne(true); laden();
+      } catch (e) { knopf.disabled = false; knopf.textContent = 'Reservieren'; fehl(e.message); }
+    };
+    const inhalt = () => h('div', null,
+      h('h1', null, f.id + ' reservieren'),
+      h('div', { class: 'label' }, 'Wann?'),
+      h('div', { class: 'chips' }, [['heute', 'Heute'], ['morgen', 'Morgen'], ['andere', 'Anderer Tag']].map(([k, t]) => chip(v.tag === k, t, () => { v.tag = k; }))),
+      v.tag === 'andere' ? [h('label', { class: 'label', for: 'r-datum' }, 'Datum'), h('input', { id: 'r-datum', type: 'date', value: v.datum, min: isoTag(new Date()), onchange: (e) => { v.datum = e.target.value; if (v.bisDatum < v.datum) v.bisDatum = v.datum; } })] : null,
+      h('div', { class: 'zwei' },
+        h('div', null, h('label', { class: 'label', for: 'r-von' }, 'Von'), h('input', { id: 'r-von', type: 'time', value: v.von, onchange: (e) => { v.von = e.target.value; } })),
+        h('div', null, h('label', { class: 'label', for: 'r-bis' }, 'Bis'), h('input', { id: 'r-bis', type: 'time', value: v.bis, onchange: (e) => { v.bis = e.target.value; } }))),
+      v.mehr ? [h('label', { class: 'label', for: 'r-bisdatum' }, 'Zurück am'), h('input', { id: 'r-bisdatum', type: 'date', value: v.bisDatum, min: isoTag(new Date()), onchange: (e) => { v.bisDatum = e.target.value; } })]
+        : h('button', { type: 'button', class: 'link', style: 'margin-top:8px', onclick: () => { v.mehr = true; neu(); } }, 'Über mehrere Tage?'),
+      h('div', { class: 'label' }, 'Wofür?'),
+      h('div', { class: 'chips' }, ['Übung', 'Besorgung', 'Werkstatt', 'Jugend', 'Sonstiges'].map((z) => chip(v.zweck === z, z, () => { v.zweck = z; }))),
+      v.zweck === 'Sonstiges' ? [h('label', { class: 'label', for: 'r-grund' }, 'Grund'), h('input', { id: 'r-grund', maxlength: '80', placeholder: 'z. B. Material zum Bauhof bringen', value: v.grund, oninput: (e) => { v.grund = e.target.value; } })] : null,
+      meld,
+      h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:24px', onclick: (e) => reservieren(e.currentTarget) }, 'Reservieren'));
+    neu();
+    return [kopfZurueck(f.id), box];
+  };
+
+  SEITEN.da = () => {
+    const da = daten.da || {}, mein = da.mein;
+    const out = [kopfZurueck('Start')];
+    if (da.fehler) return out.concat([h('h1', null, 'Ich bin da'), h('div', { class: 'warn' }, da.fehler)]);
+    const eintragen = async (d, knopf) => {
+      const alt = knopf ? knopf.textContent : '';
+      if (knopf) { knopf.disabled = true; knopf.textContent = '…'; }
+      try { antwort(await run('daEinchecken', Object.assign({ name: ich }, d))); seite.neu = false; await laden(); }
+      catch (e) { if (knopf) { knopf.disabled = false; knopf.textContent = alt; } fehler(e); }
+    };
+    if (mein && !seite.neu) {
+      return out.concat([h('div', { style: 'text-align:center;padding-top:24px' }, h('div', { class: 'haken' }, icon('haken', 54)),
+        h('h1', { style: 'margin:20px 0 4px' }, 'Du bist eingetragen'), h('p', { style: 'font-size:21px' }, mein.titel + ' · seit ' + uhr(mein.seit))),
+        mein.auch.length ? [h('div', { class: 'label', style: 'margin-top:28px' }, 'Auch da (' + mein.auch.length + ')'), h('div', { class: 'namen' }, mein.auch.map((n) => h('span', null, n)))] : null,
+        h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:28px', onclick: () => frage({ titel: 'Jetzt gehen?', text: mein.titel + ' · seit ' + uhr(mein.seit), ja: 'Ja, ich gehe', aktion: async () => { antwort(await run('daGehen', { name: ich })); await laden(); heim(); } }) }, 'Ich gehe jetzt'),
+        h('button', { type: 'button', class: 'leise', onclick: () => { seite.neu = true; zeichne(true); } }, 'Falscher Termin? Neu wählen')]);
+    }
+    const termine = (da.termine || []).filter((t) => !mein || t.id !== mein.id);
+    out.push(h('h1', null, 'Ich bin da'), h('p', { class: 'sub' }, termine.length ? 'Heute im Feuerwehrhaus. Tipp auf den Termin, zu dem du da bist.' : 'Heute steht nichts im FF-Kalender.'));
+    out.push(h('div', { class: 'gitter', style: 'margin-top:12px' }, termine.map((t) => {
+      const zeit = t.ganz ? 'ganztägig' : uhr(t.von) + (t.bis ? ' – ' + uhr(t.bis) : '');
+      const knopf = h('button', { type: 'button', class: 'btn ' + (t.laeuft ? 'haupt gross' : 'zweit'), style: 'margin-top:12px' }, 'Ich bin da');
+      knopf.onclick = () => eintragen({ termin: t.id, statt: mein ? mein.id : '' }, knopf);
+      return h('div', { class: 'karte', style: t.laeuft ? 'border:2px solid var(--gruen-btn)' : '' },
+        h('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap' }, h('span', { style: 'font-size:18px;font-weight:700' }, zeit),
+          h('span', { class: 'pill ' + (t.laeuft ? 'gruen' : '') }, t.laeuft ? 'läuft jetzt' : t.von > Date.now() ? 'ab ' + uhr(t.von) : 'heute')),
+        h('div', { style: 'font-size:23px;font-weight:700;margin:4px 0 2px' }, t.titel),
+        h('div', { class: 'sub klein' }, t.anzahl ? t.anzahl + (t.anzahl === 1 ? ' Person' : ' Personen') + ' da' : 'noch niemand eingetragen'), knopf);
+    })));
+    const anderes = h('div');
+    const zeigeArten = () => { anderes.textContent = ''; add(anderes, h('div', { class: 'label' }, 'Was machst du?'), h('div', { class: 'chips' }, (da.arten || []).map((a) => h('button', { type: 'button', class: 'chip', onclick: (e) => eintragen({ art: a, statt: mein ? mein.id : '' }, e.currentTarget) }, a)))); };
+    anderes.appendChild(h('button', { type: 'button', class: 'leise', onclick: zeigeArten }, 'Kein Termin? Ich mache etwas anderes'));
+    if (!termine.length) zeigeArten();
+    out.push(anderes);
+    if (mein) out.push(h('button', { type: 'button', class: 'leise', onclick: () => { seite.neu = false; zeichne(true); } }, 'Doch nicht – zurück'));
+    return out;
+  };
+
+  SEITEN.einsatz = () => {
+    let q = '';
+    const box = h('div');
+    const fuellen = () => {
+      box.textContent = '';
+      if (!doks) { box.appendChild(h('div', { class: 'lade' }, 'wird geladen …')); return; }
+      if (!doks.ok) { box.appendChild(h('div', { class: 'warn' }, doks.fehler)); return; }
+      let n = 0;
+      doks.rubriken.forEach((r) => {
+        const d = r.dateien.filter((x) => !q || norm(x.name + ' ' + r.name).indexOf(norm(q)) !== -1);
+        if (!d.length) return; n += d.length;
+        add(box, h('div', { class: 'label', style: 'margin-top:22px' }, r.name), h('div', { class: 'liste' }, d.map((x) => h('a', { class: 'zeile', href: x.url, target: '_blank', rel: 'noopener' },
+          h('span', { class: 'typ' }, x.typ), h('span', { class: 't' }, h('b', null, x.name), h('span', { class: 'sub', style: 'font-size:16px' }, 'Stand ' + x.datum)), icon('rechts')))));
       });
-      alle.onclick = () => zeilen.forEach((f) => f('OK'));
-      zaehler.onclick = () => {
-        const v = Array.from(wahl.values());
-        const ohne = v.find((x) => x.ergebnis === 'Mangel' && !String(x.bem || '').trim());
-        if (ohne) return toast('Bitte bei jedem Mangel kurz beschreiben, was los ist.', true);
-        zaehler.disabled = true; zaehler.textContent = 'Wird gespeichert …';
-        run('pruefSpeichern', pin, v).then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) liste(filter, titel); else neuZaehlen(); })
-          .catch((e) => { toast(e.message, true); neuZaehlen(); });
+      if (!n) box.appendChild(h('p', { class: 'sub', style: 'margin-top:16px' }, q ? 'Nichts gefunden.' : 'Noch keine Unterlagen hinterlegt.'));
+    };
+    fuellen();
+    if (!doks) run('einsatzDokumente', false).then((r) => { doks = r; fuellen(); }).catch((e) => { doks = { ok: false, fehler: e.message }; fuellen(); });
+    return [kopfZurueck('Start'), h('h1', null, 'Einsatz'), h('label', { class: 'label', for: 'd-suche' }, 'Unterlage suchen'),
+      h('input', { id: 'd-suche', type: 'search', placeholder: 'z. B. Hydrant, Kindergarten', oninput: (e) => { q = e.target.value; fuellen(); } }), box];
+  };
+
+  SEITEN.pin = () => {
+    const pin = h('input', { id: 'pin', type: 'password', inputmode: 'numeric', autocomplete: 'off', placeholder: '••••', style: 'font-size:28px;letter-spacing:8px;text-align:center' });
+    const meld = h('div', { class: 'warn', hidden: true });
+    const los = h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:22px' }, 'Anmelden');
+    const anmelden = async () => {
+      const p = pin.value.trim(); meld.hidden = true;
+      if (p.length < 4) { meld.textContent = 'Bitte deinen PIN eingeben (mindestens 4 Ziffern).'; meld.hidden = false; return; }
+      los.disabled = true; los.textContent = 'Wird geprüft …';
+      try {
+        const r = await run('verwaltungAnmelden', ich, p);
+        if (!r.ok) throw new Error(r.fehler);
+        verw = { pin: r.pin, rolle: r.rolle, name: r.name, funktion: r.funktion || '', fuer: ich, bis: Date.now() + 30 * 864e5 };
+        schreib('ff-verw', verw); melde('Angemeldet. Gilt 30 Tage auf diesem Handy.');
+        heim(); zahlenLaden();
+      } catch (e) { los.disabled = false; los.textContent = 'Anmelden'; meld.textContent = e.message; meld.hidden = false; }
+    };
+    los.onclick = anmelden; pin.onkeydown = (e) => { if (e.key === 'Enter') anmelden(); };
+    setTimeout(() => pin.focus(), 50);
+    return [kopfZurueck('Start'), h('h1', null, 'Verwaltung'), h('p', { class: 'sub' }, 'Für Kommando, Fahrmeister und Prüfer. Du bleibst 30 Tage angemeldet.'),
+      h('div', { class: 'karte', style: 'display:flex;align-items:center;gap:12px;margin-top:16px' }, h('span', { class: 'logo rund' }, kuerzel(ich)), h('b', null, ich)),
+      h('label', { class: 'label', for: 'pin' }, 'Dein PIN'), pin, meld, los];
+  };
+
+  // ---------- Verwaltung: Fahrzeugstatus ----------
+  SEITEN.fzstatus = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const fahrtenBox = h('div');
+    const neuLaden = async () => {
+      try {
+        const r = await run('fzStatus', verw.pin); if (!r.ok) throw new Error(r.fehler);
+        box.textContent = ''; r.fahrzeuge.forEach((f) => box.appendChild(fzKarte(f)));
+      } catch (e) { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); }
+      if (rollen().anw) fahrtenLaden();
+      run('appDaten', ich).then((d) => { daten = d; }).catch(() => {});
+    };
+    const fzKarte = (f) => {
+      const k = h('div', { class: 'karte', style: 'margin-bottom:14px' });
+      let wahl = f.bereit, grund = f.mangel, planOffen = false;
+      const m1 = new Date(); m1.setDate(m1.getDate() + 1);
+      const plan = { von: isoTag(m1), vonZeit: '07:00', bis: '', bisZeit: '17:00', status: 'Nein', grund: '' };
+      const speichern = () => {
+        if (wahl !== 'Ja' && !String(grund || '').trim()) { melde('Bitte kurz den Grund eintragen.', true); const g = document.getElementById('g-' + f.fahrzeug); if (g) g.focus(); return; }
+        const tun = async () => { antwort(await run('fzStatusSetzen', verw.pin, f.fahrzeug, wahl, grund)); neuLaden(); };
+        if (wahl === 'Nein' && f.bereit !== 'Nein') frage({ titel: f.fahrzeug + ' außer Dienst stellen?', text: 'Grund: ' + grund + '\nDas Fahrzeug kann dann nicht gebucht werden. Am Infoscreen steht es rot.', ja: 'Ja, außer Dienst', aktion: tun });
+        else tun().catch(fehler);
       };
-      box().append(rows, zaehler); neuZaehlen();
-    }).catch((e) => { box().textContent = e.message; });
-  }
+      const neu = () => {
+        k.textContent = '';
+        k.appendChild(h('div', { style: 'display:flex;align-items:baseline;gap:8px;flex-wrap:wrap' }, h('b', { style: 'font-size:23px;flex:1' }, f.fahrzeug),
+          h('span', { class: 'sub', style: 'font-size:16px' }, f.bereit !== 'Ja' && f.von ? 'gemeldet ' + f.von + (f.am ? ' · ' + f.am : '') : f.pickerl ? 'Pickerl ' + f.pickerl : '')));
+        k.appendChild(h('div', { class: 'gitter', style: 'gap:8px;margin-top:10px' }, [['Ja', 'Einsatzbereit', 'gruen'], ['Eingeschränkt', 'Eingeschränkt', 'gelb'], ['Nein', 'Außer Dienst', 'rot']].map(([w, t, c]) =>
+          h('button', { type: 'button', class: 'opt ' + c + (wahl === w ? ' an' : ''), 'aria-pressed': wahl === w ? 'true' : 'false', onclick: () => {
+            wahl = w;
+            if (w === 'Ja' && f.bereit !== 'Ja') speichern(); else neu();
+          } }, h('i'), t))));
+        if (wahl !== 'Ja') {
+          add(k, h('label', { class: 'label', for: 'g-' + f.fahrzeug, style: 'margin-top:12px' }, 'Grund'),
+            h('input', { id: 'g-' + f.fahrzeug, value: grund, maxlength: '300', placeholder: 'z. B. Werkstatt bis Fr', oninput: (e) => { grund = e.target.value; } }),
+            h('button', { type: 'button', class: 'btn ' + (wahl !== f.bereit ? 'haupt' : 'zweit'), style: 'margin-top:12px;min-height:56px;font-size:19px', onclick: speichern }, wahl !== f.bereit ? 'Speichern' : 'Grund speichern'));
+        }
+        f.sperren.forEach((p) => k.appendChild(h('div', { class: 'hinweis', style: 'display:flex;align-items:center;gap:10px' },
+          h('span', { style: 'flex:1;min-width:0' }, h('b', { style: 'display:block' }, (p.laeuft ? 'Läuft: ' : 'Geplant: ') + (p.status === 'Nein' ? 'außer Dienst' : 'eingeschränkt')), h('span', { class: 'sub', style: 'font-size:16px' }, p.text + ' · ' + p.grund)),
+          h('button', { type: 'button', class: 'knopf', onclick: () => frage({ titel: 'Geplante Sperre löschen?', text: f.fahrzeug + ' · ' + p.text + '\n' + p.grund + (p.laeuft ? '\nDas Fahrzeug wird dann wieder einsatzbereit.' : ''), ja: 'Ja, löschen', aktion: async () => { antwort(await run('fzSperreLoeschen', verw.pin, p.id)); neuLaden(); } }) }, 'Löschen'))));
+        k.appendChild(h('button', { type: 'button', class: 'leise', style: 'margin:10px 0 0', onclick: () => { planOffen = !planOffen; neu(); } }, planOffen ? 'Planung schließen' : '+ Außer Dienst planen'));
+        if (planOffen) {
+          const id = (x) => x + '-' + f.fahrzeug;
+          k.appendChild(h('div', { style: 'margin-top:8px;padding:14px;border-radius:14px;border:1px solid var(--linie)' },
+            h('div', { class: 'chips' }, [['Nein', 'Außer Dienst'], ['Eingeschränkt', 'Eingeschränkt']].map(([w, t]) => h('button', { type: 'button', class: 'chip' + (plan.status === w ? ' an' : ''), 'aria-pressed': plan.status === w ? 'true' : 'false', onclick: () => { plan.status = w; neu(); } }, t))),
+            h('div', { class: 'zwei' }, h('div', null, h('label', { class: 'label', for: id('pv') }, 'Von'), h('input', { id: id('pv'), type: 'date', value: plan.von, onchange: (e) => { plan.von = e.target.value; } })),
+              h('div', null, h('label', { class: 'label', for: id('pvz') }, 'Uhrzeit'), h('input', { id: id('pvz'), type: 'time', value: plan.vonZeit, onchange: (e) => { plan.vonZeit = e.target.value; } }))),
+            h('div', { class: 'zwei' }, h('div', null, h('label', { class: 'label', for: id('pb') }, 'Bis (leer = offen)'), h('input', { id: id('pb'), type: 'date', value: plan.bis, onchange: (e) => { plan.bis = e.target.value; } })),
+              h('div', null, h('label', { class: 'label', for: id('pbz') }, 'Uhrzeit'), h('input', { id: id('pbz'), type: 'time', value: plan.bisZeit, onchange: (e) => { plan.bisZeit = e.target.value; } }))),
+            h('label', { class: 'label', for: id('pg') }, 'Grund'), h('input', { id: id('pg'), value: plan.grund, maxlength: '200', placeholder: 'z. B. Service', oninput: (e) => { plan.grund = e.target.value; } }),
+            h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:12px;min-height:56px;font-size:19px', onclick: async (e) => {
+              if (!plan.grund.trim()) { melde('Bitte einen Grund eintragen.', true); return; }
+              if (!plan.von) { melde('Bitte das Datum „Von“ wählen.', true); return; }
+              const b = e.currentTarget; b.disabled = true; b.textContent = '…';
+              try {
+                const r = antwort(await run('fzSperreAnlegen', verw.pin, f.fahrzeug, plan.von + 'T' + plan.vonZeit, plan.bis ? plan.bis + 'T' + plan.bisZeit : '', plan.status, plan.grund));
+                if (r.konflikt && r.konflikt.length) frage({ titel: 'Achtung: schon gebucht', text: f.fahrzeug + ' ist in diesem Zeitraum noch reserviert. Bitte mit den Buchenden klären:\n\n' + r.konflikt.join('\n'), ja: 'Verstanden', nein: 'Schließen', aktion: () => {} });
+                neuLaden();
+              } catch (x) { b.disabled = false; b.textContent = 'Planen'; fehler(x); }
+            } }, 'Planen')));
+        }
+      };
+      neu();
+      return k;
+    };
+    const fahrtenLaden = async () => {
+      try {
+        const d = await run('statusdaten', verw.pin); if (!d.ok) return;
+        const alle = []; d.fahrzeuge.forEach((f) => f.fahrten.forEach((b) => { if (b.bis > Date.now()) alle.push(Object.assign({ fahrzeug: f.fahrzeug }, b)); }));
+        alle.sort((a, b) => a.von - b.von);
+        fahrtenBox.textContent = '';
+        add(fahrtenBox, h('div', { class: 'label', style: 'margin-top:28px' }, 'Fahrten · nächste 7 Tage'), h('div', { class: 'liste' }, alle.length ? alle.map((b) => h('div', { class: 'zeile' },
+          h('div', { class: 't' }, h('b', null, b.fahrzeug + ' · ' + spanne(b.von, b.bis)), h('span', { class: 'sub klein' }, b.name + (b.zweck ? ' · ' + b.zweck : ''))),
+          h('button', { type: 'button', class: 'knopf', onclick: () => { let grund = ''; frage({ titel: 'Fahrt löschen?', text: b.fahrzeug + ' · ' + b.name + '\n' + spanne(b.von, b.bis), ja: 'Ja, löschen',
+            felder: (x) => add(x, h('label', { class: 'label', for: 'lg', style: 'margin-top:0' }, 'Begründung (geht per E-Mail an den Buchenden)'), h('textarea', { id: 'lg', maxlength: '500', placeholder: 'z. B. Fahrzeug wird für das Fest gebraucht', oninput: (e) => { grund = e.target.value; } })),
+            aktion: async () => { antwort(await run('statusLoeschen', verw.pin, b.zeile, b.fahrzeug, b.von, b.bis, grund)); neuLaden(); } }); } }, 'Löschen'))) : h('div', { class: 'sub', style: 'padding:16px 0' }, 'Keine Fahrten.')));
+      } catch (e) { /* Fahrtenliste ist Zusatz */ }
+    };
+    neuLaden();
+    return [kopfZurueck('Start'), h('h1', null, 'Fahrzeugstatus'), box, fahrtenBox];
+  };
 
-  // Gerät anlegen (g = null) oder bearbeiten / ausscheiden
-  function formular(g, vor) {
-    const zurueck = () => (ansicht ? liste(ansicht.filter, ansicht.titel) : uebersicht());
-    box().textContent = ''; box().appendChild(el('div', 'leer', 'wird geladen …'));
-    run('geraetStamm', pin).then((st) => {
-      box().textContent = '';
-      if (!st.ok) { box().appendChild(el('div', 'leer', st.fehler)); return; }
-      const kopf = el('div', 'pk-kopf'); const zb = el('button', '', '‹ Zurück'); zb.type = 'button'; zb.onclick = zurueck;
-      kopf.append(zb, el('b', '', g ? 'Gerät bearbeiten · ' + g.id : 'Neues Gerät')); box().appendChild(kopf);
-      const f = el('div', 'gform');
-      const feld = (label, inp) => { const w = el('label'); w.appendChild(el('span', '', label)); w.appendChild(inp); f.appendChild(w); return inp; };
-      const dl = (id, werte) => { const d = el('datalist'); d.id = id; werte.forEach((v) => { const o = el('option'); o.value = v; d.appendChild(o); }); f.appendChild(d); };
-      dl('gf-orte', st.orte); dl('gf-gruppen', st.gruppen);
-      const ort = feld('Ort', el('input')); ort.setAttribute('list', 'gf-orte'); ort.value = g ? (g.ort === 'Ohne Ort' ? '' : g.ort) : (vor.ort || ''); ort.placeholder = 'z. B. KLF-W › Geräteraum 3';
-      const bez = feld('Bezeichnung', el('input')); bez.value = g ? g.bez : ''; bez.maxLength = 120;
-      const gruppe = feld('Gruppe (optional)', el('input')); gruppe.setAttribute('list', 'gf-gruppen'); gruppe.value = g ? (g.gruppe || '') : '';
-      const inv = feld('Inventarnummer', el('input')); inv.value = g ? g.inv : '';
-      const serie = feld('Seriennummer', el('input')); serie.value = g ? g.serie : '';
-      const anz = feld('Anzahl', el('input')); anz.type = 'number'; anz.min = 1; anz.value = g ? (g.anzahl || 1) : 1;
-      const artBox = el('div', 'arten'); const gew = new Set(g ? g.pruefungen.map((p) => p.art) : []);
-      st.arten.forEach((a) => { const l = el('label', 'art'); const c = el('input'); c.type = 'checkbox'; c.value = a; c.checked = gew.has(a); l.append(c, document.createTextNode(' ' + a)); artBox.appendChild(l); });
-      const al = el('label'); al.appendChild(el('span', '', 'Prüfarten')); al.appendChild(artBox); f.appendChild(al);
-      box().appendChild(f);
-      const daten = () => ({ ort: ort.value, bez: bez.value, gruppe: gruppe.value, inv: inv.value, serie: serie.value, anzahl: anz.value,
-        arten: Array.from(artBox.querySelectorAll('input:checked')).map((c) => c.value) });
-      const sp = el('button', 'los', g ? 'Änderungen speichern' : 'Gerät anlegen'); sp.type = 'button';
-      sp.onclick = () => { sp.disabled = true; run(g ? 'geraetAendern' : 'geraetAnlegen', ...(g ? [pin, g.id, daten()] : [pin, daten()]))
-        .then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) zurueck(); else sp.disabled = false; }).catch((e) => { toast(e.message, true); sp.disabled = false; }); };
-      box().appendChild(sp);
+  // ---------- Verwaltung: Geräteprüfung ----------
+  SEITEN.geraete = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const liste = (filter, titel) => zeige({ s: 'gliste', filter, titel });
+    run('pruefUebersicht', verw.pin).then((r) => {
+      if (!r.ok) throw new Error(r.fehler);
+      box.textContent = '';
+      if (r.fehlt) { box.appendChild(h('div', { class: 'warn' }, r.fehlt)); return; }
+      const g = r.gesamt;
+      add(box, h('div', { class: 'zwei' },
+        h('button', { type: 'button', class: 'kpi box rot', onclick: () => liste({ faellig: true }, 'Alles Fällige') }, h('b', null, g.rot), 'überfällig'),
+        h('button', { type: 'button', class: 'kpi box gelb', onclick: () => liste({ faellig: true }, 'Alles Fällige') }, h('b', null, g.gelb), 'bald fällig')),
+        g.grau ? h('p', { class: 'sub klein', style: 'margin-top:10px' }, g.grau + ' Geräte noch nie geprüft') : null);
+      const such = h('input', { id: 'g-suche', type: 'search', placeholder: 'Bezeichnung oder Nummer' });
+      const suchen = () => { const q = such.value.trim(); if (q) liste({ suche: q }, 'Suche: ' + q); };
+      such.onkeydown = (e) => { if (e.key === 'Enter') suchen(); };
+      add(box, h('label', { class: 'label', for: 'g-suche' }, 'Gerät suchen'), h('div', { style: 'display:flex;gap:8px' }, such, h('button', { type: 'button', class: 'knopf', style: 'min-height:58px', onclick: suchen }, 'Suchen')),
+        h('div', { class: 'label' }, 'Wo prüfst du?'), h('div', { class: 'liste' }, r.orte.map((o) => h('button', { type: 'button', class: 'zeile', onclick: () => liste({ ort: o.ort }, o.ort) },
+          h('span', { class: 't' }, h('b', null, o.ort), h('span', { class: 'sub', style: 'font-size:16px' }, o.n + ' Geräte')),
+          o.rot ? h('span', { class: 'pill rot' }, o.rot + ' überfällig') : o.gelb ? h('span', { class: 'pill gelb' }, o.gelb + ' bald fällig') : o.grau ? h('span', { class: 'pill' }, o.grau + ' offen') : h('span', { class: 'pill gruen' }, 'alles geprüft')))),
+        h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:20px', onclick: () => zeige({ s: 'gform' }) }, '+ Gerät anlegen'));
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Start'), h('h1', null, 'Geräteprüfung'), box];
+  };
+
+  const STATUS_TXT = { rot: 'überfällig', gelb: 'bald fällig', grau: 'noch nie geprüft', gruen: 'in Ordnung' };
+  SEITEN.gliste = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const wahl = seite.wahl || (seite.wahl = {});   // „id|Prüfart“ → { ergebnis, bem }
+    const zaehler = h('span');
+    const speichernBtn = h('button', { type: 'button', class: 'btn haupt' }, 'Prüfung speichern', zaehler);
+    const anzeigen = () => { const n = Object.keys(wahl).length; zaehler.textContent = n ? ' (' + n + ')' : ''; speichernBtn.disabled = !n; };
+    const laden_ = () => run('pruefListe', verw.pin, seite.filter).then((r) => {
+      if (!r.ok) throw new Error(r.fehler);
+      box.textContent = '';
+      if (!r.geraete.length) { box.appendChild(h('p', { class: 'sub' }, 'Keine Geräte gefunden.')); return; }
+      box.appendChild(h('div', { class: 'gitter' }, r.geraete.map((g) => {
+        const k = h('div', { class: 'karte' });
+        add(k, h('div', { style: 'display:flex;gap:8px;align-items:flex-start' }, h('div', { style: 'flex:1;min-width:0' }, h('b', { style: 'display:block;font-size:20px' }, g.bez),
+          h('span', { class: 'sub', style: 'font-size:16px' }, [seite.filter.ort ? '' : g.ort, g.inv ? 'Nr. ' + g.inv : '', g.anzahl > 1 ? g.anzahl + ' Stück' : ''].filter(Boolean).join(' · '))),
+          h('button', { type: 'button', class: 'link', onclick: () => zeige({ s: 'gform', g }) }, 'Bearbeiten')));
+        g.pruefungen.forEach((p) => {
+          const key = g.id + '|' + p.art, zeile = h('div', { style: 'margin-top:14px' });
+          const male = () => {
+            zeile.textContent = '';
+            const w = wahl[key];
+            add(zeile, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, h('b', { style: 'font-size:17px' }, p.art), h('span', { class: 'pill ' + p.status }, STATUS_TXT[p.status])),
+              h('div', { class: 'sub', style: 'font-size:16px' }, (p.letzte ? 'zuletzt ' + p.letzte + (p.ergebnis ? ' · ' + p.ergebnis : '') : 'noch nie geprüft') + (p.faellig ? ' · fällig ' + p.faellig : '')),
+              h('div', { class: 'wahl2' },
+                h('button', { type: 'button', class: w && w.ergebnis === 'OK' ? 'ok' : '', 'aria-pressed': w && w.ergebnis === 'OK' ? 'true' : 'false', onclick: () => { if (w && w.ergebnis === 'OK') delete wahl[key]; else wahl[key] = { ergebnis: 'OK' }; male(); anzeigen(); } }, 'In Ordnung'),
+                h('button', { type: 'button', class: w && w.ergebnis === 'Mangel' ? 'm' : '', 'aria-pressed': w && w.ergebnis === 'Mangel' ? 'true' : 'false', onclick: () => { if (w && w.ergebnis === 'Mangel') delete wahl[key]; else wahl[key] = { ergebnis: 'Mangel', bem: '' }; male(); anzeigen(); } }, 'Mangel')));
+            if (w && w.ergebnis === 'Mangel') {
+              const id = 'mb-' + key.replace(/[^a-z0-9]/gi, '');
+              add(zeile, h('label', { class: 'label', for: id, style: 'margin-top:10px' }, 'Was ist kaputt?'), h('input', { id, value: w.bem, maxlength: '300', placeholder: 'kurz beschreiben', oninput: (e) => { w.bem = e.target.value; } }));
+            }
+          };
+          male(); k.appendChild(zeile);
+        });
+        return k;
+      })));
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    speichernBtn.onclick = () => {
+      const e = Object.keys(wahl).map((k) => { const i = k.indexOf('|'); return { id: k.slice(0, i), art: k.slice(i + 1), ergebnis: wahl[k].ergebnis, bem: wahl[k].bem || '' }; });
+      if (e.some((x) => x.ergebnis === 'Mangel' && !x.bem.trim())) { melde('Bitte bei jedem Mangel kurz beschreiben, was kaputt ist.', true); return; }
+      const m = e.filter((x) => x.ergebnis === 'Mangel').length;
+      frage({ titel: 'Prüfung speichern?', text: e.length + ' Prüfung' + (e.length === 1 ? '' : 'en') + (m ? ', davon ' + m + ' mit Mangel' : '') + '\n' + seite.titel, ja: 'Ja, speichern',
+        aktion: async () => { antwort(await run('pruefSpeichern', verw.pin, e)); Object.keys(wahl).forEach((k) => delete wahl[k]); anzeigen(); laden_(); zahlenLaden(); } });
+    };
+    laden_(); anzeigen();
+    return [kopfZurueck('Geräteprüfung'), h('h1', null, seite.titel), box, h('div', { class: 'sticky' }, speichernBtn),
+      seite.filter.ort ? h('button', { type: 'button', class: 'leise', onclick: () => zeige({ s: 'gform', ort: seite.filter.ort }) }, '+ Gerät an diesem Ort anlegen') : null];
+  };
+
+  SEITEN.gform = () => {
+    const g = seite.g, v = seite.v || (seite.v = g ? { ort: g.ort, gruppe: g.gruppe || '', bez: g.bez, inv: g.inv, serie: g.serie, anzahl: g.anzahl || 1, arten: g.pruefungen.map((p) => p.art) }
+      : { ort: seite.ort || '', gruppe: '', bez: '', inv: '', serie: '', anzahl: 1, arten: [] });
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    run('geraetStamm', verw.pin).then((st) => {
+      if (!st.ok) throw new Error(st.fehler);
+      box.textContent = '';
+      const feld = (id, t, el) => [h('label', { class: 'label', for: id }, t), el];
+      const orte = st.orte.indexOf(v.ort) === -1 && v.ort ? [v.ort].concat(st.orte) : st.orte;
+      add(box, feld('f-bez', 'Bezeichnung', h('input', { id: 'f-bez', value: v.bez, maxlength: '120', oninput: (e) => { v.bez = e.target.value; } })),
+        feld('f-ort', 'Ort', h('select', { id: 'f-ort', onchange: (e) => { v.ort = e.target.value; } }, h('option', { value: '' }, '– Ort wählen –'), orte.map((o) => h('option', { value: o, selected: o === v.ort }, o)))),
+        feld('f-gruppe', 'Gruppe', h('input', { id: 'f-gruppe', value: v.gruppe, list: 'f-gruppen', maxlength: '120', oninput: (e) => { v.gruppe = e.target.value; } })),
+        h('datalist', { id: 'f-gruppen' }, st.gruppen.map((x) => h('option', { value: x }))),
+        h('div', { class: 'zwei' }, h('div', null, feld('f-inv', 'Inventarnr.', h('input', { id: 'f-inv', value: v.inv, maxlength: '40', oninput: (e) => { v.inv = e.target.value; } }))),
+          h('div', null, feld('f-anz', 'Anzahl', h('input', { id: 'f-anz', type: 'number', inputmode: 'numeric', min: '1', max: '999', value: v.anzahl, oninput: (e) => { v.anzahl = e.target.value; } })))),
+        feld('f-serie', 'Seriennr.', h('input', { id: 'f-serie', value: v.serie, maxlength: '60', oninput: (e) => { v.serie = e.target.value; } })),
+        h('div', { class: 'label' }, 'Was wird geprüft?'),
+        h('div', { class: 'gitter', style: 'gap:8px' }, st.arten.concat(v.arten.filter((a) => st.arten.indexOf(a) === -1)).map((a) => {
+          const an = v.arten.indexOf(a) !== -1;
+          return h('button', { type: 'button', class: 'opt gruen' + (an ? ' an' : ''), 'aria-pressed': an ? 'true' : 'false', style: 'font-size:16px;min-height:52px', onclick: (e) => {
+            const i = v.arten.indexOf(a); if (i === -1) v.arten.push(a); else v.arten.splice(i, 1);
+            e.currentTarget.classList.toggle('an', i === -1); e.currentTarget.setAttribute('aria-pressed', i === -1 ? 'true' : 'false');
+          } }, h('i'), a);
+        })),
+        h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:22px', onclick: async (e) => {
+          const b = e.currentTarget; b.disabled = true; b.textContent = '…';
+          try { antwort(g ? await run('geraetAendern', verw.pin, g.id, v) : await run('geraetAnlegen', verw.pin, v)); zurueck(); }
+          catch (x) { b.disabled = false; b.textContent = 'Speichern'; fehler(x); }
+        } }, 'Speichern'));
       if (g) {
-        const aus = el('div', 'aus'); aus.appendChild(el('h2', '', 'Gerät ausscheiden'));
-        aus.appendChild(el('div', 'leer', 'Das Gerät verschwindet aus den Prüflisten. Protokoll und Eintrag in der Tabelle bleiben erhalten.'));
-        const gr = el('input'); gr.placeholder = 'Grund, z. B. defekt, verloren, ersetzt'; gr.maxLength = 200;
-        const ab = el('button', '', 'Ausscheiden'); ab.type = 'button';
-        ab.onclick = () => {
-          if (ab.dataset.sicher !== '1') { ab.dataset.sicher = '1'; ab.textContent = 'Wirklich ausscheiden?'; return; }
-          ab.disabled = true; run('geraetAusscheiden', pin, g.id, gr.value).then((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); if (r.ok) zurueck(); else { ab.disabled = false; ab.dataset.sicher = ''; ab.textContent = 'Ausscheiden'; } })
-            .catch((e) => { toast(e.message, true); ab.disabled = false; });
-        };
-        const zeile = el('div', 'pk-werkz'); zeile.append(gr, ab); aus.appendChild(zeile); box().appendChild(aus);
+        let grund = '';
+        add(box, h('button', { type: 'button', class: 'leise', style: 'color:var(--aus)', onclick: () => frage({ titel: 'Gerät ausscheiden?', text: g.bez + '\nEs verschwindet aus den Prüflisten, das Prüfprotokoll bleibt erhalten. Im FDISK bitte ebenfalls ausscheiden.', ja: 'Ja, ausscheiden',
+          felder: (x) => add(x, h('label', { class: 'label', for: 'aus-g', style: 'margin-top:0' }, 'Grund'), h('input', { id: 'aus-g', placeholder: 'z. B. defekt, verloren, ersetzt', oninput: (e) => { grund = e.target.value; } })),
+          aktion: async () => { if (grund.trim().length < 3) { melde('Bitte kurz den Grund angeben.', true); return false; } antwort(await run('geraetAusscheiden', verw.pin, g.id, grund)); zurueck(); } }) }, 'Gerät ausscheiden'));
       }
-    }).catch((e) => { box().textContent = e.message; });
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Zurück'), h('h1', null, g ? 'Gerät bearbeiten' : 'Gerät anlegen'), box];
+  };
+
+  // ---------- Verwaltung: Anwesenheit prüfen ----------
+  const anwLaden = async () => { const r = await run('anwUebersicht', verw.pin); if (!r.ok) throw new Error(r.fehler); anwDaten = r; return r; };
+  SEITEN.anwp = () => {
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    anwLaden().then((r) => {
+      box.textContent = '';
+      if (r.fehlt) { box.appendChild(h('div', { class: 'warn' }, r.fehlt)); return; }
+      const offen = r.termine.filter((t) => t.status === 'offen'), zu = r.termine.filter((t) => t.status !== 'offen');
+      const karte = (t) => h('button', { type: 'button', class: 'kachel k', style: 'min-height:76px', onclick: () => zeige({ s: 'anwt', id: t.id }) },
+        h('span', { class: 't' }, h('b', null, t.titel), h('span', null, t.text + ' · ' + t.personen.length + (t.personen.length === 1 ? ' Person' : ' Personen'))),
+        h('span', { class: 'pill ' + (t.status === 'offen' ? 'gelb' : 'gruen') }, t.status === 'offen' ? 'offen' : 'fertig'));
+      add(box, h('div', { class: 'label' }, 'Offen (' + offen.length + ')'), h('div', { class: 'gitter', style: 'gap:10px' }, offen.length ? offen.map(karte) : h('p', { class: 'sub' }, 'Nichts offen.')),
+        zu.length ? [h('div', { class: 'label', style: 'margin-top:28px' }, 'Abgeschlossen, wartet aufs FDISK'), h('div', { class: 'gitter', style: 'gap:10px' }, zu.map(karte))] : null);
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Start'), h('h1', null, 'Anwesenheit prüfen'), box];
+  };
+  SEITEN.anwt = () => {
+    const t = anwDaten && anwDaten.termine.find((x) => x.id === seite.id);
+    if (!t) return [kopfZurueck('Anwesenheit'), h('p', { class: 'sub' }, 'Termin nicht gefunden.')];
+    const v = seite.v || (seite.v = { titel: t.titel, art: t.art || '', unterart: t.unterart || '', beginn: t.beginn ? isoLokal(t.beginn) : '', ende: t.ende ? isoLokal(t.ende) : '', bemerkung: t.bemerkung || '' });
+    const offen = t.status === 'offen';
+    const aktion = (a) => run('anwAktion', verw.pin, Object.assign({ id: t.id, wer: ich }, a));
+    const neu = async () => { await anwLaden(); seite.v = null; zeichne(false); zahlenLaden(); };
+    const unterarten = (anwDaten.unterarten || {})[v.art] || [];
+    const speichern = () => aktion(Object.assign({ aktion: 'speichern' }, v));
+    let nach = '';
+    return [kopfZurueck('Anwesenheit'), h('h1', null, t.titel), h('span', { class: 'pill ' + (offen ? 'gelb' : 'gruen') }, offen ? 'offen' : 'abgeschlossen'),
+      h('div', { class: 'label' }, 'Da waren (' + t.personen.length + ')'),
+      h('div', { class: 'liste' }, t.personen.length ? t.personen.map((p) => h('div', { class: 'zeile' }, h('span', { class: 't' }, h('b', null, p.name), p.fehlt ? h('span', { class: 'sub', style: 'font-size:15px' }, 'ohne Standesbuchnummer') : p.quelle === 'nachgetragen' ? h('span', { class: 'sub', style: 'font-size:15px' }, 'nachgetragen') : null),
+        offen ? h('button', { type: 'button', class: 'knopf', onclick: () => frage({ titel: p.name + ' entfernen?', text: 'Aus „' + t.titel + '“.', ja: 'Ja, entfernen', aktion: async () => { antwort(await aktion({ aktion: 'entfernen', name: p.name })); await neu(); } }) }, 'Entfernen') : null))
+        : h('div', { class: 'sub', style: 'padding:16px 0' }, 'Noch niemand eingetragen.')),
+      offen ? [h('label', { class: 'label', for: 'nach' }, 'Person nachtragen'), h('div', { style: 'display:flex;gap:8px' },
+        h('select', { id: 'nach', onchange: (e) => { nach = e.target.value; } }, h('option', { value: '' }, '– Mitglied wählen –'), (anwDaten.namen || []).filter((n) => !t.personen.some((p) => norm(p.name) === norm(n))).map((n) => h('option', { value: n }, n))),
+        h('button', { type: 'button', class: 'knopf', style: 'min-height:58px', onclick: async () => { if (!nach) { melde('Bitte zuerst ein Mitglied wählen.', true); return; } try { antwort(await aktion({ aktion: 'nachtragen', name: nach })); await neu(); } catch (e) { fehler(e); } } }, 'Dazu'))] : null,
+      h('div', { class: 'label', style: 'margin-top:28px' }, 'Für das FDISK'),
+      h('label', { class: 'label', for: 'a-titel', style: 'margin-top:8px' }, 'Bezeichnung'), h('input', { id: 'a-titel', value: v.titel, maxlength: '80', disabled: !offen, oninput: (e) => { v.titel = e.target.value; } }),
+      h('label', { class: 'label', for: 'a-art' }, 'Tätigkeitsart'), h('select', { id: 'a-art', disabled: !offen, onchange: (e) => { v.art = e.target.value; v.unterart = ''; zeichne(false); } }, h('option', { value: '' }, '– wählen –'), (anwDaten.arten || []).map((a) => h('option', { value: a, selected: a === v.art }, a))),
+      unterarten.length ? [h('label', { class: 'label', for: 'a-ua' }, 'Unterart'), h('select', { id: 'a-ua', disabled: !offen, onchange: (e) => { v.unterart = e.target.value; } }, unterarten.map((u) => h('option', { value: u, selected: u === v.unterart }, u || '– keine –')))] : null,
+      h('label', { class: 'label', for: 'a-von' }, 'Beginn'), h('input', { id: 'a-von', type: 'datetime-local', value: v.beginn, disabled: !offen, onchange: (e) => { v.beginn = e.target.value; } }),
+      h('label', { class: 'label', for: 'a-bis' }, 'Ende'), h('input', { id: 'a-bis', type: 'datetime-local', value: v.ende, disabled: !offen, onchange: (e) => { v.ende = e.target.value; } }),
+      h('label', { class: 'label', for: 'a-bem' }, 'Bemerkung'), h('textarea', { id: 'a-bem', maxlength: '300', disabled: !offen, value: v.bemerkung, oninput: (e) => { v.bemerkung = e.target.value; } }),
+      offen ? [h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:22px', onclick: async (e) => { const b = e.currentTarget; b.disabled = true; try { antwort(await speichern()); await neu(); } catch (x) { b.disabled = false; fehler(x); } } }, 'Speichern'),
+        h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:12px', onclick: () => frage({ titel: 'Abschließen?', text: v.titel + ' · ' + t.personen.length + ' Personen\nDanach wird es ins FDISK übertragen.', ja: 'Ja, abschließen',
+          aktion: async () => { if (!v.art) { melde('Bitte zuerst die Tätigkeitsart wählen.', true); return false; } antwort(await speichern()); antwort(await aktion({ aktion: 'abschliessen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Abschließen und ins FDISK')]
+        : h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:22px', onclick: () => frage({ titel: 'Wieder öffnen?', text: 'Dann kann man wieder nachtragen und ändern.', ja: 'Ja, öffnen', aktion: async () => { antwort(await aktion({ aktion: 'oeffnen' })); await neu(); } }) }, 'Wieder öffnen'),
+      h('button', { type: 'button', class: 'leise', style: 'color:var(--aus)', onclick: () => frage({ titel: 'Termin löschen?', text: '„' + t.titel + '“ mit allen ' + t.personen.length + ' Eintragungen. Das lässt sich nicht rückgängig machen.', ja: 'Ja, löschen', aktion: async () => { antwort(await aktion({ aktion: 'loeschen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Termin löschen')];
+  };
+
+  // ---------- Zeichnen ----------
+  const ADMIN = { fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1 };
+  function zeichne(nachOben) {
+    if (!daten) return;
+    if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
+    else if (ADMIN[seite.s] && !verw) seite = { s: 'pin' };
+    else if (seite.s === 'fzstatus' && !rollen().fz) seite = { s: 'start' };
+    else if ((seite.s === 'anwp' || seite.s === 'anwt') && !rollen().anw) seite = { s: 'start' };
+    // Verwaltungsseiten laden ihre Daten selbst – beim automatischen Aktualisieren nicht neu zeichnen
+    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && seite.s !== 'anwt') return;
+    const y = window.scrollY, aktiv = document.activeElement && document.activeElement.id;
+    $app.textContent = '';
+    $app.dataset.seite = seite.s;
+    $app.append(...[].concat(SEITEN[seite.s]()).flat(9).filter(Boolean));
+    if (ich && seite.s !== 'wer') $app.appendChild(h('div', { class: 'fuss' }, 'Angemeldet als ' + ich));
+    if (nachOben) window.scrollTo(0, 0);
+    else { window.scrollTo(0, y); if (aktiv) { const el = document.getElementById(aktiv); if (el) el.focus(); } }
   }
 
-  window.pruefStart = (p) => { pin = p; uebersicht(); };
-})();
-</script>
-<script>
-// ---------- Fahrzeugstatus: Kommando und Fahrmeister stellen Fahrzeuge außer Dienst ----------
-(() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
-  const toast = (t, f) => { const d = el('div', 'toast' + (f ? ' fehler' : ''), t); document.body.appendChild(d); setTimeout(() => d.remove(), 6000); };
-  const ARTEN = [['Ja', 'ja', 'Einsatzbereit'], ['Eingeschränkt', 'eing', 'Eingeschränkt'], ['Nein', 'nein', 'Außer Dienst']];
-  let pin = '';
-  function laden() {
-    if (!(window.google && google.script) || !pin) return;
-    google.script.run.withSuccessHandler(zeigen).withFailureHandler((e) => { $('k-fst').textContent = e.message; }).fzStatus(pin);
-  }
-  function zeigen(d) {
-    const box = $('k-fst'); box.textContent = '';
-    if (!d.ok) { box.appendChild(el('div', 'leer', d.fehler)); return; }
-    d.fahrzeuge.forEach((f) => {
-      const z = el('div', 'fst'), kopf = el('div', 'fk');
-      kopf.appendChild(el('b', '', f.fahrzeug));
-      kopf.appendChild(el('small', '', f.bereit !== 'Ja' && (f.von || f.am) ? 'gemeldet ' + [f.von, f.am].filter(Boolean).join(' · ') : f.pickerl ? 'Pickerl ' + f.pickerl : ''));
-      z.appendChild(kopf);
-      let wahl = f.bereit;
-      const seg = el('div', 'seg'), knoepfe = [];
-      const inp = el('input'); inp.maxLength = 300; inp.value = f.mangel; inp.placeholder = 'Grund, z. B. Werkstatt bis Fr';
-      const sp = el('button', '', 'Speichern'); sp.type = 'button';
-      const auffrischen = () => {
-        knoepfe.forEach(([b, w, c]) => { b.className = (w === wahl ? 'an ' : '') + c; });
-        inp.hidden = wahl === 'Ja';
-        sp.disabled = wahl === f.bereit && (wahl === 'Ja' ? !f.mangel : inp.value.trim() === f.mangel);
-      };
-      ARTEN.forEach(([w, c, t]) => { const b = el('button', '', t); b.type = 'button'; b.onclick = () => { wahl = w; auffrischen(); if (w !== 'Ja') inp.focus(); }; knoepfe.push([b, w, c]); seg.appendChild(b); });
-      inp.oninput = auffrischen;
-      sp.onclick = () => {
-        if (wahl !== 'Ja' && !inp.value.trim()) { toast('Bitte kurz den Grund eintragen.', true); inp.focus(); return; }
-        sp.disabled = true; sp.textContent = '…';
-        google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); if (window.kommandoNeu) window.kommandoNeu(); })
-          .withFailureHandler((e) => { toast(e.message, true); laden(); }).fzStatusSetzen(pin, f.fahrzeug, wahl, inp.value);
-      };
-      const z2 = el('div', 'zeile2'); z2.append(inp, sp);
-      z.append(seg, z2);
-      if (f.bereit === 'Ja' && f.mangel) z.appendChild(el('div', 'klein', 'Offener Hinweis: ' + f.mangel + ' (wird beim Speichern als „Einsatzbereit“ gelöscht)'));
-      (f.sperren || []).forEach((x) => z.appendChild(sperre(f.fahrzeug, x)));
-      z.appendChild(planen(f.fahrzeug));
-      box.appendChild(z);
-      auffrischen();
-    });
-  }
-  // Geplante Sperre anzeigen, mit Löschen
-  function sperre(fz, x) {
-    const d = el('div', 'sp' + (x.laeuft ? ' laeuft' : x.status === 'Eingeschränkt' ? ' eing' : ''));
-    const t = el('div'); t.appendChild(el('b', '', (x.laeuft ? 'Läuft: ' : 'Geplant: ') + (x.status === 'Nein' ? 'außer Dienst' : 'eingeschränkt')));
-    t.appendChild(el('small', '', x.text + ' · ' + x.grund + (x.wer ? ' · ' + x.wer : '')));
-    const k = el('button', '', 'Löschen'); k.type = 'button';
-    k.onclick = () => {
-      if (k.dataset.sicher !== '1') { k.dataset.sicher = '1'; k.textContent = 'Wirklich?'; setTimeout(() => { k.dataset.sicher = ''; k.textContent = 'Löschen'; }, 4000); return; }
-      k.disabled = true; k.textContent = '…';
-      google.script.run.withSuccessHandler((r) => { toast(r.ok ? r.text : r.fehler, !r.ok); laden(); if (window.kommandoNeu) window.kommandoNeu(); })
-        .withFailureHandler((e) => { toast(e.message, true); laden(); }).fzSperreLoeschen(pin, x.id);
-    };
-    d.append(t, k); return d;
-  }
-  // Formular „Außer Dienst planen“
-  const pad = (n) => String(n).padStart(2, '0');
-  const lokal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  function planen(fz) {
-    const wrap = el('div'), auf = el('button', 'plan-auf', '+ Außer Dienst planen'); auf.type = 'button';
-    auf.onclick = () => {
-      auf.hidden = true;
-      const f = el('div', 'plan');
-      const feld = (titel, inp) => { const l = el('label', '', titel); l.appendChild(inp); return l; };
-      const morgen = new Date(); morgen.setDate(morgen.getDate() + 1); morgen.setHours(7, 0, 0, 0);
-      const von = el('input'); von.type = 'datetime-local'; von.value = lokal(morgen);
-      const bis = el('input'); bis.type = 'datetime-local';
-      const st = el('select'); [['Nein', 'Außer Dienst'], ['Eingeschränkt', 'Eingeschränkt']].forEach(([w, t]) => { const o = el('option', '', t); o.value = w; st.appendChild(o); });
-      const gr = el('input'); gr.maxLength = 200; gr.placeholder = 'z. B. Service Werkstatt';
-      const zwei = el('div', 'zwei'); zwei.append(feld('Von', von), feld('Bis (leer = bis auf Weiteres)', bis));
-      const los = el('button', 'los2', 'Planen'), ab = el('button', 'plan-auf', 'Abbrechen'); los.type = ab.type = 'button';
-      ab.onclick = () => { f.remove(); auf.hidden = false; };
-      los.onclick = () => {
-        if (!von.value) { toast('Bitte „Von“ angeben.', true); return; }
-        if (!gr.value.trim()) { toast('Bitte einen Grund eintragen.', true); gr.focus(); return; }
-        los.disabled = true; los.textContent = '…';
-        google.script.run.withSuccessHandler((r) => {
-          if (!r.ok) { toast(r.fehler, true); los.disabled = false; los.textContent = 'Planen'; return; }
-          toast(r.text);
-          if (r.konflikt && r.konflikt.length) alert(fz + ' ist in diesem Zeitraum noch gebucht. Bitte mit den Buchenden klären:\n\n' + r.konflikt.join('\n'));
-          laden(); if (window.kommandoNeu) window.kommandoNeu();
-        }).withFailureHandler((e) => { toast(e.message, true); los.disabled = false; los.textContent = 'Planen'; })
-          .fzSperreAnlegen(pin, fz, von.value, bis.value, st.value, gr.value);
-      };
-      f.append(zwei, feld('Status', st), feld('Grund', gr), los, ab);
-      wrap.appendChild(f); gr.focus();
-    };
-    wrap.appendChild(auf); return wrap;
-  }
-  window.fstStart = (p) => { pin = p; laden(); };
-})();
-</script>
-<script>
-// ---------- Einsatzunterstützung: Dokumente aus dem Drive-Ordner, für alle ----------
-(() => {
-  const $ = (id) => document.getElementById(id);
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  let daten = null, geladen = false;
-  const mb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : b > 0 ? Math.max(1, Math.round(b / 1024)) + ' kB' : '');
-  function zeigen() {
-    const box = $('e-liste'); box.textContent = '';
-    if (!daten.ok) { box.appendChild(el('div', 'leer', daten.fehler)); return; }
-    const q = $('e-suche').value.trim().toLowerCase();
-    let n = 0;
-    daten.rubriken.forEach((r) => {
-      const d = r.dateien.filter((f) => !q || (f.name + ' ' + r.name).toLowerCase().indexOf(q) !== -1);
-      if (!d.length && (q || !r.dateien.length)) { if (!q) { const w = el('div', 'e-rubrik'); w.append(el('h3', '', r.name), el('div', 'leer', 'noch keine Dokumente')); box.appendChild(w); } return; }
-      const w = el('div', 'e-rubrik'); w.appendChild(el('h3', '', r.name));
-      d.forEach((f) => {
-        const a = el('a', 'e-dok'); a.href = f.url; a.target = '_blank'; a.rel = 'noopener';
-        const t = el('div'); t.append(el('b', '', f.name), el('small', '', [f.typ, mb(f.groesse), 'Stand ' + f.datum].filter(Boolean).join(' · ')));
-        a.append(el('span', 'e-typ ' + f.typ, ({ Tabelle: 'XLS', Text: 'DOC', Folien: 'PPT', Video: 'VID' })[f.typ] || f.typ.slice(0, 5)), t, el('span', 'pf', '›'));
-        w.appendChild(a); n++;
-      });
-      box.appendChild(w);
-    });
-    if (q && !n) box.appendChild(el('div', 'leer', 'Nichts gefunden.'));
-    $('e-stand').textContent = 'Stand ' + daten.stand;
-  }
-  function laden(neu) {
-    $('e-neu').disabled = true;
-    google.script.run.withSuccessHandler((d) => { daten = d; $('e-neu').disabled = false; zeigen(); })
-      .withFailureHandler((e) => { $('e-neu').disabled = false; $('e-liste').textContent = e.message; }).einsatzDokumente(!!neu);
-  }
-  $('e-suche').oninput = () => daten && zeigen();
-  $('e-neu').onclick = () => laden(true);
-  window.einsatzStart = () => { if (!geladen) { geladen = true; laden(false); } };
+  // ---------- Start ----------
+  const startArt = document.body.dataset.start || '', startFz = document.body.dataset.fz || '';
+  if (startFz) seite = { s: 'fahrzeug', id: startFz };
+  else if (startArt === 'da') seite = { s: 'da' };
+  else if (startArt === 'einsatz') seite = { s: 'einsatz' };
+  else if (startArt === 'fahrzeuge') seite = { s: 'fahrzeuge' };
+  else if (startArt === 'verwaltung') seite = verw ? { s: 'start' } : { s: 'pin' };
+  if (seite.s !== 'start') stapel.push({ s: 'start' });
+  if (seite.s === 'fahrzeug') stapel.push({ s: 'fahrzeuge' });
+  laden().then(zahlenLaden);
+  // Automatisch aktualisieren, solange keine Rückfrage offen ist und nichts eingetippt wird
+  const ANZEIGE = { start: 1, fahrzeuge: 1, fahrzeug: 1, laeuft: 1 };
+  const auffrischen = () => { if (ANZEIGE[seite.s] && !document.querySelector('.hg') && document.visibilityState === 'visible') laden(); };
+  setInterval(auffrischen, 120000);
+  document.addEventListener('visibilitychange', auffrischen);
 })();
 </script>
 </body>
