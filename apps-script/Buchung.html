@@ -1021,8 +1021,8 @@
         const alt = b.textContent; b.disabled = true; b.textContent = 'Wird gespeichert …';
         try {
           const a = antwort(await run('einsatzSpeichern', verw.pin, e.id, { aktion, teilnehmer: v.teilnehmer, fahrzeuge: v.fahrzeuge, alarm: v.alarm, ende: v.ende, bericht: v.bericht }));
-          einDaten = null; seite.v = null; zahlenLaden();
-          if (aktion === 'speichern') { b.disabled = false; b.textContent = alt; await einLaden(); } else zeichne(false);
+          einDaten = null; zahlenLaden();
+          if (aktion === 'speichern') { b.disabled = false; b.textContent = alt; await einLaden(); } else { seite.v = null; zeichne(false); }
           return a;
         } catch (x) { b.disabled = false; b.textContent = alt; fehler(x); }
       };

@@ -134,3 +134,10 @@ gelb ≤ 30 Tage, grau noch nie erfasst.
 - Daten: 390 Geräte aus FDISK (30.10.2026) mit Ort laut FDISK-Zuweisung und den Prüfarten des Gerätestandards.
 - Einrichten: `GeraeteImport.gs` (nur lokal, nicht im Repo) einfügen, ▶ `geraeteEinrichten`, Tab „Prüfer“ befüllen,
   `GeraeteImport.gs` löschen, neue Version bereitstellen.
+
+### Alarm-Push ans Kommando und Einsatz-Nachbereitung (nur ein Pi)
+- `config.secret.example.js` als `config.secret.js` speichern (nicht im Repo) und `kommandoPushTopic`, `einsatzUrl`, `einsatzKey` eintragen. Die Datei liest nur der Hintergrund-Dienst, nicht die LEA-Seite.
+- In `config.local.js` zusätzlich `globalThis.LEASKIN_CONFIG.lageAktiv = true;`.
+- Push: 3 min nach dem Alarm Lagebild (Stufe, Ort, Zusagen, Rollen – keine Namen), danach bei Änderung, bis 20 min; nach 5 min noch „nicht besetzbar“ → Warnung mit hoher Priorität.
+- Nachbereitung: 5 min nachdem der Einsatz aus der LEA verschwunden ist, gehen die Daten an die Web-App (Tab „Einsätze“), danach Push „Einsatz beendet“. Lehnt die Web-App ab (z. B. falscher Schlüssel), kommt ein Warn-Push.
+- Apps Script: ▶ `einsatzEinrichtenNachbereitung` zeigt `einsatzUrl` und `einsatzKey` an; ▶ `fristenEinrichten` für die Fristen.

@@ -154,7 +154,9 @@ function fristenErinnern() {
   const props = PropertiesService.getScriptProperties();
   let erinnert = {};
   try { erinnert = JSON.parse(props.getProperty('FRIST_ERINNERT') || '{}'); } catch (e) { erinnert = {}; }
-  const jetzt = Date.now(), f = fristenAlle_(), faellig = [];
+  const jetzt0 = Date.now();
+  Object.keys(erinnert).forEach((k) => { if (jetzt0 - erinnert[k] > (FR_ERINNERN_TAGE + 5) * 864e5) delete erinnert[k]; });
+  const jetzt = jetzt0, f = fristenAlle_(), faellig = [];
   f.personen.forEach((p) => p.fristen.forEach((x) => {
     if (!x.bis || x.bis < jetzt || x.bis - jetzt > FR_ERINNERN_TAGE * 864e5) return;
     const k = anwNorm_(p.name) + '|' + x.art + '|' + tzDatum_(x.bis);
@@ -169,6 +171,7 @@ function fristenErinnern() {
         body: 'Hallo ' + p.name.split(' ')[0] + ',\n\ndeine Frist „' + x.art + '“ läuft am ' + datum(x.bis) + ' ab. Bitte rechtzeitig einen Termin ausmachen bzw. beim Kommando melden.\n\nFF Deutsch Haslau' });
     } catch (e) { console.error('Fristen-Mail an ' + p.name + ': ' + e.message); }
     erinnert[k] = jetzt;
+    props.setProperty('FRIST_ERINNERT', JSON.stringify(erinnert));   // gleich sichern: bricht etwas ab, geht keine Mail doppelt
   });
   if (faellig.length) {
     let leute = [];
@@ -181,8 +184,8 @@ function fristenErinnern() {
           '\n\nÜbersicht in der App unter Verwaltung › Fristen.' });
     } catch (e) { console.error('Fristen-Sammelmail: ' + e.message); }
   }
-  // alte Einträge aufräumen (nach einem Jahr)
-  Object.keys(erinnert).forEach((k) => { if (jetzt - erinnert[k] > 400 * 864e5) delete erinnert[k]; });
+  // alte Einträge aufräumen: erinnert wird nur 30 Tage vor Ablauf, danach ist der Eintrag nicht mehr nötig (Platz in der Eigenschaft ist knapp)
+  Object.keys(erinnert).forEach((k) => { if (jetzt - erinnert[k] > (FR_ERINNERN_TAGE + 5) * 864e5) delete erinnert[k]; });
   props.setProperty('FRIST_ERINNERT', JSON.stringify(erinnert));
   CacheService.getScriptCache().remove('fristen-zahl');
 }

@@ -4,6 +4,8 @@
 globalThis.window = globalThis;
 importScripts('config.js');
 try { importScripts('config.local.js'); } catch (e) { /* optional */ }
+// Geheimnisse (Push-Kanal Kommando, Einsatz-Schlüssel) nur hier im Hintergrund, nie in der LEA-Seite
+try { importScripts('config.secret.js'); } catch (e) { /* optional */ }
 importScripts('lib/ical.min.js');
 try { importScripts('hydranten.js'); } catch (e) { /* optional */ } // Mozilla ical.js 1.5.0 (MPL-2.0) – Serientermine, Ausnahmen, Zeitzonen
 const C = globalThis.LEASKIN_CONFIG || {};
@@ -446,6 +448,7 @@ const lageDurchlauf = async (json) => {
     // Stammdaten und alle, die irgendwann zugesagt haben (wer später absagt, bleibt drin – die Nachbereitung entscheidet)
     s.stufe = e.stufe; s.text = e.text; s.alarm = e.alarm; s.ort = e.ort; s.meldebild = e.meldebild;
     if (jetzt - s.gesehen > 60000) { s.gesehen = jetzt; geaendert = true; }
+    if (s.gemeldet) { s.gemeldet = false; geaendert = true; }   // kam wieder (z. B. Nachalarmierung) → später nochmal melden, die Web-App verlängert den Entwurf
     (e.personen || []).forEach((p) => { const k = (p.vn + ' ' + p.nn).trim().toLowerCase(); if (k && !s.personen[k]) { s.personen[k] = p; geaendert = true; } });
     if (C.kommandoPushTopic) {
       const alter = jetzt - e.alarm, sig = lageSig(e);
@@ -456,10 +459,9 @@ const lageDurchlauf = async (json) => {
         else if (warn) art = 'warnung';
         else if (sig !== s.sig && jetzt - s.letzterPush >= LAGE.abstandSek * 1000) art = 'update';
         if (art) {
-          try {
-            await lagePush(e, art, jetzt);
-            s.letzterPush = jetzt; s.sig = sig; if (!s.erstPush) s.erstPush = jetzt; if (art === 'warnung') s.warnung = true; geaendert = true;
-          } catch (x) { /* kein Netz → beim nächsten Durchlauf (5 s) wieder */ }
+          const merken = () => { s.letzterPush = jetzt; s.sig = sig; if (!s.erstPush) s.erstPush = jetzt; if (art === 'warnung') s.warnung = true; geaendert = true; };
+          try { await lagePush(e, art, jetzt); merken(); }
+          catch (x) { if (x && x.name === 'AbortError') merken(); /* Zeitüberschreitung: wahrscheinlich angekommen, nicht doppelt senden; sonst in 5 s wieder */ }
         }
       }
     }
@@ -483,13 +485,18 @@ const lageDurchlauf = async (json) => {
     q.versuche++; q.naechster = jetzt + 5 * 60000; geaendert = true;
     try {
       const { versuche, naechster, ...einsatz } = q;
-      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 30000);
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 60000);
       const r = await fetch(C.einsatzUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ aktion: 'einsatzEnde', key: C.einsatzKey, einsatz }), signal: ctl.signal }).finally(() => clearTimeout(t));
       const a = await r.json();
-      if (a && a.ok) {
+      const kdoPush = (titel, text) => C.kommandoPushTopic ? fetch('https://ntfy.sh/' + encodeURIComponent(C.kommandoPushTopic) + '?title=' + encodeURIComponent(titel) + '&tags=warning', { method: 'POST', body: text }).catch(() => {}) : null;
+      if (a && !a.ok && a.fehler && !/Lock|Zeit.*überschritten|timed out|Service/i.test(a.fehler)) {
+        // dauerhaft abgelehnt (Schlüssel falsch, Daten unplausibel) → nicht 3 Tage still wiederholen, sondern einmal melden
         L.queue.splice(L.queue.indexOf(q), 1);
-        if (C.kommandoPushTopic && a.neu) {
+        await kdoPush('Nachbereitung NICHT angelegt: ' + [q.stufe, q.text].filter(Boolean).join(' '), 'Die Web-App hat abgelehnt: ' + String(a.fehler).slice(0, 150) + '. Bitte EINSATZ_KEY / einsatzKey prüfen.');
+      } else if (a && a.ok) {
+        L.queue.splice(L.queue.indexOf(q), 1);
+        if (C.kommandoPushTopic && (a.neu || q.versuche > 1)) {
           await fetch('https://ntfy.sh/' + encodeURIComponent(C.kommandoPushTopic) + '?title=' + encodeURIComponent('Einsatz beendet: ' + [q.stufe, q.text].filter(Boolean).join(' ')) +
             '&tags=memo' + (C.einsatzAppLink ? '&click=' + encodeURIComponent(C.einsatzAppLink) : ''),
           { method: 'POST', body: 'Nachbereitung liegt in der App unter Verwaltung › Einsätze bereit (' + q.personen.length + ' Zusagen aus der LEA).' }).catch(() => {});

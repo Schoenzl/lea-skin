@@ -2,3 +2,4 @@ config.local.js
 mobil/da.json
 __pycache__/
 apps-script/GeraeteImport.gs
+config.secret.js

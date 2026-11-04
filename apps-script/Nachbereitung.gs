@@ -34,6 +34,8 @@ function einTab_(ss) {
     sh.getRange(1, 1, 1, EIN_KOPF.length).setValues([EIN_KOPF]).setFontWeight('bold');
     sh.setFrozenRows(1);
     sh.getRange('A:A').setNumberFormat('@');
+    sh.getRange('D:L').setNumberFormat('@');
+    sh.getRange('P:P').setNumberFormat('@');
     sh.getRange('B:C').setNumberFormat('dd.MM.yyyy HH:mm');
     sh.getRange('O:O').setNumberFormat('dd.MM.yyyy HH:mm');
   }
@@ -56,7 +58,7 @@ function nbZuordnen_(alle, vn, nn) {
   const gleich = alle.find((m) => { const t = teile(m.name); return t.length === lea.length && t.slice().sort().join(' ') === lea.slice().sort().join(' '); });
   if (gleich) return gleich;
   const v = teile(vn), n = teile(nn);
-  const passend = alle.filter((m) => { const t = teile(m.name); return n.every((x) => t.indexOf(x) !== -1) && v.length && t.indexOf(v[0]) !== -1; });
+  const passend = alle.filter((m) => { const t = teile(m.name); return n.length && v.length && n.every((x) => t.indexOf(x) !== -1) && t.indexOf(v[0]) !== -1; });
   return passend.length === 1 ? passend[0] : null;
 }
 
@@ -73,7 +75,11 @@ function einsatzEnde_(d) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     const ss = anwSS_(), sh = einTab_(ss);
-    if (einsaetze_(ss).some((e) => String(e.ID) === id)) return { ok: true, neu: false };
+    const da = einsaetze_(ss).find((e) => String(e.ID) === id);
+    if (da) {   // schon gemeldet (z. B. Nachalarmierung): beim Entwurf nur das Ende verlängern
+      if (String(da.Status) === 'entwurf' && bis > nbZeit_(da.Ende)) sh.getRange(da._zeile, eSp_('Ende')).setValue(new Date(bis));
+      return { ok: true, neu: false };
+    }
     const alle = mitglieder_(ss);
     const leute = (Array.isArray(x.personen) ? x.personen : []).slice(0, 80).map((p) => ({
       vn: nbText_(p.vn, 40), nn: nbText_(p.nn, 40), fn: (Array.isArray(p.fn) ? p.fn : []).slice(0, 8).map((f) => nbText_(f, 10)).filter(Boolean)

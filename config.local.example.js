@@ -25,15 +25,6 @@ globalThis.LEASKIN_CONFIG.elListe = [
 // Push, wenn eine Nachbarwehr (Liste „nachbarn“ in config.js) ausrückt – nur an dich, App „ntfy“, eigener geheimer Kanal.
 // Nur auf EINEM Pi setzen. globalThis.LEASKIN_CONFIG.nachbarPushTopic = 'ffdh-nachbar-…';
 
-// Alarm-Push mit Lagebild ans Kommando (App „ntfy“, eigener geheimer Kanal, z. B. 'ffdh-kommando-…'). Nur auf EINEM Pi.
-// 3 min nach dem Alarm das Lagebild, dann bei Änderung, bis 20 min; nach 5 min noch „nicht besetzbar“ → Warnung mit hoher Priorität.
-// globalThis.LEASKIN_CONFIG.kommandoPushTopic = 'ffdh-kommando-…';
-// optional: Antippen des Pushes öffnet die Handy-Ansicht (Tailscale-Adresse)
-// globalThis.LEASKIN_CONFIG.kommandoPushLink = 'https://…ts.net/';
-
-// Einsatz-Nachbereitung: nach Einsatzende gehen Stufe, Ort, Zeiten und Zusagen an die Web-App (Tab „Einsätze“).
-// einsatzUrl = Web-App-Adresse (…/exec), einsatzKey = Skripteigenschaft EINSATZ_KEY. Nur auf EINEM Pi.
-// globalThis.LEASKIN_CONFIG.einsatzUrl = 'https://script.google.com/macros/s/…/exec';
-// globalThis.LEASKIN_CONFIG.einsatzKey = '…';
-// optional: Link im Push „Einsatz beendet“
-// globalThis.LEASKIN_CONFIG.einsatzAppLink = 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=einsaetze#…';
+// Alarm-Push mit Lagebild ans Kommando und Einsatz-Nachbereitung – nur auf EINEM Pi:
+// hier nur den Schalter setzen, Kanal und Schlüssel kommen in config.secret.js (Vorlage config.secret.example.js).
+// globalThis.LEASKIN_CONFIG.lageAktiv = true;

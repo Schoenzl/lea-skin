@@ -667,8 +667,8 @@
   }
 
   // Lagebild für den Hintergrund-Dienst: Push ans Kommando (kommandoPushTopic) und Einsatz-Nachbereitung (einsatzUrl).
-  // Nur auf dem Pi, wo eins davon in config.local.js gesetzt ist, nie im Demo-Modus.
-  if ((C.kommandoPushTopic || C.einsatzUrl) && !DEMO) {
+  // Nur wenn lageAktiv in config.local.js gesetzt ist (Kanal und Schlüssel stehen in config.secret.js), nie im Demo-Modus.
+  if (C.lageAktiv && !DEMO) {
     setInterval(() => {
       const frisch = !!state.events && Date.now() - state.lastData < (C.datenTimeoutSek || 45) * 1000;
       const evs = frisch ? listOf(state.events).map((ev) => {
