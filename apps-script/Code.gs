@@ -9,6 +9,8 @@ const ABGESAGT = /abgesagt|storniert|storno|entf(ä|ae)llt|f(ä|ae)llt aus/i;
 const MAX_TAGE = 7;                              // längste Buchung
 
 function doGet(e) {
+  const a = (e && e.parameter && e.parameter.aktion) || '';
+  if (a === 'fdisk' || a === 'fdiskErledigt') return fdiskAbfrage_(e.parameter);   // automatischer FDISK-Übertrag (Taetigkeit.gs)
   const t = HtmlService.createTemplateFromFile('Buchung');
   const seite = (e && e.parameter && e.parameter.seite) || '';
   // Alte Links bleiben gültig: ?seite=da (Anwesenheit), ?seite=intern/status (Verwaltung), ?seite=einsatz; neu ?fz=KLF-W (Fahrzeug-QR)
@@ -131,6 +133,7 @@ function bewegungEnde(zeile, name) {
     sh.getRange(b.zeile, s.bis + 1).setValue(new Date(ende)).setNumberFormat('dd.MM.yyyy HH:mm:ss');
     sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + (gleich_(wer, b.name) ? '' : ' (eingerückt: ' + wer + ')'));
     SpreadsheetApp.flush();
+    try { taetBewegung_(b, ende); } catch (e) { console.error('Bewegungsfahrt als Tätigkeit: ' + e.message); }
     const min = Math.round((ende - b.von) / 60e3);
     return { ok: true, text: b.fahrzeug + ' eingerückt um ' + fmt_(ende).slice(-5) + ' · Bewegungsfahrt ' + (min < 60 ? min + ' min' : Math.floor(min / 60) + ' h ' + String(min % 60).padStart(2, '0') + ' min') + '.' };
   } finally { lock.releaseLock(); }

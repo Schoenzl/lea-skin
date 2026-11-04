@@ -150,6 +150,7 @@
     schild: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
     werkzeug: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
     liste: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 13l2 2 4-4"/>',
+    stift: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
     schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
   };
   // Kinder anhängen: Listen werden aufgelöst, leere Werte übersprungen
@@ -310,6 +311,7 @@
       const g = zahlen && zahlen.geraete;
       out.push(h('div', { class: 'label', style: 'margin-top:28px' }, 'Verwaltung · ' + r.text), h('div', { class: 'gitter', style: 'gap:10px' },
         r.fz ? kl('schild', 'Fahrzeugstatus', ausN ? h('span', { class: 'pill rot' }, ausN + ' außer Dienst') : h('span', { class: 'pill gruen' }, 'alle bereit'), { s: 'fzstatus' }) : null,
+        r.fz ? kl('stift', 'Tätigkeiten', h('span', { class: 'pill' }, 'eintragen · FDISK'), { s: 'taet' }) : null,
         kl('werkzeug', 'Geräteprüfung', g ? (g.rot || g.gelb ? h('span', { class: 'pill ' + (g.rot ? 'rot' : 'gelb') }, (g.rot + g.gelb) + ' fällig') : h('span', { class: 'pill gruen' }, 'alles geprüft')) : null, { s: 'geraete' }),
         r.anw ? kl('liste', 'Anwesenheit prüfen', zahlen && zahlen.anwOffen != null ? h('span', { class: 'pill ' + (zahlen.anwOffen ? 'gelb' : 'gruen') }, zahlen.anwOffen ? zahlen.anwOffen + ' offen' : 'alles erledigt') : null, { s: 'anwp' }) : null,
         h('button', { type: 'button', class: 'link', style: 'justify-self:start', onclick: () => frage({ titel: 'Verwaltung abmelden?', text: 'Zum Anmelden brauchst du dann wieder deinen PIN.', ja: 'Ja, abmelden', aktion: () => { verw = null; zahlen = null; schreib('ff-verw', null); zeichne(false); melde('Verwaltung abgemeldet.'); } }) }, 'Verwaltung abmelden')));
@@ -738,16 +740,122 @@
       h('button', { type: 'button', class: 'leise', style: 'color:var(--aus)', onclick: () => frage({ titel: 'Termin löschen?', text: '„' + t.titel + '“ mit allen ' + t.personen.length + ' Eintragungen. Das lässt sich nicht rückgängig machen.', ja: 'Ja, löschen', aktion: async () => { antwort(await aktion({ aktion: 'loeschen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Termin löschen')];
   };
 
+  // ---------- Verwaltung: Tätigkeiten eintragen und monatlich fürs FDISK freigeben ----------
+  const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const monatText = (m) => MONATE[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4);
+  const monatPlus = (m, n) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); };
+  const STATUS_T = { offen: ['offen', 'gelb'], fertig: ['fertig', ''], freigegeben: ['freigegeben', 'gelb'], fdisk: ['im FDISK', 'gruen'] };
+  SEITEN.taet = () => {
+    const jetztM = isoTag(new Date()).slice(0, 7);
+    if (!seite.monat) seite.monat = jetztM;
+    const m = seite.monat, kdo = rollen().anw;
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const wechsel = (n) => { seite.monat = monatPlus(m, n); zeichne(false); };
+    run('taetMonat', verw.pin, m).then((r) => {
+      if (!r.ok) throw new Error(r.fehler);
+      box.textContent = '';
+      add(box, h('div', { class: 'label' }, r.liste.length ? r.liste.length + (r.liste.length === 1 ? ' Tätigkeit' : ' Tätigkeiten') : 'Noch nichts eingetragen'),
+        h('div', { class: 'gitter', style: 'gap:10px' }, r.liste.map((t) => {
+          const [st, farbe] = STATUS_T[t.status] || ['', ''];
+          const inhalt = [h('span', { class: 't' }, h('b', null, t.titel),
+            h('span', null, tagName(t.beginn) === 'heute' ? 'heute' : WT[new Date(t.beginn).getDay()] + ' ' + new Date(t.beginn).getDate() + '.' + (new Date(t.beginn).getMonth() + 1) + '.', ' · ', uhr(t.beginn), t.ende ? '–' + uhr(t.ende) : '', ' · ', t.art + (t.unterart ? ' / ' + t.unterart : ''), ' · ', t.personen + (t.personen === 1 ? ' Person' : ' Personen')),
+            t.ohneSbn.length ? h('span', { style: 'display:block;color:var(--aus);font-weight:700' }, 'ohne Standesbuchnr.: ' + t.ohneSbn.join(', ')) : null,
+            t.bericht ? h('span', { style: 'display:block' }, t.bericht) : null),
+            h('span', { class: 'pill ' + farbe }, st)];
+          const offenBar = kdo && t.status !== 'fdisk';
+          return h(offenBar ? 'button' : 'div', { type: offenBar ? 'button' : null, class: 'kachel k', style: 'min-height:76px;align-items:flex-start', onclick: offenBar ? async () => {
+            try { await anwLaden(); if (anwDaten.termine.some((x) => x.id === t.id)) zeige({ s: 'anwt', id: t.id }); else melde('Diese Tätigkeit ist älter als 60 Tage und kann hier nicht mehr geändert werden.', true); } catch (e) { fehler(e); }
+          } : null }, inhalt);
+        })));
+      // Freigabe (nur Kommando, nur vergangene Monate)
+      if (kdo && m < jetztM) {
+        const fg = r.freigabe, offen = r.liste.filter((t) => t.status === 'offen'), fertig = r.liste.filter((t) => t.status === 'fertig');
+        const ohne = Array.from(new Set([].concat(...r.liste.filter((t) => t.status !== 'fdisk').map((t) => t.ohneSbn))));
+        const k = h('div', { class: 'karte', style: 'margin-top:20px' }, h('b', { style: 'display:block;font-size:20px' }, 'Ins FDISK übertragen'));
+        if (fg && fg.uebertragen && !fertig.length) add(k, h('p', { class: 'sub', style: 'margin-top:6px' }, 'Übertragen am ' + fg.uebertragen + '.'));
+        else {
+          if (fg) add(k, h('p', { class: 'sub', style: 'margin-top:6px' }, 'Freigegeben am ' + fg.am + ' von ' + fg.von + '. Der Übertrag läuft am nächsten Monatsersten automatisch.'));
+          else add(k, h('p', { class: 'sub', style: 'margin-top:6px' }, 'Nach der Freigabe trägt der automatische Übertrag am Monatsersten alles ins FDISK ein. Du bekommst das Ergebnis per Mail.'));
+          if (offen.length) add(k, h('div', { class: 'warn' }, offen.length + ' noch offen. Bitte zuerst unter „Anwesenheit prüfen“ abschließen.'));
+          if (ohne.length) add(k, h('div', { class: 'warn' }, 'Ohne Standesbuchnummer, im FDISK nicht eintragbar: ' + ohne.join(', ') + '. Bitte im Tab „Mitglieder“ ergänzen.'));
+          if (!fg || fertig.length) add(k, h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:14px', disabled: offen.length || !fertig.length ? true : null, onclick: () => frage({
+            titel: monatText(m) + ' freigeben?', text: fertig.length + (fertig.length === 1 ? ' Tätigkeit wird' : ' Tätigkeiten werden') + ' beim nächsten Übertrag ins FDISK eingetragen.', ja: 'Ja, freigeben',
+            aktion: async () => { antwort(await run('taetFreigeben', verw.pin, m)); zeichne(false); } }) }, fertig.length ? 'Monat fürs FDISK freigeben' : 'Nichts zum Freigeben'));
+        }
+        box.appendChild(k);
+      }
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Start'), h('h1', null, 'Tätigkeiten'),
+      h('button', { type: 'button', class: 'btn haupt', onclick: () => zeige({ s: 'taetneu' }) }, '+ Tätigkeit eintragen'),
+      h('div', { style: 'display:flex;align-items:center;gap:8px;margin-top:22px' },
+        h('button', { type: 'button', class: 'knopf', 'aria-label': 'Monat davor', onclick: () => wechsel(-1) }, icon('links')),
+        h('b', { style: 'flex:1;text-align:center;font-size:21px' }, monatText(m)),
+        h('button', { type: 'button', class: 'knopf', 'aria-label': 'Monat danach', disabled: m >= jetztM ? true : null, onclick: () => wechsel(1) }, icon('rechts'))),
+      box];
+  };
+
+  SEITEN.taetneu = () => {
+    const v = seite.v || (seite.v = { art: '', unterart: '', titel: '', datum: isoTag(new Date()), von: '19:00', bis: '21:00', personen: [ich], bemerkung: '', q: '' });
+    const box = h('div', null, h('div', { class: 'lade' }, 'wird geladen …'));
+    const stamm = seite.stamm ? Promise.resolve(seite.stamm) : run('taetStamm', verw.pin).then((r) => { if (!r.ok) throw new Error(r.fehler); seite.stamm = r; return r; });
+    stamm.then((st) => {
+      box.textContent = '';
+      v.personen = v.personen.filter((n) => st.namen.indexOf(n) !== -1);
+      const ua = (st.unterarten || {})[v.art] || [];
+      const leute = h('div', { class: 'liste' });
+      const zahl = h('span');
+      const fuelle = () => {
+        leute.textContent = '';
+        zahl.textContent = v.personen.length ? ' (' + v.personen.length + ' gewählt)' : '';
+        const q = norm(v.q);
+        const liste = st.namen.filter((n) => !q || norm(n).indexOf(q) !== -1 || v.personen.indexOf(n) !== -1)
+          .sort((a, b) => (v.personen.indexOf(b) !== -1) - (v.personen.indexOf(a) !== -1) || a.localeCompare(b, 'de'));
+        liste.forEach((n) => {
+          const an = v.personen.indexOf(n) !== -1;
+          leute.appendChild(h('button', { type: 'button', class: 'zeile', 'aria-pressed': an ? 'true' : 'false', onclick: () => { const i = v.personen.indexOf(n); if (i === -1) v.personen.push(n); else v.personen.splice(i, 1); fuelle(); } },
+            h('span', { class: 'logo rund', style: an ? 'background:var(--gruen-btn);color:#fff' : '' }, an ? icon('haken', 22) : kuerzel(n)), h('span', { class: 't' }, h('b', null, n)), an ? h('span', { class: 'pill gruen' }, 'dabei') : null));
+        });
+        if (!liste.length) leute.appendChild(h('div', { class: 'sub', style: 'padding:16px 0' }, 'Kein Treffer.'));
+      };
+      const speichern = async (b) => {
+        if (!v.art) { melde('Bitte die Tätigkeitsart wählen.', true); return; }
+        if (!v.personen.length) { melde('Bitte mindestens eine Person auswählen.', true); return; }
+        b.disabled = true; b.textContent = 'Wird gespeichert …';
+        try { antwort(await run('taetAnlegen', verw.pin, { art: v.art, unterart: v.unterart, titel: v.titel, datum: v.datum, von: v.von, bis: v.bis, personen: v.personen, bemerkung: v.bemerkung })); seite.v = null; zurueck(); }
+        catch (e) { b.disabled = false; b.textContent = 'Speichern'; fehler(e); }
+      };
+      add(box,
+        h('label', { class: 'label', for: 't-art' }, 'Tätigkeitsart'),
+        h('select', { id: 't-art', onchange: (e) => { v.art = e.target.value; v.unterart = ''; zeichne(false); } }, h('option', { value: '' }, '– wählen –'), st.arten.map((a) => h('option', { value: a, selected: a === v.art }, a))),
+        ua.length ? [h('label', { class: 'label', for: 't-ua' }, 'Unterart'), h('select', { id: 't-ua', onchange: (e) => { v.unterart = e.target.value; } }, ua.map((u) => h('option', { value: u, selected: u === v.unterart }, u || '– keine –')))] : null,
+        h('label', { class: 'label', for: 't-titel' }, 'Bezeichnung (optional)'),
+        h('input', { id: 't-titel', maxlength: '80', value: v.titel, placeholder: v.unterart || v.art || 'z. B. Schlauchpflege', oninput: (e) => { v.titel = e.target.value; } }),
+        h('label', { class: 'label', for: 't-datum' }, 'Datum'),
+        h('input', { id: 't-datum', type: 'date', value: v.datum, max: isoTag(new Date()), onchange: (e) => { v.datum = e.target.value; } }),
+        h('div', { class: 'zwei' },
+          h('div', null, h('label', { class: 'label', for: 't-von' }, 'Von'), h('input', { id: 't-von', type: 'time', value: v.von, onchange: (e) => { v.von = e.target.value; } })),
+          h('div', null, h('label', { class: 'label', for: 't-bis' }, 'Bis'), h('input', { id: 't-bis', type: 'time', value: v.bis, onchange: (e) => { v.bis = e.target.value; } }))),
+        h('div', { class: 'label' }, 'Wer war dabei?', zahl),
+        h('input', { id: 't-suche', type: 'search', placeholder: 'Name suchen', 'aria-label': 'Name suchen', value: v.q, oninput: (e) => { v.q = e.target.value; fuelle(); } }),
+        leute,
+        h('label', { class: 'label', for: 't-bem' }, 'Bemerkung (optional)'),
+        h('textarea', { id: 't-bem', maxlength: '300', value: v.bemerkung, oninput: (e) => { v.bemerkung = e.target.value; } }),
+        h('div', { class: 'sticky' }, h('button', { type: 'button', class: 'btn haupt', onclick: (e) => speichern(e.currentTarget) }, 'Speichern')));
+      fuelle();
+    }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
+    return [kopfZurueck('Tätigkeiten'), h('h1', null, 'Tätigkeit eintragen'), box];
+  };
+
   // ---------- Zeichnen ----------
-  const ADMIN = { fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1 };
+  const ADMIN = { fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1 };
   function zeichne(nachOben) {
     if (!daten) return;
     if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
     else if (ADMIN[seite.s] && !verw) seite = { s: 'pin' };
-    else if (seite.s === 'fzstatus' && !rollen().fz) seite = { s: 'start' };
+    else if ((seite.s === 'fzstatus' || seite.s === 'taet' || seite.s === 'taetneu') && !rollen().fz) seite = { s: 'start' };
     else if ((seite.s === 'anwp' || seite.s === 'anwt') && !rollen().anw) seite = { s: 'start' };
     // Verwaltungsseiten laden ihre Daten selbst – beim automatischen Aktualisieren nicht neu zeichnen
-    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && seite.s !== 'anwt') return;
+    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1 }[seite.s]) return;
     const y = window.scrollY, aktiv = document.activeElement && document.activeElement.id;
     $app.textContent = '';
     $app.dataset.seite = seite.s;

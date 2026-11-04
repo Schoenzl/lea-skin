@@ -291,6 +291,7 @@ function anwAktion(pin, a) {
       if (a.beginn) T.sh.getRange(t._zeile, sp('Beginn')).setValue(lokal_(a.beginn));
       if (a.ende) T.sh.getRange(t._zeile, sp('Ende')).setValue(lokal_(a.ende));
       T.sh.getRange(t._zeile, sp('Bemerkung')).setValue(String(a.bemerkung || '').slice(0, 300));
+      if (/^freigegeben/.test(String(t['FDISK-Bericht'] || ''))) T.sh.getRange(t._zeile, sp('FDISK-Bericht')).setValue('');   // geändert → neu freigeben
       return { ok: true, text: 'Gespeichert.' };
     }
     if (a.aktion === 'abschliessen') {
@@ -303,6 +304,7 @@ function anwAktion(pin, a) {
     }
     if (a.aktion === 'oeffnen') {
       T.sh.getRange(t._zeile, sp('Status')).setValue('offen');
+      if (/^freigegeben/.test(String(t['FDISK-Bericht'] || ''))) T.sh.getRange(t._zeile, sp('FDISK-Bericht')).setValue('');
       return { ok: true, text: 'Wieder geöffnet.' };
     }
     if (a.aktion === 'loeschen') {
