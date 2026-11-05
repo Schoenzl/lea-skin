@@ -1085,6 +1085,12 @@
           p.fristen.filter((x) => filter === 'alle' || x.ampel === 'rot' || x.ampel === 'gelb').map((x) => h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px' },
             h('span', { style: 'flex:1;min-width:150px;font-size:18px' }, x.art), h('span', { class: 'sub' }, x.bis ? 'bis ' + tagDatum(x.bis) : ''), h('span', { class: 'pill ' + (x.ampel === 'grau' ? '' : x.ampel) }, FR_TXT[x.ampel])))))) :
           h('p', { class: 'sub' }, 'Nichts fällig – alle Fristen sind länger als 60 Tage gültig.'),
+        r.nurAts ? null : h('div', { class: 'karte', style: 'margin-top:20px' },
+          h('b', { style: 'display:block;font-size:19px' }, 'Abgleich mit dem FDISK'),
+          h('p', { class: 'sub', style: 'margin:6px 0 0' }, r.fdiskStand ? 'Zuletzt abgeglichen: ' + tagDatum(r.fdiskStand) + ' · ' + uhr(r.fdiskStand) + ' Uhr' : 'Noch nie abgeglichen.'),
+          r.abgleichStatus ? h('div', { class: 'warn' }, r.abgleichStatus.text + ' (' + wann(r.abgleichStatus.am) + ')') : null,
+          r.anfrage ? h('p', { class: 'sub', style: 'margin:8px 0 0' }, 'Angefordert ' + wann(r.anfrage.am) + ' von ' + r.anfrage.von + '. Läuft am Abend ab 19:20 – FDISK muss im eingebauten Browser der Claude-App angemeldet sein.') : null,
+          rollen().anw ? h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:12px', onclick: (e) => { const b = e.currentTarget; frage({ titel: 'Mit FDISK abgleichen?', text: 'Führerscheine und andere Fristen werden heute Abend aus dem FDISK geholt. Dafür muss FDISK im eingebauten Browser der Claude-App angemeldet sein.', ja: 'Ja, anfordern', aktion: async () => { antwort(await run('fristenAnfordern', verw.pin)); zeichne(false); } }); } }, r.anfrage ? 'Nochmal anfordern' : 'Mit FDISK abgleichen') : null),
         h('p', { class: 'sub klein', style: 'margin-top:20px' }, 'Atemschutz aus der ATS-Tabelle im Drive' + (r.nurAts ? '' : r.fdiskStand ? ', übrige Fristen aus dem FDISK (Stand ' + tagDatum(r.fdiskStand) + ')' : '; FDISK-Fristen sind noch nicht abgeglichen') + '. Gelb = in den nächsten 60 Tagen. 30 Tage vorher geht eine Erinnerung per Mail.'));
     }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
     return [kopfZurueck('Start'), h('h1', null, rollen().anw ? 'Fristen' : 'Atemschutz-Fristen'), box];
@@ -1100,7 +1106,7 @@
     else if ((seite.s === 'anwp' || seite.s === 'anwt' || seite.s === 'einsl' || seite.s === 'eins') && !rollen().anw) seite = { s: 'start' };
     else if (seite.s === 'fristen' && !rollen().ats) seite = { s: 'start' };
     // Verwaltungsseiten laden ihre Daten selbst – beim automatischen Aktualisieren nicht neu zeichnen
-    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1, eins: 1 }[seite.s]) return;
+    if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1, eins: 1, fristen: 1 }[seite.s]) return;
     const y = window.scrollY, aktiv = document.activeElement && document.activeElement.id;
     $app.textContent = '';
     $app.dataset.seite = seite.s;

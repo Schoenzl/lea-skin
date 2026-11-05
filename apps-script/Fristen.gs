@@ -132,7 +132,8 @@ function fristenUebersicht(pin) {
   const n = (a) => f.personen.reduce((s, p) => s + p.fristen.filter((x) => x.ampel === a).length, 0);
   const z = { rot: n('rot'), gelb: n('gelb') };
   try { CacheService.getScriptCache().put(nurAts ? 'fristen-zahl-ats' : 'fristen-zahl', JSON.stringify(z), 3600); } catch (e) { /* egal */ }
-  return { ok: true, nurAts, personen: f.personen, fehler: f.fehler, fdiskStand: nurAts ? 0 : f.fdiskStand, rot: z.rot, gelb: z.gelb };
+  const x = nurAts ? {} : frAnfrage_();
+  return { ok: true, nurAts, personen: f.personen, fehler: f.fehler, fdiskStand: nurAts ? 0 : (x.stand || f.fdiskStand), anfrage: x.anfrage || null, abgleichStatus: x.status || null, rot: z.rot, gelb: z.gelb };
 }
 // Zahl für die Kachel (zwischengespeichert, damit die Startseite schnell bleibt)
 function fristenZahl_(nurAts) {
@@ -160,8 +161,40 @@ function fristenAusFdisk_(d) {
     if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, FR_KOPF.length).clearContent();
     if (liste.length) sh.getRange(2, 1, liste.length, FR_KOPF.length).setValues(liste);
     frCacheWeg_();
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('FRISTEN_STAND', String(Date.now()));
+    props.deleteProperty('FRISTEN_ANFRAGE');      // Anfrage aus der App ist damit erledigt
+    props.deleteProperty('FRISTEN_STATUS');
     return { ok: true, text: liste.length + ' Fristen aus dem FDISK gespeichert.' };
   } finally { lock.releaseLock(); }
+}
+
+// ---------- Knopf „Mit FDISK abgleichen“ (Kommando) ----------
+// Die App kann den Abgleich nicht selbst starten (FDISK-Anmeldung macht nur Raphael im eingebauten Browser).
+// Der Knopf stellt eine Anfrage; der geplante Lauf am Mac (täglich am Abend) fragt sie ab (aktion=fristenAnfrage) und gleicht dann ab.
+function frAnfrage_() {
+  const props = PropertiesService.getScriptProperties();
+  let a = null, s = null;
+  try { a = JSON.parse(props.getProperty('FRISTEN_ANFRAGE') || 'null'); } catch (e) { a = null; }
+  try { s = JSON.parse(props.getProperty('FRISTEN_STATUS') || 'null'); } catch (e) { s = null; }
+  return { anfrage: a, status: s, stand: +(props.getProperty('FRISTEN_STAND') || 0) };
+}
+function fristenAnfordern(pin) {
+  const r = rolle_(pin); if (!r || r.rolle !== 'kommando') return { ok: false, fehler: 'Nur fürs Kommando.' };
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('FRISTEN_ANFRAGE', JSON.stringify({ am: Date.now(), von: nameKurz_(r) }));
+  props.deleteProperty('FRISTEN_STATUS');
+  return { ok: true, text: 'Angefordert. Der Abgleich läuft heute Abend (ab 19:20), wenn du im FDISK angemeldet bist.' };
+}
+// Für den geplanten Lauf (doGet mit FDISK_KEY, aus fdiskAbfrage_): Anfrage abfragen / Status melden
+function fristenAnfrage_(p) {
+  const props = PropertiesService.getScriptProperties();
+  if (p.aktion === 'fristenStatus') {
+    props.setProperty('FRISTEN_STATUS', JSON.stringify({ am: Date.now(), text: nbText_(p.text, 200) }));
+    return { ok: true };
+  }
+  const x = frAnfrage_(), heute = Utilities.formatDate(new Date(), 'Europe/Vienna', 'd');
+  return { ok: true, offen: !!x.anfrage, angefordert: x.anfrage, monatsabgleich: heute === '1', stand: x.stand };
 }
 
 // ---------- Täglich 7 Uhr: Erinnerung 30 Tage vorher ----------

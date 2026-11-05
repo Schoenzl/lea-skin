@@ -10,7 +10,7 @@ const MAX_TAGE = 7;                              // längste Buchung
 
 function doGet(e) {
   const a = (e && e.parameter && e.parameter.aktion) || '';
-  if (a === 'fdisk' || a === 'fdiskErledigt' || a === 'fdiskEinsaetze' || a === 'einsatzErledigt') return fdiskAbfrage_(e.parameter);   // automatischer FDISK-Übertrag (Taetigkeit.gs)
+  if (a === 'fdisk' || a === 'fdiskErledigt' || a === 'fdiskEinsaetze' || a === 'einsatzErledigt' || a === 'fristenAnfrage' || a === 'fristenStatus') return fdiskAbfrage_(e.parameter);   // automatischer FDISK-Übertrag (Taetigkeit.gs)
   const t = HtmlService.createTemplateFromFile('Buchung');
   const seite = (e && e.parameter && e.parameter.seite) || '';
   // Alte Links bleiben gültig: ?seite=da (Anwesenheit), ?seite=intern/status (Verwaltung), ?seite=einsatz; neu ?fz=KLF-W (Fahrzeug-QR)
