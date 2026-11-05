@@ -93,7 +93,7 @@ function frMitglied_(alle, name, sbn) {
 const frAmpel_ = (bis, jetzt) => (!bis ? 'grau' : bis < jetzt ? 'rot' : bis - jetzt <= FR_GELB_TAGE * 864e5 ? 'gelb' : 'gruen');
 
 // Wer darf was sehen: 'alle' (Kommando), 'ats' (SB Atemschutz: Funktion enthält „Atemschutz“) oder null
-const FR_ATS_FUNKTION = /atemschutz/i;
+const FR_ATS_FUNKTION = /atemschutz|\bats\b/i;   // „SB Atemschutz“, „SB ATS“, „Atemschutzwart“ …
 function frRecht_(pin) {
   const r = rolle_(pin); if (!r) return null;
   if (r.rolle === 'kommando') return 'alle';

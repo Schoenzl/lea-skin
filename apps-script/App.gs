@@ -126,13 +126,13 @@ function verwaltungPruefen(pin) {
 // Zahlen für die Verwaltungskacheln
 function verwaltungZahlen(pin) {
   const r = verwaltungPruefen(pin); if (!r.ok) return { ok: false, fehler: 'Bitte neu anmelden.' };
-  const out = { ok: true, rolle: r.rolle, maengel: mangelAnzahl_() };
+  const out = { ok: true, rolle: r.rolle, funktion: r.funktion || '', maengel: mangelAnzahl_() };
   try { const g = pruefUebersicht(pin); if (g.ok && g.gesamt) out.geraete = g.gesamt; } catch (e) { /* Geräte nicht eingerichtet */ }
   if (r.rolle === 'kommando') {
     try { const a = anwUebersicht(pin); if (a.ok) out.anwOffen = (a.termine || []).filter((t) => t.status === 'offen').length; } catch (e) { /* Anwesenheit nicht eingerichtet */ }
     out.einsaetze = einsatzAnzahl_();
   }
-  if (r.rolle === 'kommando' || /atemschutz/i.test(r.funktion || '')) {
+  if (r.rolle === 'kommando' || FR_ATS_FUNKTION.test(r.funktion || '')) {
     try { out.fristen = fristenZahl_(r.rolle !== 'kommando'); } catch (e) { /* ATS-Tabelle nicht lesbar */ }
   }
   return out;

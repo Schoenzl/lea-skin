@@ -240,7 +240,7 @@
     try {
       const r = await run('verwaltungZahlen', verw.pin);
       if (!r.ok) { verw = null; zahlen = null; schreib('ff-verw', null); melde('Verwaltung: bitte neu anmelden.'); }
-      else { zahlen = r; if (r.rolle !== verw.rolle) { verw.rolle = r.rolle; schreib('ff-verw', verw); } }
+      else { zahlen = r; if (r.rolle !== verw.rolle || (r.funktion != null && r.funktion !== verw.funktion)) { verw.rolle = r.rolle; if (r.funktion != null) verw.funktion = r.funktion; schreib('ff-verw', verw); } }
     } catch (e) { /* Zahlen sind nur Komfort */ }
     if (seite.s === 'start') zeichne(false);
   };
@@ -263,7 +263,7 @@
   const rollen = () => ({
     fz: !!verw && (verw.rolle === 'kommando' || verw.rolle === 'fahrmeister'),
     anw: !!verw && verw.rolle === 'kommando',
-    ats: !!verw && (verw.rolle === 'kommando' || /atemschutz/i.test(verw.funktion || '')),
+    ats: !!verw && (verw.rolle === 'kommando' || /atemschutz|\bats\b/i.test(verw.funktion || '')),
     text: verw ? (verw.funktion || { kommando: 'Kommando', fahrmeister: 'Fahrmeister', pruefer: 'Prüfer' }[verw.rolle] || '') : ''
   });
 
