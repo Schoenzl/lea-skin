@@ -9,7 +9,9 @@
  *  - FDISK: Tab „Fristen (FDISK)“ in der Anwesenheitstabelle. Den füllt der monatliche FDISK-Abgleich
  *    (Claude im Browser, POST aktion=fristen mit FDISK_KEY) – jedes Mal komplett neu.
  *
- * Anzeige: Verwaltung › Fristen (nur Kommando) mit Ampel – rot abgelaufen, gelb in den nächsten 60 Tagen.
+ * Anzeige: Verwaltung › Fristen mit Ampel – Kommando (Rolle „Alles“) sieht alles, wer im Tab „Prüfer“ eine Funktion mit
+ * „Atemschutz“ hat (SB Atemschutz), sieht nur die Atemschutz-Fristen.
+ * Ampel – rot abgelaufen, gelb in den nächsten 60 Tagen.
  * Erinnerung: täglich um 7 Uhr; läuft eine Frist in 30 Tagen ab, bekommt das Mitglied (Spalte „E-Mail“ im Tab „Mitglieder“)
  * eine Mail, das Kommando eine Sammelmail. Jede Frist wird nur einmal erinnert.
  *
@@ -90,14 +92,26 @@ function frMitglied_(alle, name, sbn) {
 }
 const frAmpel_ = (bis, jetzt) => (!bis ? 'grau' : bis < jetzt ? 'rot' : bis - jetzt <= FR_GELB_TAGE * 864e5 ? 'gelb' : 'gruen');
 
-// Alle Fristen je Person (für Anzeige und Erinnerung)
-function fristenAlle_() {
+// Wer darf was sehen: 'alle' (Kommando), 'ats' (SB Atemschutz: Funktion enthält „Atemschutz“) oder null
+const FR_ATS_FUNKTION = /atemschutz/i;
+function frRecht_(pin) {
+  const r = rolle_(pin); if (!r) return null;
+  if (r.rolle === 'kommando') return 'alle';
+  const wer = String(pin || '').split('|')[0].trim();
+  let leute = [];
+  try { leute = personen_(); } catch (e) { return null; }
+  const p = leute.find((x) => x.name === wer);
+  return p && FR_ATS_FUNKTION.test(p.funktion) ? 'ats' : null;
+}
+
+// Alle Fristen je Person (für Anzeige und Erinnerung); nurAts = nur Fristen aus der ATS-Tabelle
+function fristenAlle_(nurAts) {
   const ss = anwSS_(), alle = mitglieder_(ss), jetzt = Date.now(), fehler = [];
   let ats = [];
   try { ats = fristenAts_(); } catch (e) { fehler.push('Atemschutz-Tabelle nicht lesbar: ' + e.message); }
   const fd = fristenFdisk_(ss);
   const pers = {};
-  ats.concat(fd.liste).forEach((x) => {
+  ats.concat(nurAts ? [] : fd.liste).forEach((x) => {
     const m = frMitglied_(alle, x.name, x.sbn);
     const name = m ? m.name : x.name;
     const p = pers[name] || (pers[name] = { name, mitglied: !!m, fristen: [] });
@@ -113,23 +127,24 @@ function fristenAlle_() {
 }
 
 function fristenUebersicht(pin) {
-  const r = rolle_(pin); if (!r || r.rolle !== 'kommando') return { ok: false, fehler: 'Nur fürs Kommando.' };
-  const f = fristenAlle_();
+  const recht = frRecht_(pin); if (!recht) return { ok: false, fehler: 'Nur fürs Kommando und den SB Atemschutz.' };
+  const nurAts = recht === 'ats', f = fristenAlle_(nurAts);
   const n = (a) => f.personen.reduce((s, p) => s + p.fristen.filter((x) => x.ampel === a).length, 0);
   const z = { rot: n('rot'), gelb: n('gelb') };
-  try { CacheService.getScriptCache().put('fristen-zahl', JSON.stringify(z), 3600); } catch (e) { /* egal */ }
-  return { ok: true, personen: f.personen, fehler: f.fehler, fdiskStand: f.fdiskStand, rot: z.rot, gelb: z.gelb };
+  try { CacheService.getScriptCache().put(nurAts ? 'fristen-zahl-ats' : 'fristen-zahl', JSON.stringify(z), 3600); } catch (e) { /* egal */ }
+  return { ok: true, nurAts, personen: f.personen, fehler: f.fehler, fdiskStand: nurAts ? 0 : f.fdiskStand, rot: z.rot, gelb: z.gelb };
 }
 // Zahl für die Kachel (zwischengespeichert, damit die Startseite schnell bleibt)
-function fristenZahl_() {
-  const c = CacheService.getScriptCache(), alt = c.get('fristen-zahl');
+function fristenZahl_(nurAts) {
+  const c = CacheService.getScriptCache(), k = nurAts ? 'fristen-zahl-ats' : 'fristen-zahl', alt = c.get(k);
   if (alt) return JSON.parse(alt);
-  const f = fristenAlle_();
+  const f = fristenAlle_(nurAts);
   const n = (a) => f.personen.reduce((s, p) => s + p.fristen.filter((x) => x.ampel === a).length, 0);
   const z = { rot: n('rot'), gelb: n('gelb') };
-  try { c.put('fristen-zahl', JSON.stringify(z), 3600); } catch (e) { /* egal */ }
+  try { c.put(k, JSON.stringify(z), 3600); } catch (e) { /* egal */ }
   return z;
 }
+const frCacheWeg_ = () => { const c = CacheService.getScriptCache(); c.remove('fristen-zahl'); c.remove('fristen-zahl-ats'); };
 
 // ---------- Vom FDISK-Abgleich (doPost, FDISK_KEY): { liste: [{ name, sbn, art, bis: 'TT.MM.JJJJ' }] } ersetzt den Tab ----------
 function fristenAusFdisk_(d) {
@@ -144,7 +159,7 @@ function fristenAusFdisk_(d) {
     const sh = frTab_(anwSS_());
     if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, FR_KOPF.length).clearContent();
     if (liste.length) sh.getRange(2, 1, liste.length, FR_KOPF.length).setValues(liste);
-    CacheService.getScriptCache().remove('fristen-zahl');
+    frCacheWeg_();
     return { ok: true, text: liste.length + ' Fristen aus dem FDISK gespeichert.' };
   } finally { lock.releaseLock(); }
 }
@@ -178,6 +193,13 @@ function fristenErinnern() {
     try { leute = personen_(); } catch (e) { /* Geräte-Tabelle fehlt */ }
     const an = Array.from(new Set(leute.filter((p) => p.alles).map((p) => mitgliedMail_(p.name)).filter(Boolean)));
     if (!an.length) an.push(Session.getEffectiveUser().getEmail());
+    // SB Atemschutz: eigene Sammelmail nur mit den Atemschutz-Fristen
+    const atsF = faellig.filter(({ x }) => x.quelle === 'ATS-Tabelle');
+    const atsAn = Array.from(new Set(leute.filter((p) => !p.alles && FR_ATS_FUNKTION.test(p.funktion)).map((p) => mitgliedMail_(p.name)).filter((m) => m && an.indexOf(m) === -1)));
+    if (atsF.length && atsAn.length) try {
+      MailApp.sendEmail({ to: atsAn.join(','), name: 'FF Deutsch Haslau – Fristen', subject: 'Atemschutz: ' + (atsF.length === 1 ? '1 Frist läuft' : atsF.length + ' Fristen laufen') + ' in den nächsten ' + FR_ERINNERN_TAGE + ' Tagen ab',
+        body: atsF.map(({ p, x }) => '• ' + p.name + ': ' + x.art + ' bis ' + datum(x.bis)).join('\n') + '\n\nÜbersicht in der App unter Verwaltung › Fristen.' });
+    } catch (e) { console.error('Fristen-Mail SB Atemschutz: ' + e.message); }
     try {
       MailApp.sendEmail({ to: an.join(','), name: 'FF Deutsch Haslau – Fristen', subject: 'Fristen: ' + (faellig.length === 1 ? '1 Frist läuft' : faellig.length + ' Fristen laufen') + ' in den nächsten ' + FR_ERINNERN_TAGE + ' Tagen ab',
         body: faellig.map(({ p, x }) => '• ' + p.name + ': ' + x.art + ' bis ' + datum(x.bis) + (p.mitglied && mitgliedMail_(p.name) ? ' (Mail an das Mitglied ist raus)' : ' (keine E-Mail hinterlegt)')).join('\n') +
@@ -187,5 +209,5 @@ function fristenErinnern() {
   // alte Einträge aufräumen: erinnert wird nur 30 Tage vor Ablauf, danach ist der Eintrag nicht mehr nötig (Platz in der Eigenschaft ist knapp)
   Object.keys(erinnert).forEach((k) => { if (jetzt - erinnert[k] > (FR_ERINNERN_TAGE + 5) * 864e5) delete erinnert[k]; });
   props.setProperty('FRIST_ERINNERT', JSON.stringify(erinnert));
-  CacheService.getScriptCache().remove('fristen-zahl');
+  frCacheWeg_();
 }

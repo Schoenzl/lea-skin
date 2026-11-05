@@ -131,7 +131,9 @@ function verwaltungZahlen(pin) {
   if (r.rolle === 'kommando') {
     try { const a = anwUebersicht(pin); if (a.ok) out.anwOffen = (a.termine || []).filter((t) => t.status === 'offen').length; } catch (e) { /* Anwesenheit nicht eingerichtet */ }
     out.einsaetze = einsatzAnzahl_();
-    try { out.fristen = fristenZahl_(); } catch (e) { /* ATS-Tabelle nicht lesbar */ }
+  }
+  if (r.rolle === 'kommando' || /atemschutz/i.test(r.funktion || '')) {
+    try { out.fristen = fristenZahl_(r.rolle !== 'kommando'); } catch (e) { /* ATS-Tabelle nicht lesbar */ }
   }
   return out;
 }

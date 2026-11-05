@@ -263,6 +263,7 @@
   const rollen = () => ({
     fz: !!verw && (verw.rolle === 'kommando' || verw.rolle === 'fahrmeister'),
     anw: !!verw && verw.rolle === 'kommando',
+    ats: !!verw && (verw.rolle === 'kommando' || /atemschutz/i.test(verw.funktion || '')),
     text: verw ? (verw.funktion || { kommando: 'Kommando', fahrmeister: 'Fahrmeister', pruefer: 'Prüfer' }[verw.rolle] || '') : ''
   });
 
@@ -320,7 +321,7 @@
         r.fz ? kl('stift', 'Tätigkeiten', h('span', { class: 'pill' }, 'eintragen · FDISK'), { s: 'taet' }) : null,
         kl('werkzeug', 'Geräteprüfung', g ? (g.rot || g.gelb ? h('span', { class: 'pill ' + (g.rot ? 'rot' : 'gelb') }, (g.rot + g.gelb) + ' fällig') : h('span', { class: 'pill gruen' }, 'alles geprüft')) : null, { s: 'geraete' }),
         r.anw ? kl('alarm', 'Einsätze', zahlen && zahlen.einsaetze != null ? h('span', { class: 'pill ' + (zahlen.einsaetze ? 'gelb' : 'gruen') }, zahlen.einsaetze ? zahlen.einsaetze + ' nachbereiten' : 'alles erledigt') : null, { s: 'einsl' }) : null,
-        r.anw ? kl('uhr', 'Fristen', zahlen && zahlen.fristen ? (zahlen.fristen.rot || zahlen.fristen.gelb ? h('span', { class: 'pill ' + (zahlen.fristen.rot ? 'rot' : 'gelb') }, (zahlen.fristen.rot ? zahlen.fristen.rot + ' abgelaufen' : '') + (zahlen.fristen.rot && zahlen.fristen.gelb ? ' · ' : '') + (zahlen.fristen.gelb ? zahlen.fristen.gelb + ' bald' : '')) : h('span', { class: 'pill gruen' }, 'alles gültig')) : null, { s: 'fristen' }) : null,
+        r.ats ? kl('uhr', r.anw ? 'Fristen' : 'Atemschutz-Fristen', zahlen && zahlen.fristen ? (zahlen.fristen.rot || zahlen.fristen.gelb ? h('span', { class: 'pill ' + (zahlen.fristen.rot ? 'rot' : 'gelb') }, (zahlen.fristen.rot ? zahlen.fristen.rot + ' abgelaufen' : '') + (zahlen.fristen.rot && zahlen.fristen.gelb ? ' · ' : '') + (zahlen.fristen.gelb ? zahlen.fristen.gelb + ' bald' : '')) : h('span', { class: 'pill gruen' }, 'alles gültig')) : null, { s: 'fristen' }) : null,
         r.anw ? kl('liste', 'Anwesenheit prüfen', zahlen && zahlen.anwOffen != null ? h('span', { class: 'pill ' + (zahlen.anwOffen ? 'gelb' : 'gruen') }, zahlen.anwOffen ? zahlen.anwOffen + ' offen' : 'alles erledigt') : null, { s: 'anwp' }) : null,
         h('button', { type: 'button', class: 'link', style: 'justify-self:start', onclick: () => frage({ titel: 'Verwaltung abmelden?', text: 'Zum Anmelden brauchst du dann wieder deinen PIN.', ja: 'Ja, abmelden', aktion: () => { verw = null; zahlen = null; schreib('ff-verw', null); zeichne(false); melde('Verwaltung abgemeldet.'); } }) }, 'Verwaltung abmelden')));
     } else {
@@ -1084,9 +1085,9 @@
           p.fristen.filter((x) => filter === 'alle' || x.ampel === 'rot' || x.ampel === 'gelb').map((x) => h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px' },
             h('span', { style: 'flex:1;min-width:150px;font-size:18px' }, x.art), h('span', { class: 'sub' }, x.bis ? 'bis ' + tagDatum(x.bis) : ''), h('span', { class: 'pill ' + (x.ampel === 'grau' ? '' : x.ampel) }, FR_TXT[x.ampel])))))) :
           h('p', { class: 'sub' }, 'Nichts fällig – alle Fristen sind länger als 60 Tage gültig.'),
-        h('p', { class: 'sub klein', style: 'margin-top:20px' }, 'Atemschutz aus der ATS-Tabelle im Drive' + (r.fdiskStand ? ', übrige Fristen aus dem FDISK (Stand ' + tagDatum(r.fdiskStand) + ')' : '; FDISK-Fristen sind noch nicht abgeglichen') + '. Gelb = in den nächsten 60 Tagen. 30 Tage vorher geht eine Erinnerung per Mail.'));
+        h('p', { class: 'sub klein', style: 'margin-top:20px' }, 'Atemschutz aus der ATS-Tabelle im Drive' + (r.nurAts ? '' : r.fdiskStand ? ', übrige Fristen aus dem FDISK (Stand ' + tagDatum(r.fdiskStand) + ')' : '; FDISK-Fristen sind noch nicht abgeglichen') + '. Gelb = in den nächsten 60 Tagen. 30 Tage vorher geht eine Erinnerung per Mail.'));
     }).catch((e) => { box.textContent = ''; box.appendChild(h('div', { class: 'warn' }, e.message)); });
-    return [kopfZurueck('Start'), h('h1', null, 'Fristen'), box];
+    return [kopfZurueck('Start'), h('h1', null, rollen().anw ? 'Fristen' : 'Atemschutz-Fristen'), box];
   };
 
   // ---------- Zeichnen ----------
@@ -1096,7 +1097,8 @@
     if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
     else if (ADMIN[seite.s] && !verw) seite = { s: 'pin' };
     else if ((seite.s === 'fzstatus' || seite.s === 'taet' || seite.s === 'taetneu') && !rollen().fz) seite = { s: 'start' };
-    else if ((seite.s === 'anwp' || seite.s === 'anwt' || seite.s === 'einsl' || seite.s === 'eins' || seite.s === 'fristen') && !rollen().anw) seite = { s: 'start' };
+    else if ((seite.s === 'anwp' || seite.s === 'anwt' || seite.s === 'einsl' || seite.s === 'eins') && !rollen().anw) seite = { s: 'start' };
+    else if (seite.s === 'fristen' && !rollen().ats) seite = { s: 'start' };
     // Verwaltungsseiten laden ihre Daten selbst – beim automatischen Aktualisieren nicht neu zeichnen
     if (!nachOben && ADMIN[seite.s] && $app.dataset.seite === seite.s && !{ anwt: 1, taet: 1, taetneu: 1, eins: 1 }[seite.s]) return;
     const y = window.scrollY, aktiv = document.activeElement && document.activeElement.id;
