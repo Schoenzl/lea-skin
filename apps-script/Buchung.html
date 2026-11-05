@@ -153,6 +153,7 @@
     warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5"/><path d="M12 18h.01"/>',
     kamera: '<path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/>',
     stift: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    sprechblase: '<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z"/><path d="M8 10h8"/><path d="M8 13h5"/>',
     schloss: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
     alarm: '<path d="M6 18V11a6 6 0 0 1 12 0v7"/><path d="M4 18h16"/><path d="M10 21h4"/><path d="M12 2v2"/><path d="M3.5 6.5l1.5 1"/><path d="M20.5 6.5l-1.5 1"/>',
     uhr: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'
@@ -327,6 +328,7 @@
     } else {
       out.push(h('button', { type: 'button', class: 'leise', onclick: () => zeige({ s: 'pin' }) }, icon('schloss', 20), 'Verwaltung (mit PIN)'));
     }
+    out.push(h('button', { type: 'button', class: 'leise', style: 'margin-top:8px', onclick: () => zeige({ s: 'feedback' }) }, icon('sprechblase', 20), 'Feedback zur App'));
     return out;
   };
 
@@ -1096,6 +1098,35 @@
     return [kopfZurueck('Start'), h('h1', null, rollen().anw ? 'Fristen' : 'Atemschutz-Fristen'), box];
   };
 
+  // ---------- Feedback zur App (alle) ----------
+  SEITEN.feedback = () => {
+    if (seite.fertig) return [kopfZurueck('Zurück'), h('div', { style: 'text-align:center;padding-top:60px' }, h('div', { class: 'haken' }, icon('haken', 54)),
+      h('h1', { style: 'margin-top:20px' }, 'Danke!'), h('p', { style: 'font-size:20px' }, seite.fertig),
+      h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:24px', onclick: heim }, 'Zur Startseite'))];
+    const v = seite.v || (seite.v = { art: 'Idee', text: '', anonym: false });
+    const box = h('div');
+    const neu = () => { box.textContent = ''; add(box, inhalt()); const t = document.getElementById('fb-text'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } };
+    const HINT = { Idee: 'z. B. Es wäre praktisch, wenn …', Problem: 'Was hast du gemacht, und was ist passiert?', Lob: 'Was gefällt dir?' };
+    const senden = async (b) => {
+      if (v.text.trim().length < 3) { melde('Bitte kurz schreiben, worum es geht.', true); return; }
+      b.disabled = true; b.textContent = 'Wird gesendet …';
+      try { const r = await run('feedbackSenden', { name: ich, art: v.art, text: v.text, anonym: v.anonym, seite: (stapel[stapel.length - 1] || {}).s || '' }); if (!r.ok) throw new Error(r.fehler); seite.v = null; seite.fertig = r.text; zeichne(true); }
+      catch (e) { b.disabled = false; b.textContent = 'Absenden'; fehler(e); }
+    };
+    const inhalt = () => [
+      h('p', { class: 'sub', style: 'margin-top:0' }, 'Was fehlt, was nervt, was ist gut? Geht direkt ans Kommando.'),
+      h('div', { class: 'label' }, 'Worum geht es?'),
+      h('div', { class: 'chips' }, ['Idee', 'Problem', 'Lob'].map((a) => h('button', { type: 'button', class: 'chip' + (v.art === a ? ' an' : ''), 'aria-pressed': v.art === a ? 'true' : 'false', onclick: () => { v.art = a; neu(); } }, a))),
+      h('label', { class: 'label', for: 'fb-text' }, 'Dein Feedback'),
+      h('textarea', { id: 'fb-text', maxlength: '1500', style: 'min-height:150px', placeholder: HINT[v.art], value: v.text, oninput: (e) => { v.text = e.target.value; } }),
+      h('button', { type: 'button', class: 'zeile', style: 'margin-top:14px;border:2px solid var(--linie);border-radius:14px;padding:12px 14px', 'aria-pressed': v.anonym ? 'true' : 'false', onclick: () => { v.anonym = !v.anonym; neu(); } },
+        h('span', { class: 'logo rund', style: v.anonym ? 'background:var(--gruen-btn);color:#fff' : '' }, v.anonym ? icon('haken', 22) : ''),
+        h('span', { class: 't' }, h('b', null, 'Ohne meinen Namen senden'), h('span', null, v.anonym ? 'Dein Name wird nicht mitgeschickt.' : 'Sonst steht „' + ich + '“ dabei – dann kann man nachfragen.'))),
+      h('div', { class: 'sticky' }, h('button', { type: 'button', class: 'btn haupt', onclick: (e) => senden(e.currentTarget) }, 'Absenden'))];
+    add(box, inhalt());
+    return [kopfZurueck('Zurück'), h('h1', null, 'Feedback zur App'), box];
+  };
+
   // ---------- Zeichnen ----------
   const ADMIN = { maengel: 1, fzstatus: 1, geraete: 1, gliste: 1, gform: 1, anwp: 1, anwt: 1, taet: 1, taetneu: 1, einsl: 1, eins: 1, fristen: 1 };
   function zeichne(nachOben) {
@@ -1123,6 +1154,7 @@
   else if (startArt === 'einsatz') seite = { s: 'einsatz' };
   else if (startArt === 'fahrzeuge') seite = { s: 'fahrzeuge' };
   else if (startArt === 'mangel') seite = { s: 'mangel' };
+  else if (startArt === 'feedback') seite = { s: 'feedback' };
   else if (startArt === 'maengel') seite = verw ? { s: 'maengel' } : { s: 'pin' };
   else if (startArt === 'einsaetze' || startArt === 'fristen') seite = verw ? { s: startArt === 'einsaetze' ? 'einsl' : 'fristen' } : { s: 'pin' };
   else if (startArt === 'verwaltung') seite = verw ? { s: 'start' } : { s: 'pin' };
