@@ -114,6 +114,7 @@ function bewegungStart(daten) {
     const r = sh.getLastRow();
     [s.zeit, s.von, s.bis].forEach((c) => sh.getRange(r, c + 1).setNumberFormat('dd.MM.yyyy HH:mm:ss'));
     SpreadsheetApp.flush();
+    fahrtPush_(fz + ' unterwegs', name + ' · Bewegungsfahrt seit ' + Utilities.formatDate(new Date(jetzt), 'Europe/Vienna', 'HH:mm') + ' Uhr', 'oncoming_automobile');
     let hinweis = naechste && naechste.von === bis ? ' Achtung: ' + fz + ' ist ab ' + fmt_(naechste.von) + ' gebucht, bis dahin bitte einrücken.' : '';
     try { ausloeserPruefen_(); } catch (e) { hinweis += ' (Automatische Verlängerung nicht aktiv: im Editor ▶ sperrenEinrichten ausführen.)'; }
     return { ok: true, text: 'Bewegungsfahrt ' + fz + ' läuft seit ' + fmt_(jetzt) + '. Nach der Fahrt „Einrücken“ drücken.' + hinweis };
@@ -212,6 +213,7 @@ function buchen(daten) {
     const r = sh.getLastRow();
     [s.zeit, s.von, s.bis].forEach((c) => sh.getRange(r, c + 1).setNumberFormat('dd.MM.yyyy HH:mm:ss'));
     SpreadsheetApp.flush();
+    fahrtPush_(neu.fahrzeug + ' reserviert', neu.name + (neu.zweck ? ' · ' + neu.zweck : '') + '\n' + fmt_(neu.von) + ' – ' + fmt_(neu.bis), 'calendar');
     return { ok: true, text: neu.fahrzeug + ' gebucht: ' + fmt_(neu.von) + ' – ' + fmt_(neu.bis) };
   } finally {
     lock.releaseLock();
@@ -518,6 +520,7 @@ function sperrenAnwenden() {
   const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
   try {
     try { bewegungVerlaengern_(); } catch (e) { console.error('Bewegungsfahrt: ' + e.message); }
+    try { fahrtBeginnMelden_(); } catch (e) { console.error('Fahrtbeginn-Push: ' + e.message); }
     const jetzt = Date.now();
     sperren_().filter((x) => x.aktiv && x.ablauf !== 'beendet').sort((a, b) => a.von - b.von).forEach((x) => {
       try {
@@ -528,6 +531,24 @@ function sperrenAnwenden() {
       } catch (e) { console.error('Sperre ' + x.id + ' (' + x.fahrzeug + '): ' + e.message); }
     });
   } finally { lock.releaseLock(); }
+}
+
+// ---------- Push in den Kommando-Kanal: Reservierung, Bewegungsfahrt, Beginn einer reservierten Fahrt ----------
+// Geht über die Push-Warteschlange (Push.gs) und den Pi. Darf Buchen/Bewegungsfahrt nie kaputt machen.
+function fahrtPush_(titel, text, tags) {
+  try { if (typeof pushStellen_ === 'function') pushStellen_(titel, text, tags, pushLink_('fahrzeuge')); } catch (e) { console.log('Fahrt-Push: ' + e.message); }
+}
+// Läuft alle 5 Minuten mit sperrenAnwenden: reservierte Fahrten, deren Beginn seit dem letzten Lauf erreicht wurde → „unterwegs“
+// (Bewegungsfahrten melden sich schon beim Start selbst). Beim allerersten Lauf wird nichts nachgemeldet.
+function fahrtBeginnMelden_() {
+  const props = PropertiesService.getScriptProperties(), jetzt = Date.now();
+  const seit = +(props.getProperty('FAHRT_GEMELDET_BIS') || 0);
+  props.setProperty('FAHRT_GEMELDET_BIS', String(jetzt));
+  if (!seit) return;
+  const ab = Math.max(seit, jetzt - 30 * 60000);   // nach einer längeren Pause nichts Altes nachschicken
+  buchungen_().filter((b) => b.von > ab && b.von <= jetzt && b.bis > jetzt && !/^Bewegungsfahrt/.test(b.zweck)).forEach((b) => {
+    fahrtPush_(b.fahrzeug + ' unterwegs', b.name + (b.zweck ? ' · ' + b.zweck : '') + '\nbis ' + fmt_(b.bis), 'oncoming_automobile');
+  });
 }
 
 // Einmal im Editor ausführen (▶ sperrenEinrichten): legt den Tab und den Zeitauslöser alle 5 Minuten an.
