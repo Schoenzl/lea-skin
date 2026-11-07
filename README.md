@@ -104,6 +104,7 @@ Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird 
 - **Push „… ist im Feuerwehrhaus“** bei jedem Einchecken per QR (nicht bei Nachtragen) über ntfy.sh: Skripteigenschaft
   `NTFY_TOPIC` (geheimer Kanalname, nicht ins Repo) und `NTFY_TOKEN` (Zugangstoken eines kostenlosen ntfy.sh-Kontos, sonst 429), einmal ▶ `pushTest` ausführen (erlaubt Versand nach außen).
   Abonnieren: App „ntfy“ → + → Kanalname. Tippen auf die Nachricht öffnet die Anwesenheit.
+  Derselbe Kanal bekommt auch Mängelmeldungen und App-Feedback. Empfehlung: `NTFY_TOPIC` = Kommando-Kanal, dann kommt alles in einen Kanal.
 
 ### „Ich bin da“ in der Handy-Ansicht (nur Pi mit mobilPush)
 Reiter „Lage“ → Karte „Anwesenheit“ → „Ich bin da“ → Termin antippen. Weg: Handy → `mobil/server.py` (`/da/start`, `/da`) →
@@ -121,7 +122,7 @@ Offen: Nr. 2 und 3 haben laut Export dieselbe Position (vor Ort prüfen); Druck/
 - **Heute im Feuerwehrhaus** (Reiter „Lage“): Termine von heute bzw. noch offene mit Namen, über `mobil/server.py` → `/da/heute`
   → Apps Script `doPost` Aktion `heute` (Schlüssel `DA_KEY`). Aktualisiert jede Minute.
 - **Nachbar im Einsatz**: rückt eine Wehr aus `nachbarn` (config.js) laut WASTL/LSZ aus, erscheint oben eine Karte.
-  Optional Push vom Pi über ntfy (eigene IP, kein Google-Kontingent): `nachbarPushTopic` in `config.local.js` (nur ein Pi).
+  Push vom Pi über ntfy in den Kommando-Kanal (`kommandoPushTopic` aus `einrichten-lage.sh`); ohne den ersatzweise `nachbarPushTopic` in `config.local.js` (nur ein Pi).
   Beim ersten Lauf werden schon laufende Einsätze nicht gemeldet. Abfrage alle 5 Minuten (`aktualisierenMin`).
 
 ## Geräteprüfungen (apps-script/Pruefung.gs, Reiter „Kommando“)

@@ -329,7 +329,7 @@ const refreshIntern = async () => {
   await nachbarPruefen(next).catch(() => {});
 };
 
-// ---------- Nachbarwehr im Einsatz → Push (nur wenn nachbarPushTopic gesetzt, nur ein Pi) ----------
+// ---------- Nachbarwehr im Einsatz → Push in den Kommando-Kanal (kommandoPushTopic, sonst nachbarPushTopic; nur ein Pi) ----------
 const istNachbar = (name) => (C.nachbarn || []).some((n) => norm_(name).indexOf(norm_(n)) !== -1);
 const norm_ = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 const nachbarPruefen = async (ex) => {
@@ -339,11 +339,12 @@ const nachbarPruefen = async (ex) => {
   const melden = [];
   ffs.forEach((f) => { const k = norm_(f.name) + '|' + (f.stufe || '') + '|' + (f.text || ''); neu[k] = alt[k] || jetzt; if (!alt[k]) melden.push(f); });
   await chrome.storage.local.set({ nachbarGesehen: neu });
-  if (!C.nachbarPushTopic) return;
+  const topic = C.kommandoPushTopic || C.nachbarPushTopic;
+  if (!topic) return;
   // erster Lauf nach dem Einrichten: was schon läuft, nicht melden
   if (!(await chrome.storage.local.get('nachbarInit')).nachbarInit) { await chrome.storage.local.set({ nachbarInit: true }); return; }
   for (const f of melden) {
-    await fetch('https://ntfy.sh/' + encodeURIComponent(C.nachbarPushTopic) + '?title=' + encodeURIComponent('Nachbar im Einsatz: FF ' + f.name) + '&tags=rotating_light',
+    await fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?title=' + encodeURIComponent('Nachbar im Einsatz: FF ' + f.name) + '&tags=rotating_light',
       { method: 'POST', body: [f.stufe, f.text].filter(Boolean).join(' · ') + (f.zeit || f.alarm ? ' · ' + (f.alarm || f.zeit) : '') }).catch(() => {});
   }
 };

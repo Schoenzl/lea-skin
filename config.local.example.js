@@ -22,8 +22,8 @@ globalThis.LEASKIN_CONFIG.elListe = [
 // erreichbar nur über Tailscale. Einrichten: ~/lea-skin/mobil/install-mobil.sh
 // globalThis.LEASKIN_CONFIG.mobilPush = true;
 
-// Push, wenn eine Nachbarwehr (Liste „nachbarn“ in config.js) ausrückt – nur an dich, App „ntfy“, eigener geheimer Kanal.
-// Nur auf EINEM Pi setzen. globalThis.LEASKIN_CONFIG.nachbarPushTopic = 'ffdh-nachbar-…';
+// Push, wenn eine Nachbarwehr (Liste „nachbarn“ in config.js) ausrückt. Geht automatisch in den Kommando-Kanal
+// (kommandoPushTopic in config.secret.js). Nur setzen, wenn es ohne Kommando-Kanal laufen soll – und nur auf EINEM Pi. globalThis.LEASKIN_CONFIG.nachbarPushTopic = 'ffdh-nachbar-…';
 
 // Alarm-Push mit Lagebild ans Kommando und Einsatz-Nachbereitung – nur auf EINEM Pi:
 // hier nur den Schalter setzen, Kanal und Schlüssel kommen in config.secret.js (Vorlage config.secret.example.js).

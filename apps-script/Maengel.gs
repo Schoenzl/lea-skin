@@ -113,14 +113,18 @@ function mgMelden_(mg, blobs) {
   const mitMail = e.namen.filter((n) => mitgliedMail_(n));
   return gesendet ? (mitMail.length ? ' und ist an ' + mitMail.map((n) => n.split(' ')[0]).join(', ') + ' gegangen' : ' und ist ans Kommando gegangen') : '';
 }
-function mgPush_(titel, text) {
-  const props = PropertiesService.getScriptProperties();
-  const topic = (props.getProperty('NTFY_TOPIC') || '').trim(); if (!topic) return;
-  const token = (props.getProperty('NTFY_TOKEN') || '').trim();
-  const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
-  const klick = id ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=maengel#' + id : '';
-  try {
-    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?title=' + encodeURIComponent(titel) + '&tags=warning' + (klick ? '&click=' + encodeURIComponent(klick) : ''), {
+// Push über den ntfy-Kanal (Skripteigenschaft NTFY_TOPIC) – auch für Feedback genutzt.
+// opt.tags = ntfy-Symbol (Standard warning), opt.seite = App-Seite beim Antippen (Standard maengel, '' = kein Link)
+function mgPush_(titel, text, opt) {
+  opt = opt || {};
+  try {   // ein fehlgeschlagener Push darf Meldung/Feedback nie kaputt machen
+    const props = PropertiesService.getScriptProperties();
+    const topic = (props.getProperty('NTFY_TOPIC') || '').trim(); if (!topic) return;
+    const token = (props.getProperty('NTFY_TOKEN') || '').trim();
+    const seite = opt.seite === undefined ? 'maengel' : opt.seite;
+    const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
+    const klick = id && seite ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=' + seite + '#' + id : '';
+    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?title=' + encodeURIComponent(titel) + '&tags=' + (opt.tags || 'warning') + (klick ? '&click=' + encodeURIComponent(klick) : ''), {
       method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true, headers: token ? { Authorization: 'Bearer ' + token } : {} });
   } catch (e) { console.log('ntfy: ' + e.message); }
 }

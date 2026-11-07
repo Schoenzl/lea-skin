@@ -2,7 +2,8 @@
  * Feedback zur App – FF Deutsch Haslau.
  * Eigene Datei im selben Apps-Script-Projekt. Für alle ohne PIN: Startseite › „Feedback zur App“.
  * Art (Idee, Problem, Lob), Text, auf Wunsch ohne Namen. Landet im Tab „Feedback“ der Anwesenheitstabelle
- * und kommt per Mail an alle mit Rolle „Alles“ (Spalte E-Mail im Tab „Mitglieder“), sonst ans Konto der Web-App.
+ * und kommt per Mail an alle mit Rolle „Alles“ (Spalte E-Mail im Tab „Mitglieder“), sonst ans Konto der Web-App,
+ * dazu Push über den ntfy-Kanal (NTFY_TOPIC, siehe Maengel.gs), falls eingerichtet.
  */
 const FB_TAB = 'Feedback';
 const FB_KOPF = ['Zeitstempel', 'Art', 'Text', 'Von', 'Seite', 'Erledigt'];
@@ -47,5 +48,7 @@ function feedbackSenden(d) {
     MailApp.sendEmail({ to: an.join(','), name: 'FF Deutsch Haslau – App-Feedback', subject: 'App-Feedback (' + art + ')' + (d.anonym ? ' – ohne Namen' : ' von ' + von),
       body: text + '\n\n— ' + von + ', ' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'dd.MM.yyyy HH:mm') + '\n\nAlles gesammelt im Tab „Feedback“ der Anwesenheitstabelle.' });
   } catch (e) { console.error('Feedback-Mail: ' + e.message); }   // gespeichert ist es trotzdem
+  mgPush_('Feedback (' + art + ') · ' + von, text.length > 300 ? text.slice(0, 300) + ' …' : text,
+    { tags: art === 'Problem' ? 'exclamation' : art === 'Lob' ? 'thumbsup' : 'bulb', seite: '' });
   return { ok: true, text: d.anonym ? 'Danke! Dein Feedback ist ohne Namen angekommen.' : 'Danke, ' + m.name.split(' ')[0] + '! Dein Feedback ist angekommen.' };
 }
