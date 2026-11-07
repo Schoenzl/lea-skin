@@ -13,6 +13,9 @@ const KALENDER_ID = '99e2e6ed3a981ad4f7ac6eea1af12056aa7e9a6a91587923b10359adc34
 const ANW_VORLAUF_MIN = 90;      // so lange vor Beginn kann man sich schon eintragen
 const ANW_NACHLAUF_MIN = 60;     // so lange nach dem Ende noch
 const ANW_ZUSAMMEN_H = 4;        // ohne Kalender: gleiche Tätigkeit innerhalb von 4 h = derselbe Termin
+const ANW_WIEDER_MIN = 30;       // ohne Kalender: geht der Letzte, endet der Termin; wer innerhalb von 30 min wiederkommt, setzt ihn fort
+// Ohne Kalender begonnener Termin („m:…“), der schon beendet ist (alle gegangen) und nicht mehr fortgesetzt werden kann
+const anwVorbei_ = (t, jetzt) => String(t.ID).indexOf('m:') === 0 && anwZeit_(t.Ende) > 0 && jetzt - anwZeit_(t.Ende) >= ANW_WIEDER_MIN * 60e3;
 
 // Auswahl „Was machst du?“ (ohne Kalendertermin) → FDISK-Tätigkeitsart
 const ANW_ARTEN = [
@@ -129,7 +132,7 @@ function daStart() {
   const ss = anwSS_();
   const jetzt = Date.now();
   const termine = anwLesen_(ss, 'Termine').zeilen;
-  const offen = termine.filter((t) => t.Status === 'offen' && jetzt - anwZeit_(t.Beginn) < 16 * 3600e3);
+  const offen = termine.filter((t) => t.Status === 'offen' && jetzt - anwZeit_(t.Beginn) < 16 * 3600e3 && !anwVorbei_(t, jetzt));
   const kal = kalenderJetzt_(ss).filter((k) => !termine.some((t) => t.ID === k.id && t.Status !== 'offen'));
   const liste = kal.map((k) => ({ id: k.id, titel: k.titel, text: anwFmt_(k.von) + ' – ' + Utilities.formatDate(new Date(k.bis), 'Europe/Vienna', 'HH:mm') }));
   offen.forEach((t) => { if (!liste.some((l) => l.id === t.ID)) liste.push({ id: t.ID, titel: t.Titel, text: 'seit ' + anwFmt_(anwZeit_(t.Beginn)) }); });
@@ -177,7 +180,22 @@ function daGehen(d) {
     if (!z.length) return { ok: false, fehler: m.name + ', du bist gerade nirgends eingetragen.' };
     const jetzt = new Date();
     z.forEach((a) => A.sh.getRange(a._zeile, 6).setValue(jetzt));
-    return { ok: true, text: 'Danke ' + m.name.split(' ')[0] + '! Ausgetragen um ' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'HH:mm') + '.' };
+    SpreadsheetApp.flush();
+    // Ohne Kalender begonnene Tätigkeit: ist jetzt niemand mehr da, endet sie mit dieser Uhrzeit
+    let zusatz = '';
+    const T = anwLesen_(ss, 'Termine'), alle = anwLesen_(ss, 'Anwesenheit').zeilen, spE = ANW_TABS.Termine.indexOf('Ende') + 1;
+    Array.from(new Set(z.map((a) => String(a['Termin-ID'])))).forEach((id) => {
+      if (id.indexOf('m:') !== 0) return;
+      const t = T.zeilen.find((x) => x.ID === id);
+      if (!t || t.Status !== 'offen' || anwZeit_(t.Ende)) return;
+      const p = alle.filter((a) => a['Termin-ID'] === id);
+      if (!p.length || p.some((a) => !anwZeit_(a.Gegangen))) return;
+      T.sh.getRange(t._zeile, spE).setValue(jetzt);
+      const spanne = Utilities.formatDate(new Date(anwZeit_(t.Beginn)), 'Europe/Vienna', 'HH:mm') + '–' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'HH:mm');
+      zusatz += ' Du warst der Letzte – „' + t.Titel + '“ ist damit beendet (' + spanne + ' Uhr).';
+      try { if (typeof pushStellen_ === 'function') pushStellen_(t.Titel + ' beendet', spanne + ' Uhr · ' + p.length + (p.length === 1 ? ' Person' : ' Personen') + ' · zuletzt ' + m.name, 'checkered_flag', pushLink_('da')); } catch (e) { /* Push ist nur Komfort */ }
+    });
+    return { ok: true, text: 'Danke ' + m.name.split(' ')[0] + '! Ausgetragen um ' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'HH:mm') + '.' + zusatz };
   } finally {
     lock.releaseLock();
   }
@@ -193,7 +211,7 @@ function daEinchecken(d) {
     if (!m) return { ok: false, fehler: '„' + name + '“ steht nicht in der Mitgliederliste. Bitte Namen aus der Liste wählen oder beim Kommando melden.' };
     const jetzt = new Date();
     const T = anwLesen_(ss, 'Termine');
-    let termin = null;
+    let termin = null, ersatz = null;
     const id = String((d && d.termin) || '');
     if (id) {
       termin = T.zeilen.find((t) => t.ID === id);
@@ -204,12 +222,19 @@ function daEinchecken(d) {
         termin = { ID: k.id, Titel: k.titel, Status: 'offen' };
       }
       if (!termin) return { ok: false, fehler: 'Termin nicht gefunden. Bitte Seite neu laden.' };
-    } else {
-      const wahl = ANW_ARTEN.find((a) => a[0] === (d && d.art));
+      if (anwVorbei_(termin, jetzt.getTime())) {     // schon beendet → dieselbe Tätigkeit neu beginnen
+        ersatz = { titel: String(termin.Titel || ''), art: String(termin['FDISK-Art'] || '') };
+        termin = null;
+      }
+    }
+    if (!termin) {
+      const wahl = ersatz ? (ANW_ARTEN.find((a) => a[1] === ersatz.art) || (FDISK_ARTEN.indexOf(ersatz.art) !== -1 ? [ersatz.titel, ersatz.art] : null))
+        : ANW_ARTEN.find((a) => a[0] === (d && d.art));
       if (!wahl) return { ok: false, fehler: 'Bitte auswählen, was du machst.' };
+      if (ersatz && ersatz.titel) d = Object.assign({}, d, { titel: ersatz.titel });
       // gleiche Tätigkeit in den letzten Stunden schon begonnen? → dazunehmen
       termin = T.zeilen.find((t) => t.Status === 'offen' && t.ID.indexOf('m:') === 0 && t['FDISK-Art'] === wahl[1] &&
-        jetzt.getTime() - anwZeit_(t.Beginn) < ANW_ZUSAMMEN_H * 3600e3);
+        jetzt.getTime() - anwZeit_(t.Beginn) < ANW_ZUSAMMEN_H * 3600e3 && !anwVorbei_(t, jetzt.getTime()));
       if (!termin) {
         const neu = 'm:' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'yyyyMMdd-HHmmss') + '-' + Math.random().toString(36).slice(2, 6);
         const titel = String((d && d.titel) || '').trim().slice(0, 80) || wahl[0];
@@ -218,6 +243,8 @@ function daEinchecken(d) {
       }
     }
     if (termin.Status !== 'offen') return { ok: false, fehler: '„' + termin.Titel + '“ ist schon abgeschlossen. Bitte beim Kommando melden.' };
+    // gerade beendet (alle gegangen) und innerhalb von 30 min wieder jemand da → Termin läuft weiter
+    if (String(termin.ID).indexOf('m:') === 0 && anwZeit_(termin.Ende) && termin._zeile) T.sh.getRange(termin._zeile, ANW_TABS.Termine.indexOf('Ende') + 1).setValue('');
     let A = anwLesen_(ss, 'Anwesenheit');
     // „Falscher Termin“: eigene, gerade erst gemachte Eintragung beim anderen Termin entfernen
     const statt = String((d && d.statt) || '');

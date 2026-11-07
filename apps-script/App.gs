@@ -59,7 +59,7 @@ function daHeute_(ss, name) {
   const T = anwLesen_(ss, 'Termine').zeilen, A = anwLesen_(ss, 'Anwesenheit').zeilen;
   const liste = kalenderHeute_(ss).filter((k) => !T.some((t) => t.ID === k.id && t.Status !== 'offen'))
     .map((k) => ({ id: k.id, titel: k.titel, von: k.von, bis: k.bis, ganz: k.ganz, kalender: true }));
-  T.filter((t) => t.Status === 'offen' && jetzt - anwZeit_(t.Beginn) < 16 * 3600e3).forEach((t) => {
+  T.filter((t) => t.Status === 'offen' && jetzt - anwZeit_(t.Beginn) < 16 * 3600e3 && !anwVorbei_(t, jetzt)).forEach((t) => {
     if (!liste.some((l) => l.id === t.ID)) liste.push({ id: t.ID, titel: t.Titel, von: anwZeit_(t.Beginn), bis: anwZeit_(t.Ende), kalender: false });
   });
   liste.forEach((l) => {
