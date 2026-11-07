@@ -92,23 +92,36 @@ function personen_() {
 // Gemeinsamer STATUS_PIN nur als Übergang, bis jemand mit Rolle „Alles“ einen eigenen PIN hat
 const kommandoGemeinsam_ = (leute) => !leute.some((x) => x.alles && x.pin.length >= 4);
 
-// Rolle aus „Name|PIN“. Sperre nach Fehlversuchen wie bisher.
+// Sperre nach Fehlversuchen: je Name 10 in 15 min (ein Vertipper von einem sperrt nicht alle), insgesamt 60 gegen Durchprobieren
+const FEHL_ALLE_MAX = 60;
+const fehlKey_ = (wer) => 'status-fehl-' + anwNorm_(wer || 'kommando').replace(/[^a-z0-9]/g, '').slice(0, 60);
+function fehlPruefen_(wer) {
+  const c = CacheService.getScriptCache();
+  if (+(c.get(fehlKey_(wer)) || 0) >= FEHL_MAX || +(c.get('status-fehl-alle') || 0) >= FEHL_ALLE_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
+}
+function fehlZaehlen_(wer) {
+  const c = CacheService.getScriptCache(), k = fehlKey_(wer);
+  c.put(k, String(+(c.get(k) || 0) + 1), SPERRE_S);
+  c.put('status-fehl-alle', String(+(c.get('status-fehl-alle') || 0) + 1), SPERRE_S);
+  Utilities.sleep(800);
+}
+const fehlLoeschen_ = (wer) => CacheService.getScriptCache().remove(fehlKey_(wer));
+
+// Rolle aus „Name|PIN“.
 function rolle_(pin) {
-  const cache = CacheService.getScriptCache();
-  if (+(cache.get('status-fehl') || 0) >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
   const s = String(pin == null ? '' : pin), i = s.indexOf('|');
   const wer = i >= 0 ? s.slice(0, i).trim() : 'Kommando', p = pinNorm_(i >= 0 ? s.slice(i + 1) : s);
+  fehlPruefen_(wer);
   const soll = pinNorm_(PropertiesService.getScriptProperties().getProperty('STATUS_PIN'));
   let leute = [];
   try { leute = personen_(); } catch (e) { /* noch nicht eingerichtet */ }
   if (wer === 'Kommando') {
-    if (soll && soll.length >= 4 && p === soll && kommandoGemeinsam_(leute)) { cache.remove('status-fehl'); return { rolle: 'kommando', name: 'Kommando' }; }
+    if (soll && soll.length >= 4 && p === soll && kommandoGemeinsam_(leute)) { fehlLoeschen_(wer); return { rolle: 'kommando', name: 'Kommando' }; }
   } else {
     const t = leute.find((x) => x.name === wer && x.pin.length >= 4 && x.pin === p);
-    if (t) { cache.remove('status-fehl'); return { rolle: t.alles ? 'kommando' : t.fahrmeister ? 'fahrmeister' : 'pruefer', name: t.name + (t.funktion ? ' (' + t.funktion + ')' : '') }; }
+    if (t) { fehlLoeschen_(wer); return { rolle: t.alles ? 'kommando' : t.fahrmeister ? 'fahrmeister' : 'pruefer', name: t.name + (t.funktion ? ' (' + t.funktion + ')' : '') }; }
   }
-  cache.put('status-fehl', String(+(cache.get('status-fehl') || 0) + 1), SPERRE_S);
-  Utilities.sleep(800);
+  fehlZaehlen_(wer);
   return null;
 }
 // Namen für die Anmeldung (ohne PINs): alle aktiven Personen; „Kommando“ nur solange der gemeinsame PIN noch gilt
@@ -198,28 +211,32 @@ function pruefSpeichern(pin, eintraege) {
     // Spalte „FDISK“: bleibt leer, bis die Prüfung ins FDISK übertragen ist („übertragen TT.MM.JJJJ“)
     if (String(sh.getRange(1, 9).getValue()).trim() !== 'FDISK') sh.getRange(1, 9).setValue('FDISK').setFontWeight('bold');
     sh.getRange(sh.getLastRow() + 1, 1, zeilen.length, zeilen[0].length).setValues(zeilen);
-    const info = fahrzeugMaengel_(maengel);
-    return { ok: true, text: zeilen.length + ' Prüfung' + (zeilen.length === 1 ? '' : 'en') + ' gespeichert' + (maengel.length ? ', ' + maengel.length + ' Mangel' + (maengel.length === 1 ? '' : '/Mängel') + info : '') + '.' };
+    const info = fahrzeugMaengel_(maengel, r.name);
+    return { ok: true, text: zeilen.length + ' Prüfung' + (zeilen.length === 1 ? '' : 'en') + ' gespeichert' + (maengel.length ? ', ' + maengel.length + (maengel.length === 1 ? ' Mangel' : ' Mängel') + info : '') + '.' };
   } finally { lock.releaseLock(); }
 }
 
-// Mängel an Fahrzeuggeräten zusätzlich in den Tab „Fahrzeuge“ (Spalte Mangel) der Fahrzeugtabelle → Infoscreen
-function fahrzeugMaengel_(maengel) {
+// Mängel an Fahrzeuggeräten → als Mängelmeldung (Verwaltung › Mängel), damit Fahrmeister/Kommando den Status entscheiden.
+// Gleicher Mangel schon offen gemeldet → nicht noch einmal (sonst stapelt sich jede Prüfung).
+function fahrzeugMaengel_(maengel, wer) {
   const proFz = {};
   maengel.forEach((m) => { const fz = FAHRZEUGE.find((f) => m.ort.indexOf(f) === 0); if (fz) (proFz[fz] = proFz[fz] || []).push(m.text); });
   if (!Object.keys(proFz).length) return '';
-  const sh = SpreadsheetApp.getActive().getSheetByName('Fahrzeuge'); if (!sh) return '';
-  const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).toLowerCase());
-  const cFz = k.findIndex((h) => h.indexOf('fahrzeug') !== -1), cM = k.findIndex((h) => h.indexOf('mangel') !== -1);
-  if (cFz < 0 || cM < 0) return '';
+  let offen = [];
+  try { offen = mgLesen_().filter((x) => x.status !== 'behoben'); } catch (e) { offen = []; }
   const fertig = [];
   Object.keys(proFz).forEach((fz) => {
-    const i = w.findIndex((r, j) => j > 0 && gleich_(r[cFz], fz)); if (i < 0) return;
-    const alt = String(w[i][cM] || '').trim();
-    sh.getRange(i + 1, cM + 1).setValue((alt ? alt + ' · ' : '') + proFz[fz].join(' · '));
-    fertig.push(fz);
+    proFz[fz].forEach((text) => {
+      const t = String(text).replace(/^[\s=+\-@]+/, '').slice(0, 500);
+      if (offen.some((x) => gleich_(x.was, fz) && anwNorm_(x.text) === anwNorm_(t))) return;
+      const id = 'P' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'yyMMdd-HHmmss') + '-' + Math.random().toString(36).slice(2, 5);
+      offen.push({ was: fz, text: t });   // gleicher Mangel zweimal in derselben Prüfung → nur eine Meldung
+      mgBlatt_().appendRow([id, new Date(), fz, t, 'Weiß nicht', 'Geräteprüfung (' + String(wer || '').replace(/\s*\(.*\)$/, '') + ')', '', '', 'offen', '', '', '']);
+      try { mgMelden_({ id, was: fz, text: t, fahrbereit: 'Weiß nicht', von: 'Geräteprüfung' }, []); } catch (e) { console.error('Mangel aus Prüfung: ' + e.message); }
+      if (fertig.indexOf(fz) === -1) fertig.push(fz);
+    });
   });
-  return fertig.length ? ' (bei ' + fertig.join(', ') + ' als Mangel eingetragen)' : '';
+  return fertig.length ? ' (als Mängelmeldung bei ' + fertig.join(', ') + ' – Fahrmeister entscheidet über den Status)' : '';
 }
 
 // ---------- Geräte anlegen, ändern, ausscheiden (Kommando und Prüfer) ----------

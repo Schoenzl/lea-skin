@@ -115,6 +115,9 @@ function fristenAlle_(nurAts) {
     const m = frMitglied_(alle, x.name, x.sbn);
     const name = m ? m.name : x.name;
     const p = pers[name] || (pers[name] = { name, mitglied: !!m, fristen: [] });
+    // dieselbe Art mehrfach (alter und neuer Eintrag) → nur das späteste Datum zählt
+    const da = p.fristen.find((f) => anwNorm_(f.art) === anwNorm_(x.art));
+    if (da) { if ((x.bis || 0) > (da.bis || 0)) Object.assign(da, { bis: x.bis, quelle: x.quelle, ampel: frAmpel_(x.bis, jetzt) }); return; }
     p.fristen.push({ art: x.art, bis: x.bis, quelle: x.quelle, ampel: frAmpel_(x.bis, jetzt) });
   });
   const rang = { rot: 0, gelb: 1, grau: 2, gruen: 3 };

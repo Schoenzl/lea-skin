@@ -21,6 +21,8 @@ function appDaten(name) {
       id: fz, art: FZ_ART[fz] || '',
       bereit: fzBereit_(z.bereit) || (!z.bereit || /^ja/i.test(z.bereit) ? 'Ja' : /^nein/i.test(z.bereit) ? 'Nein' : 'Eingeschränkt'), mangel: z.mangel || '', pickerl: z.pickerl || '',
       unterwegs: kurz(eigene.find((b) => b.von <= jetzt && jetzt < b.bis)) || null,
+      // Bewegungsfahrt, die nach der Höchstdauer als „nicht eingerückt“ markiert wurde – der Fahrer kann noch einrücken
+      offen: kurz(eigene.filter((b) => BF_OFFEN.test(b.zweck) && jetzt - b.von < 36 * 3600e3).pop()) || null,
       fahrten: eigene.filter((b) => b.bis > jetzt && b.von < jetzt + 30 * 864e5).map(kurz),
       sperren: sp.filter((x) => gleich_(x.fahrzeug, fz)).map((x) => ({ von: x.von, bis: x.bis, status: x.status, grund: x.grund, laeuft: x.von <= jetzt }))
     };
@@ -75,6 +77,9 @@ function daHeute_(ss, name) {
   return { termine: liste, mein, arten: ANW_ARTEN.map((a) => a[0]) };
 }
 
+// Namen vergleichen, egal in welcher Reihenfolge und Schreibweise („Huber Anna“ = „anna huber“, Akzente egal)
+const nameGleich_ = (a, b) => { const t = (s) => anwNorm_(s).split(/[\s,]+/).filter(Boolean).sort().join(' '); return !!t(a) && t(a) === t(b); };
+
 // E-Mail eines Mitglieds aus dem Tab „Mitglieder“ (optionale Spalte „E-Mail“) – für Nachrichten zur Buchung
 function mitgliedMail_(name) {
   try {
@@ -82,7 +87,7 @@ function mitgliedMail_(name) {
     const w = sh.getDataRange().getValues(), k = w[0].map((x) => String(x).trim().toLowerCase());
     const cN = k.indexOf('name'), cM = k.findIndex((x) => x.replace(/[\s-]/g, '') === 'email');
     if (cN < 0 || cM < 0) return '';
-    const z = w.slice(1).find((r) => anwNorm_(r[cN]) === anwNorm_(name));
+    const z = w.slice(1).find((r) => nameGleich_(r[cN], name));
     const m = z ? String(z[cM] || '').trim().toLowerCase() : '';
     return MAIL_.test(m) ? m : '';
   } catch (e) { return ''; }
@@ -92,7 +97,7 @@ function mitgliedMail_(name) {
 function verwaltungAnmelden(name, pin) {
   let leute = [];
   try { leute = personen_(); } catch (e) { /* Geräte-Tabelle noch nicht eingerichtet */ }
-  const p = leute.find((x) => anwNorm_(x.name) === anwNorm_(name));
+  const p = leute.find((x) => nameGleich_(x.name, name));
   // Genau ein Versuch (jeder Fehlversuch zählt für die Sperre): eigener PIN, sonst – solange es ihn noch gibt – der gemeinsame Kommando-PIN
   const versuch = p && p.pin.length >= 4 ? p.name + '|' + String(pin || '') : kommandoGemeinsam_(leute) ? 'Kommando|' + String(pin || '') : '';
   if (!versuch) return { ok: false, fehler: 'Für ' + name + ' ist keine Verwaltung eingerichtet. Bitte beim Kommando melden.' };
@@ -104,10 +109,9 @@ function verwaltungAnmelden(name, pin) {
 // Fehlversuche zählen wie beim Anmelden (gemeinsame Sperre), damit niemand PINs durchprobieren kann.
 // Kann die Tabelle gerade nicht gelesen werden, wird ein Fehler geworfen – dann bleibt man angemeldet.
 function verwaltungPruefen(pin) {
-  const cache = CacheService.getScriptCache();
-  if (+(cache.get('status-fehl') || 0) >= FEHL_MAX) throw new Error('Zu viele falsche Versuche. Bitte in 15 Minuten wieder probieren.');
   const s = String(pin == null ? '' : pin), i = s.indexOf('|');
   const wer = i >= 0 ? s.slice(0, i).trim() : '', p = pinNorm_(i >= 0 ? s.slice(i + 1) : '');
+  fehlPruefen_(wer);
   const leute = personen_();
   let r = null;
   if (wer === 'Kommando') {
@@ -118,8 +122,7 @@ function verwaltungPruefen(pin) {
     if (t) r = { ok: true, rolle: t.alles ? 'kommando' : t.fahrmeister ? 'fahrmeister' : 'pruefer', name: t.name, funktion: t.funktion };
   }
   if (r) return r;
-  cache.put('status-fehl', String(+(cache.get('status-fehl') || 0) + 1), SPERRE_S);
-  Utilities.sleep(800);
+  fehlZaehlen_(wer);
   return { ok: false };
 }
 

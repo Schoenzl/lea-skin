@@ -17,7 +17,7 @@ function doGet(e) {
   // Fahrzeug-QR: ?seite=klfw / mtf / vfa (die Hülle ff.html gibt nur „seite“ weiter, nur Buchstaben) oder ?fz=KLF-W
   const nurBuchstaben = (x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
   const fzWunsch = nurBuchstaben((e && e.parameter && e.parameter.fz) || seite);
-  t.start = seite === 'status' || seite === 'intern' || seite === 'kommando' ? 'verwaltung' : seite === 'da' || seite === 'anwesenheit' ? 'da' : seite === 'einsatz' ? 'einsatz' : seite === 'buchen' ? 'fahrzeuge' : seite === 'maengel' ? 'maengel' : seite === 'mangel' ? 'mangel' : seite === 'einsaetze' ? 'einsaetze' : seite === 'fristen' ? 'fristen' : seite === 'feedback' ? 'feedback' : '';
+  t.start = seite === 'status' || seite === 'intern' || seite === 'kommando' ? 'verwaltung' : seite === 'da' || seite === 'anwesenheit' ? 'da' : seite === 'einsatz' ? 'einsatz' : seite === 'buchen' || seite === 'fahrzeuge' ? 'fahrzeuge' : seite === 'maengel' ? 'maengel' : seite === 'mangel' ? 'mangel' : seite === 'einsaetze' ? 'einsaetze' : seite === 'fristen' ? 'fristen' : seite === 'feedback' ? 'feedback' : '';
   t.fz = FAHRZEUGE.find((f) => nurBuchstaben(f) === fzWunsch) || '';
   return t.evaluate()
     .setTitle('FF Deutsch Haslau')
@@ -79,7 +79,7 @@ function startdaten() {
 // ---------- Bewegungsfahrt: Start sofort, Ende mit „Einrücken“ ----------
 // Läuft als normale Buchung mit Zweck „Bewegungsfahrt (läuft)“ und vorläufigem Ende; der Zeitauslöser verlängert sie,
 // bis eingerückt wird (höchstens BF_MAX_H Stunden und nie in die nächste Buchung hinein).
-const BF_ZWECK = 'Bewegungsfahrt', BF_LAEUFT = /^Bewegungsfahrt \(läuft\)/, BF_START_H = 2, BF_MAX_H = 8, BF_MIN_FREI = 15 * 60e3;
+const BF_ZWECK = 'Bewegungsfahrt', BF_LAEUFT = /^Bewegungsfahrt \(läuft\)/, BF_OFFEN = /^Bewegungsfahrt \(nicht eingerückt\)/, BF_START_H = 2, BF_MAX_H = 8, BF_MIN_FREI = 15 * 60e3;
 
 function bewegungStart(daten) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -126,11 +126,13 @@ function bewegungEnde(zeile, name) {
   try {
     const wer = String(name || '').trim().slice(0, 80);
     if (wer.length < 3) return { ok: false, fehler: 'Bitte deinen Namen eintragen.' };
-    const b = buchungen_().find((x) => x.zeile === +zeile && BF_LAEUFT.test(x.zweck));
+    const b = buchungen_().find((x) => x.zeile === +zeile && (BF_LAEUFT.test(x.zweck) || (BF_OFFEN.test(x.zweck) && Date.now() - x.von < 36 * 3600e3)));
     if (!b) return { ok: false, fehler: 'Diese Bewegungsfahrt ist schon beendet. Ansicht wird neu geladen.' };
     const sh = blatt_(), s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
     const alle = buchungen_(), naechste = alle.filter((x) => x.zeile !== b.zeile && gleich_(x.fahrzeug, b.fahrzeug) && x.von >= b.von).sort((x, y) => x.von - y.von)[0];
-    const jetzt = Date.now(), ende = Math.max(b.von + 60e3, Math.min(jetzt, naechste ? naechste.von : Infinity));
+    const jetzt = Date.now(), vergessen = BF_OFFEN.test(b.zweck);
+    // vergessen einzurücken: die Fahrt endet mit der schon gesetzten Höchstgrenze, nicht „jetzt“
+    const ende = vergessen ? b.bis : Math.max(b.von + 60e3, Math.min(jetzt, naechste ? naechste.von : Infinity));
     sh.getRange(b.zeile, s.bis + 1).setValue(new Date(ende)).setNumberFormat('dd.MM.yyyy HH:mm:ss');
     sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + (gleich_(wer, b.name) ? '' : ' (eingerückt: ' + wer + ')'));
     SpreadsheetApp.flush();
@@ -157,7 +159,10 @@ function bewegungVerlaengern_() {
     const grenze = Math.min(b.von + BF_MAX_H * 3600e3, naechste ? naechste.von : Infinity, bfSperreAb_(b.fahrzeug, b.von));
     const neu = Math.min(Math.max(b.bis, jetzt) + 30 * 60e3, grenze);
     if (neu > b.bis) sh.getRange(b.zeile, s.bis + 1).setValue(new Date(neu)).setNumberFormat('dd.MM.yyyy HH:mm:ss');
-    else if (jetzt >= b.bis) sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + ' (nicht eingerückt)');
+    else if (jetzt >= b.bis) {
+      sh.getRange(b.zeile, s.zweck + 1).setValue(BF_ZWECK + ' (nicht eingerückt)');
+      fahrtPush_(b.fahrzeug + ': Bewegungsfahrt nicht eingerückt', b.name + ' · seit ' + fmt_(b.von) + '\nEinrücken geht in der App noch 36 Stunden lang.', 'warning');
+    }
   });
 }
 
@@ -221,18 +226,21 @@ function buchen(daten) {
 }
 
 // ---------- Absagen: „abgesagt“ vor den Zweck schreiben (der Infoscreen blendet die Fahrt dann aus) ----------
-function absagen(zeile, name) {
+function absagen(zeile, name, fahrzeug, von) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     const sh = blatt_();
     const s = spalten_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
-    const r = sh.getRange(zeile, 1, 1, sh.getLastColumn()).getValues()[0];
-    if (!String(r[s.fz] || '').trim()) return { ok: false, fehler: 'Buchung nicht gefunden.' };
     const wer = String(name || '').trim();
     if (wer.length < 3) return { ok: false, fehler: 'Bitte deinen Namen angeben.' };
-    const zweck = String(r[s.zweck] || '').trim();
-    sh.getRange(zeile, s.zweck + 1).setValue('ABGESAGT (' + wer + ')' + (zweck ? ' – ' + zweck : ''));
+    // Gegenprobe: dieselbe Fahrt (Fahrzeug, Beginn, Name) – sonst nichts anfassen
+    const b = buchungen_().find((x) => x.zeile === +zeile);
+    if (!b || (fahrzeug && !gleich_(b.fahrzeug, fahrzeug)) || (von && b.von !== +von) || anwNorm_(b.name) !== anwNorm_(wer)) {
+      return { ok: false, fehler: 'Diese Fahrt wurde inzwischen geändert oder abgesagt. Ansicht wird neu geladen.' };
+    }
+    sh.getRange(b.zeile, s.zweck + 1).setValue('ABGESAGT (' + wer + ')' + (b.zweck ? ' – ' + b.zweck : ''));
+    fahrtPush_(b.fahrzeug + ' Reservierung abgesagt', b.name + (b.zweck ? ' · ' + b.zweck : '') + '\n' + fmt_(b.von) + ' – ' + fmt_(b.bis), 'x');
     return { ok: true, text: 'Buchung abgesagt.' };
   } finally {
     lock.releaseLock();
@@ -255,7 +263,7 @@ function pinOk_(pin) {
 function pinPruefen() {
   const p = PropertiesService.getScriptProperties().getProperties();
   const k = Object.keys(p);
-  CacheService.getScriptCache().remove('status-fehl');
+  CacheService.getScriptCache().removeAll(['status-fehl', 'status-fehl-alle', fehlKey_('Kommando')]);   // Sperren je Name laufen nach 15 min ab
   console.log('Skripteigenschaften: ' + (k.length ? k.join(', ') : '(keine)'));
   console.log(p.STATUS_PIN ? 'STATUS_PIN gefunden, ' + pinNorm_(p.STATUS_PIN).length + ' Zeichen. Sperre aufgehoben.' : 'STATUS_PIN NICHT gefunden – Name genau so schreiben: STATUS_PIN');
 }
@@ -310,9 +318,12 @@ function statusLoeschen(pin, zeile, fahrzeug, von, bis, grund) {
     if (!b || !gleich_(b.fahrzeug, fahrzeug) || b.von !== +von || b.bis !== +bis) {
       return { ok: false, fehler: 'Die Fahrt wurde inzwischen geändert oder gelöscht. Ansicht wird neu geladen.' };
     }
-    blatt_().deleteRow(b.zeile);
-    SpreadsheetApp.flush();
+    // Nicht löschen, sondern als abgesagt markieren: sonst verschieben sich die Zeilen und eine spätere Absage träfe die falsche Fahrt
     const begr = String(grund || '').trim().slice(0, 500);
+    const shL = blatt_(), sL = spalten_(shL.getRange(1, 1, 1, shL.getLastColumn()).getValues()[0]);
+    if (sL.zweck < 0) return { ok: false, fehler: 'Spalte „Zweck“ fehlt in der Tabelle.' };
+    shL.getRange(b.zeile, sL.zweck + 1).setValue('ABGESAGT (Kommando' + (begr ? ': ' + begr.slice(0, 80).replace(/^[=+\-@]+/, '') : '') + ')' + (b.zweck ? ' – ' + b.zweck : ''));
+    SpreadsheetApp.flush();
     let info = ' Keine E-Mail hinterlegt, bitte persönlich Bescheid geben.';
     if (MAIL_.test(b.mail)) {
       try {
@@ -453,10 +464,11 @@ function sperren_() {
     zeile: i + 2, id: String(z[c('ID')] || ''), fahrzeug: String(z[c('Fahrzeug')] || '').trim(),
     von: zeit_(z[c('Von')]), bis: zeit_(z[c('Bis')]), status: fzBereit_(z[c('Status')]) || 'Nein',
     grund: String(z[c('Grund')] || '').trim(), wer: String(z[c('Angelegt von')] || '').trim(),
-    aktiv: !/^nein$/i.test(String(z[c('Aktiv')] || '').trim()), ablauf: String(z[c('Ablauf')] || '').trim()
+    aktiv: !/^nein$/i.test(String(z[c('Aktiv')] || '').trim()), ablauf: String(z[c('Ablauf')] || '').trim(),
+    vorher: c('Vorher') >= 0 ? String(z[c('Vorher')] || '') : ''
   })).filter((x) => x.id && x.fahrzeug && x.von);
 }
-const spMangel_ = (x) => x.grund + ' (geplant' + (x.bis ? ' bis ' + fmt_(x.bis) : '') + ')';
+const spMangel_ = (x) => String(x.grund).replace(/\s*·\s*/g, ' / ') + ' (geplant' + (x.bis ? ' bis ' + fmt_(x.bis) : '') + ')';
 function spSpalte_(sh, name) {
   const k = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((x) => String(x).trim());
   let i = k.indexOf(name); if (i < 0) { i = k.length; sh.getRange(1, i + 1).setValue(name); }
@@ -501,18 +513,39 @@ function fzSperreLoeschen(pin, id) {
     if (!x || !x.aktiv) return { ok: false, fehler: 'Sperre nicht gefunden.' };
     const sh = spBlatt_(); sh.getRange(x.zeile, spSpalte_(sh, 'Aktiv')).setValue('Nein');
     let frei = '';
-    if (x.ablauf === 'läuft') { if (spFreigeben_(x, fzName_(r))) frei = ' ' + x.fahrzeug + ' ist wieder einsatzbereit.'; spAblauf_(x, 'beendet'); }
+    if (x.ablauf === 'läuft') { const e = spFreigeben_(x, fzName_(r)); frei = e === 'frei' ? ' ' + x.fahrzeug + ' ist wieder einsatzbereit.' : e === 'zurueck' ? ' ' + x.fahrzeug + ' hat wieder den Stand von vorher.' : e === 'bleibt' ? ' ' + x.fahrzeug + ' bleibt wegen anderer Mängel eingeschränkt bzw. außer Dienst.' : ''; spAblauf_(x, 'beendet'); }
     SpreadsheetApp.flush();
     return { ok: true, text: 'Geplante Sperre gelöscht.' + frei };
   } catch (e) { return { ok: false, fehler: e.message }; } finally { lock.releaseLock(); }
 }
 
-// Fahrzeug nur freigeben, wenn der aktuelle Status noch von dieser Sperre stammt (nicht inzwischen von Hand geändert)
+// Status-Rang: eine Sperre setzt nie einen besseren Status, als das Fahrzeug gerade hat
+const FZ_RANG = { 'Ja': 0, 'Eingeschränkt': 1, 'Nein': 2 };
+const spOhne_ = (mangel, teil) => String(mangel || '').split(' · ').map((x) => x.trim()).filter((x) => x && x !== teil).join(' · ');
+// Sperre beginnt: schlechteren Status übernehmen, Sperr-Grund vorn in den Mangel, alten Stand in „Vorher“ merken
+function spBeginn_(x) {
+  const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], x.fahrzeug));
+  const altB = z ? (fzBereit_(z[t.s.bereit]) || 'Ja') : 'Ja', altM = z ? String(z[t.s.mangel] || '').trim() : '';
+  const neuB = FZ_RANG[altB] >= FZ_RANG[x.status] ? altB : x.status;
+  const teil = spMangel_(x), rest = spOhne_(altM, teil);
+  fzSetzen_(x.fahrzeug, neuB, rest ? teil + ' · ' + rest : teil, x.wer || 'Automatik');
+  const sh = spBlatt_(); sh.getRange(x.zeile, spSpalte_(sh, 'Vorher')).setValue(JSON.stringify({ b: altB, m: altM }));
+}
+// Sperre endet: nur den Sperr-Teil entfernen. Blieb sonst nichts übrig bzw. nur der alte Stand → alten Status zurück;
+// kamen inzwischen andere Mängel dazu → Status bleibt, Push ans Kommando. Rückgabe: 'frei' | 'zurueck' | 'bleibt' | ''.
 function spFreigeben_(x, name) {
   const t = fzTab_(), z = t.w.find((y, j) => j > 0 && gleich_(y[t.s.fz], x.fahrzeug));
-  if (!z || String(z[t.s.mangel] || '').trim() !== spMangel_(x)) return false;
-  fzSetzen_(x.fahrzeug, 'Ja', '', name);
-  return true;
+  if (!z) return '';
+  const mangel = String(z[t.s.mangel] || '').trim(), teil = spMangel_(x);
+  if (mangel.split(' · ').map((s) => s.trim()).indexOf(teil) === -1) return '';     // inzwischen von Hand geändert → nicht anfassen
+  let vorher = { b: 'Ja', m: '' };
+  try { if (x.vorher) vorher = Object.assign(vorher, JSON.parse(x.vorher)); } catch (e) { /* alte Sperre ohne „Vorher“ */ }
+  const rest = spOhne_(mangel, teil);
+  if (!rest) { fzSetzen_(x.fahrzeug, 'Ja', '', name); return 'frei'; }
+  if (rest === String(vorher.m || '').trim()) { fzSetzen_(x.fahrzeug, fzBereit_(vorher.b) || 'Eingeschränkt', rest, name); return 'zurueck'; }
+  fzSetzen_(x.fahrzeug, fzBereit_(z[t.s.bereit]) || 'Eingeschränkt', rest, name);
+  fahrtPush_(x.fahrzeug + ': Sperre zu Ende, bleibt ' + (fzBereit_(z[t.s.bereit]) === 'Nein' ? 'außer Dienst' : 'eingeschränkt'), 'Offen: ' + rest.slice(0, 200) + '\nBitte in der App unter Fahrzeugstatus prüfen.', 'warning');
+  return 'bleibt';
 }
 
 // Vom Zeitauslöser aufgerufen (und nach dem Anlegen): Sperren beginnen bzw. beenden
@@ -527,7 +560,7 @@ function sperrenAnwenden() {
         const vorbei = x.bis && x.bis <= jetzt;
         if (x.ablauf === 'läuft' && vorbei) { spFreigeben_(x, 'Automatik'); spAblauf_(x, 'beendet'); }
         else if (!x.ablauf && vorbei) spAblauf_(x, 'beendet');
-        else if (!x.ablauf && x.von <= jetzt) { fzSetzen_(x.fahrzeug, x.status, spMangel_(x), x.wer || 'Automatik'); spAblauf_(x, 'läuft'); }
+        else if (!x.ablauf && x.von <= jetzt) { spBeginn_(x); spAblauf_(x, 'läuft'); }
       } catch (e) { console.error('Sperre ' + x.id + ' (' + x.fahrzeug + '): ' + e.message); }
     });
   } finally { lock.releaseLock(); }

@@ -51,7 +51,7 @@
   .liste > .zeile:last-child { border-bottom: 0; }
   .zeile .t { flex: 1; min-width: 0; }
   .zeile .t b { display: block; }
-  .gitter { display: grid; gap: 12px; }
+  .gitter { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .zwei { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .kachel { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 98px; padding: 16px; border-radius: 20px; border: 1px solid var(--linie); background: var(--card); text-align: left; }
   .kachel .ic { flex: none; width: 56px; height: 56px; border-radius: 16px; background: var(--grau); display: flex; align-items: center; justify-content: center; }
@@ -61,6 +61,7 @@
   .kachel.k { min-height: 66px; padding: 10px 14px; border-radius: 16px; gap: 12px; }
   .kachel.k .ic { width: 42px; height: 42px; border-radius: 12px; }
   .kachel.k .t b { font-size: 19px; }
+  .kachel .pill { flex: 0 1 auto; min-width: 0; max-width: 55%; white-space: normal; text-align: center; line-height: 1.25; }
   .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 64px; padding: 0 16px; border-radius: 16px; font-size: 21px; font-weight: 700; border: 0; text-align: center; }
   .btn.haupt { background: var(--rot); color: #fff; }
   .btn.gruen { background: var(--gruen-btn); color: #fff; }
@@ -116,7 +117,7 @@
   .blatt h2 { margin: 0; font-size: 25px; }
   .blatt p { margin: 8px 0 16px; color: var(--sub); font-size: 18px; white-space: pre-line; }
   .blatt .btn { margin-top: 10px; }
-  #toast { position: fixed; left: 16px; right: 16px; top: 16px; max-width: 528px; margin: 0 auto; padding: 16px; border-radius: 16px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 18px; text-align: center; z-index: 20; white-space: pre-line; }
+  #toast { position: fixed; left: 16px; right: 16px; top: 16px; max-width: 528px; margin: 0 auto; padding: 16px; border-radius: 16px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 18px; text-align: center; z-index: 20; white-space: pre-line; pointer-events: none; }
   #toast.fehler { background: var(--aus); color: #fff; }
   @media (prefers-color-scheme: dark) { #toast.fehler { background: #991B1B; } }
   [hidden] { display: none !important; }
@@ -217,14 +218,46 @@
   let daten = null, zahlen = null, doks = null, anwDaten = null;
   const stapel = [];
   let seite = { s: 'start' }, ziel = null;   // ziel: gewünschte Seite (QR-Code), bevor der Name gewählt ist
+  let pinZiel = null;                         // Verwaltungsseite, die nach der PIN-Anmeldung geöffnet wird (Push-Link)
 
   const zeige = (neu) => {
+    if (neu.s === 'pin') pinZiel = null;
     stapel.push(seite); seite = neu; zeichne(true);
-    try { if (window.google && google.script && google.script.history) google.script.history.push({ n: stapel.length }); } catch (e) { /* egal */ }
+    try { if (window.google && google.script && google.script.history) { google.script.history.push({ n: stapel.length }); histN++; } } catch (e) { /* egal */ }
   };
-  const zurueck = () => { seite = stapel.pop() || { s: 'start' }; zeichne(true); };
-  const heim = () => { stapel.length = 0; seite = { s: 'start' }; zeichne(true); };
-  try { if (window.google && google.script && google.script.history) google.script.history.setChangeHandler(() => { if (stapel.length) zurueck(); }); } catch (e) { /* egal */ }
+  // Zurück: App-Knopf und Handy-Zurück-Taste laufen über denselben Browser-Verlauf. histN = Einträge, die die App selbst angelegt hat;
+  // nur so weit geht sie über den Verlauf zurück, darüber hinaus (Einstieg per QR/Push-Link) lokal. Kommt kein Verlaufs-Ereignis, nach 700 ms lokal.
+  const hist = () => { try { return window.google && google.script && google.script.history ? google.script.history : null; } catch (e) { return null; } };
+  let rueckTimer = null, histN = 0, eigen = false, spaet = false, ignoriere = 0;
+  const zurueckLokal = () => { pinZiel = null; seite = stapel.pop() || { s: 'start' }; zeichne(true); };
+  const offeneBlaetter = () => document.querySelectorAll('.hg');
+  const zurueck = () => {
+    offeneBlaetter().forEach((x) => x.remove());
+    if (!stapel.length) { pinZiel = null; seite = { s: 'start' }; zeichne(true); return; }
+    if (!hist() || histN < 1) { zurueckLokal(); return; }
+    histN--; eigen = true; spaet = false; clearTimeout(rueckTimer);
+    rueckTimer = setTimeout(() => { eigen = false; spaet = true; zurueckLokal(); }, 700);
+    try { history.back(); } catch (e) { clearTimeout(rueckTimer); eigen = false; zurueckLokal(); }
+  };
+  const heim = () => {
+    offeneBlaetter().forEach((x) => x.remove());
+    pinZiel = null; const k = histN; histN = 0; stapel.length = 0; seite = { s: 'start' }; zeichne(true);
+    if (k && hist()) { ignoriere = 1; try { history.go(-k); } catch (e) { ignoriere = 0; } setTimeout(() => { ignoriere = 0; }, 1500); }
+  };
+  try {
+    if (hist()) hist().setChangeHandler(() => {
+      if (ignoriere) { ignoriere = 0; return; }
+      if (spaet) { spaet = false; return; }          // kam nach dem lokalen Zurück noch nach → schon erledigt
+      clearTimeout(rueckTimer);
+      if (!eigen) {
+        histN = Math.max(0, histN - 1);
+        // Handy-Zurück bei offener Rückfrage: nur die Rückfrage schließen
+        if (offeneBlaetter().length) { offeneBlaetter().forEach((x) => x.remove()); try { hist().push({ n: ++histN }); } catch (x) { /* egal */ } return; }
+      }
+      eigen = false;
+      if (stapel.length) zurueckLokal();
+    });
+  } catch (e) { /* egal */ }
 
   const laden = async () => {
     try { daten = await run('appDaten', ich || ''); }
@@ -249,7 +282,12 @@
   // ---------- Bausteine ----------
   const kopfZurueck = (text) => h('div', { class: 'bar' }, h('button', { type: 'button', class: 'zurueck', onclick: zurueck }, icon('links'), text || 'Zurück'));
   const fzById = (id) => daten.fahrzeuge.find((f) => f.id === id);
-  const meineFahrt = () => { if (!daten || !ich) return null; for (const f of daten.fahrzeuge) { const u = f.unterwegs; if (u && u.laeuft && norm(u.name) === norm(ich)) return { fz: f.id, b: u }; } return null; };
+  const meineFahrt = () => {
+    if (!daten || !ich) return null;
+    for (const f of daten.fahrzeuge) { const u = f.unterwegs; if (u && u.laeuft && norm(u.name) === norm(ich)) return { fz: f.id, b: u }; }
+    for (const f of daten.fahrzeuge) { const o = f.offen; if (o && norm(o.name) === norm(ich)) return { fz: f.id, b: o, vergessen: true }; }   // nicht eingerückt
+    return null;
+  };
   // Status eines Fahrzeugs für die Anzeige
   const lage = (f) => {
     const u = f.unterwegs, mein = u && norm(u.name) === norm(ich);
@@ -300,9 +338,9 @@
     const out = [h('div', { class: 'kopf' }, h('div', { class: 'logo' }, 'FF'), h('div', { class: 'ff' }, 'FF Deutsch Haslau'),
       h('button', { type: 'button', class: 'link', onclick: () => zeige({ s: 'wer' }) }, 'Nicht ' + vorname(ich) + '?')),
       h('h1', null, 'Hallo ' + vorname(ich))];
-    if (mf) out.push(h('div', { class: 'laeuft' }, h('div', { style: 'font-weight:700' }, h('span', { class: 'punkt' }), 'Läuft gerade'),
+    if (mf) out.push(h('div', { class: 'laeuft' }, h('div', { style: 'font-weight:700' }, h('span', { class: 'punkt' }), mf.vergessen ? 'Noch nicht eingerückt' : 'Läuft gerade'),
       h('div', { style: 'font-size:23px;font-weight:700;margin:6px 0 2px' }, 'Bewegungsfahrt ' + mf.fz),
-      h('div', null, 'seit ' + uhr(mf.b.von) + ' Uhr · ' + dauer(Date.now() - mf.b.von)),
+      h('div', null, 'seit ' + (mf.vergessen ? wann(mf.b.von) : uhr(mf.b.von)) + ' Uhr · ' + dauer(Date.now() - mf.b.von)),
       h('button', { type: 'button', class: 'btn gruen', style: 'margin-top:14px', onclick: () => einruecken(mf) }, 'Einrücken')));
     if (mein) out.push(h('div', { class: 'dabox' }, icon('haken', 28), h('div', { style: 'flex:1' }, 'Du bist eingetragen', h('span', null, mein.titel + ' · seit ' + uhr(mein.seit))),
       h('button', { type: 'button', class: 'link', onclick: () => zeige({ s: 'da' }) }, 'Ändern')));
@@ -362,7 +400,7 @@
     const fl = f.fahrten.filter((b) => b.bis > Date.now());
     out.push(h('div', { class: 'label', style: 'margin-top:28px' }, 'Nächste Fahrten'), h('div', { class: 'liste' },
       fl.length ? fl.map((b) => h('div', { class: 'zeile' }, h('div', { class: 't' }, h('b', null, spanne(b.von, b.bis)), h('span', { class: 'sub klein' }, b.name + (b.zweck ? ' · ' + b.zweck : ''))),
-        norm(b.name) === norm(ich) && !b.laeuft ? h('button', { type: 'button', class: 'knopf', onclick: () => frage({ titel: 'Fahrt absagen?', text: f.id + ' · ' + spanne(b.von, b.bis) + (b.zweck ? '\n' + b.zweck : ''), ja: 'Ja, absagen', aktion: async () => { antwort(await run('absagen', b.zeile, ich)); await laden(); } }) }, 'Absagen') : null))
+        norm(b.name) === norm(ich) && !b.laeuft ? h('button', { type: 'button', class: 'knopf', onclick: () => frage({ titel: 'Fahrt absagen?', text: f.id + ' · ' + spanne(b.von, b.bis) + (b.zweck ? '\n' + b.zweck : ''), ja: 'Ja, absagen', aktion: async () => { antwort(await run('absagen', b.zeile, ich, f.id, b.von)); await laden(); } }) }, 'Absagen') : null))
         : h('div', { class: 'sub', style: 'padding:16px 0' }, 'Keine Fahrten geplant.')));
     return out;
   };
@@ -400,10 +438,12 @@
       const fehl = (t) => { meld.textContent = t; meld.hidden = false; };
       if (!tag || !v.von || !v.bis || !bisTag) return fehl('Bitte Tag und Uhrzeit wählen.');
       if (v.zweck === 'Sonstiges' && !zweck) return fehl('Bitte kurz den Grund eintragen.');
-      if (!(bisTag + 'T' + v.bis > tag + 'T' + v.von)) return fehl('„Bis“ muss nach „Von“ liegen.');
+      let bisT = bisTag;
+      if (!v.mehr && v.bis < v.von) { const d = new Date(tag + 'T12:00'); d.setDate(d.getDate() + 1); bisT = isoTag(d); }   // über Mitternacht → Folgetag
+      if (!(bisT + 'T' + v.bis > tag + 'T' + v.von)) return fehl('„Bis“ muss nach „Von“ liegen.');
       knopf.disabled = true; knopf.textContent = 'Wird geprüft …';
       try {
-        const r = await run('buchen', { fahrzeug: f.id, name: ich, mail: '', zweck, von: tag + 'T' + v.von, bis: bisTag + 'T' + v.bis });
+        const r = await run('buchen', { fahrzeug: f.id, name: ich, mail: '', zweck, von: tag + 'T' + v.von, bis: bisT + 'T' + v.bis });
         if (!r.ok) { knopf.disabled = false; knopf.textContent = 'Reservieren'; return fehl(r.fehler); }
         seite.fertig = r.text.replace(/ gebucht:/, ':'); zeichne(true); laden();
       } catch (e) { knopf.disabled = false; knopf.textContent = 'Reservieren'; fehl(e.message); }
@@ -448,8 +488,9 @@
     out.push(h('h1', null, 'Ich bin da'), h('p', { class: 'sub' }, termine.length ? 'Heute im Feuerwehrhaus. Tipp auf den Termin, zu dem du da bist.' : 'Heute steht nichts im FF-Kalender.'));
     out.push(h('div', { class: 'gitter', style: 'margin-top:12px' }, termine.map((t) => {
       const zeit = t.ganz ? 'ganztägig' : uhr(t.von) + (t.bis ? ' – ' + uhr(t.bis) : '');
-      const knopf = h('button', { type: 'button', class: 'btn ' + (t.laeuft ? 'haupt gross' : 'zweit'), style: 'margin-top:12px' }, 'Ich bin da');
-      knopf.onclick = () => eintragen({ termin: t.id, statt: mein ? mein.id : '' }, knopf);
+      const frueh = !t.ganz && t.von - 90 * 60000 > Date.now();   // eintragen erst 90 min vor Beginn
+      const knopf = h('button', { type: 'button', class: 'btn ' + (t.laeuft ? 'haupt gross' : 'zweit'), style: 'margin-top:12px', disabled: frueh ? true : null }, frueh ? 'Eintragen ab ' + uhr(t.von - 90 * 60000) : 'Ich bin da');
+      if (!frueh) knopf.onclick = () => eintragen({ termin: t.id, statt: mein ? mein.id : '' }, knopf);
       return h('div', { class: 'karte', style: t.laeuft ? 'border:2px solid var(--gruen-btn)' : '' },
         h('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap' }, h('span', { style: 'font-size:18px;font-weight:700' }, zeit),
           h('span', { class: 'pill ' + (t.laeuft ? 'gruen' : '') }, t.laeuft ? 'läuft jetzt' : t.von > Date.now() ? 'ab ' + uhr(t.von) : 'heute')),
@@ -457,9 +498,9 @@
         h('div', { class: 'sub klein' }, t.anzahl ? t.anzahl + (t.anzahl === 1 ? ' Person' : ' Personen') + ' da' : 'noch niemand eingetragen'), knopf);
     })));
     const anderes = h('div');
-    const zeigeArten = () => { anderes.textContent = ''; add(anderes, h('div', { class: 'label' }, 'Was machst du?'), h('div', { class: 'chips' }, (da.arten || []).map((a) => h('button', { type: 'button', class: 'chip', onclick: (e) => eintragen({ art: a, statt: mein ? mein.id : '' }, e.currentTarget) }, a)))); };
+    const zeigeArten = () => { seite.arten = true; anderes.textContent = ''; add(anderes, h('div', { class: 'label' }, 'Was machst du?'), h('div', { class: 'chips' }, (da.arten || []).map((a) => h('button', { type: 'button', class: 'chip', onclick: (e) => eintragen({ art: a, statt: mein ? mein.id : '' }, e.currentTarget) }, a)))); };
     anderes.appendChild(h('button', { type: 'button', class: 'leise', onclick: zeigeArten }, 'Kein Termin? Ich mache etwas anderes'));
-    if (!termine.length) zeigeArten();
+    if (!termine.length || seite.arten) zeigeArten();   // bleibt auch beim automatischen Aktualisieren offen
     out.push(anderes);
     if (mein) out.push(h('button', { type: 'button', class: 'leise', onclick: () => { seite.neu = false; zeichne(true); } }, 'Doch nicht – zurück'));
     return out;
@@ -500,7 +541,9 @@
         if (!r.ok) throw new Error(r.fehler);
         verw = { pin: r.pin, rolle: r.rolle, name: r.name, funktion: r.funktion || '', fuer: ich, bis: Date.now() + 30 * 864e5 };
         schreib('ff-verw', verw); melde('Angemeldet. Gilt 30 Tage auf diesem Handy.');
-        heim(); zahlenLaden();
+        const nach = pinZiel; pinZiel = null;
+        if (nach) { stapel.length = 0; stapel.push({ s: 'start' }); seite = nach; zeichne(true); } else heim();
+        zahlenLaden();
       } catch (e) { los.disabled = false; los.textContent = 'Anmelden'; meld.textContent = e.message; meld.hidden = false; }
     };
     los.onclick = anmelden; pin.onkeydown = (e) => { if (e.key === 'Enter') anmelden(); };
@@ -530,7 +573,8 @@
       const speichern = () => {
         if (wahl !== 'Ja' && !String(grund || '').trim()) { melde('Bitte kurz den Grund eintragen.', true); const g = document.getElementById('g-' + f.fahrzeug); if (g) g.focus(); return; }
         const tun = async () => { antwort(await run('fzStatusSetzen', verw.pin, f.fahrzeug, wahl, grund)); neuLaden(); };
-        if (wahl === 'Nein' && f.bereit !== 'Nein') frage({ titel: f.fahrzeug + ' außer Dienst stellen?', text: 'Grund: ' + grund + '\nDas Fahrzeug kann dann nicht gebucht werden. Am Infoscreen steht es rot.', ja: 'Ja, außer Dienst', aktion: tun });
+        if (wahl === 'Ja' && f.bereit !== 'Ja') frage({ titel: f.fahrzeug + ' wieder einsatzbereit?', text: (f.mangel ? 'Bisher: ' + f.mangel + '\n' : '') + 'Bestätigte Mängel dieses Fahrzeugs gelten dann als behoben, eine laufende Sperre endet.', ja: 'Ja, einsatzbereit', gruen: true, aktion: tun });
+        else if (wahl === 'Nein' && f.bereit !== 'Nein') frage({ titel: f.fahrzeug + ' außer Dienst stellen?', text: 'Grund: ' + grund + '\nDas Fahrzeug kann dann nicht gebucht werden. Am Infoscreen steht es rot.', ja: 'Ja, außer Dienst', aktion: tun });
         else tun().catch(fehler);
       };
       const neu = () => {
@@ -723,12 +767,14 @@
   SEITEN.anwt = () => {
     const t = anwDaten && anwDaten.termine.find((x) => x.id === seite.id);
     if (!t) return [kopfZurueck('Anwesenheit'), h('p', { class: 'sub' }, 'Termin nicht gefunden.')];
-    const v = seite.v || (seite.v = { titel: t.titel, art: t.art || '', unterart: t.unterart || '', beginn: t.beginn ? isoLokal(t.beginn) : '', ende: t.ende ? isoLokal(t.ende) : '', bemerkung: t.bemerkung || '' });
+    const v = seite.v || (seite.v = { titel: t.titel, art: t.art || '', unterart: t.unterart || '', beginn: t.beginn ? isoLokal(t.beginn) : '', ende: t.ende ? isoLokal(t.ende) : (t.endeVorschlag ? isoLokal(t.endeVorschlag) : ''), vorschlag: !t.ende && !!t.endeVorschlag, bemerkung: t.bemerkung || '' });
+    const mz = (n, e, m) => n + ' ' + (n === 1 ? e : m);
     const offen = t.status === 'offen';
     const aktion = (a) => run('anwAktion', verw.pin, Object.assign({ id: t.id, wer: ich }, a));
     const neu = async () => { await anwLaden(); seite.v = null; zeichne(false); zahlenLaden(); };
     const unterarten = (anwDaten.unterarten || {})[v.art] || [];
-    const speichern = () => aktion(Object.assign({ aktion: 'speichern' }, v));
+    // Vorschlag fürs Ende erst beim Abschließen übernehmen, beim bloßen Speichern nicht (sonst endet ein laufender Termin zu früh)
+    const speichern = (mitVorschlag) => aktion(Object.assign({ aktion: 'speichern' }, v, { ende: v.vorschlag && !mitVorschlag ? '' : v.ende }));
     let nach = '';
     return [kopfZurueck('Anwesenheit'), h('h1', null, t.titel), h('span', { class: 'pill ' + (offen ? 'gelb' : 'gruen') }, offen ? 'offen' : 'abgeschlossen'),
       h('div', { class: 'label' }, 'Da waren (' + t.personen.length + ')'),
@@ -743,13 +789,26 @@
       h('label', { class: 'label', for: 'a-art' }, 'Tätigkeitsart'), h('select', { id: 'a-art', disabled: !offen, onchange: (e) => { v.art = e.target.value; v.unterart = ''; zeichne(false); } }, h('option', { value: '' }, '– wählen –'), (anwDaten.arten || []).map((a) => h('option', { value: a, selected: a === v.art }, a))),
       unterarten.length ? [h('label', { class: 'label', for: 'a-ua' }, 'Unterart'), h('select', { id: 'a-ua', disabled: !offen, onchange: (e) => { v.unterart = e.target.value; } }, unterarten.map((u) => h('option', { value: u, selected: u === v.unterart }, u || '– keine –')))] : null,
       h('label', { class: 'label', for: 'a-von' }, 'Beginn'), h('input', { id: 'a-von', type: 'datetime-local', value: v.beginn, disabled: !offen, onchange: (e) => { v.beginn = e.target.value; } }),
-      h('label', { class: 'label', for: 'a-bis' }, 'Ende'), h('input', { id: 'a-bis', type: 'datetime-local', value: v.ende, disabled: !offen, onchange: (e) => { v.ende = e.target.value; } }),
+      h('label', { class: 'label', for: 'a-bis' }, 'Ende'), h('input', { id: 'a-bis', type: 'datetime-local', value: v.ende, disabled: !offen, onchange: (e) => { v.ende = e.target.value; v.vorschlag = false; } }),
+      offen && v.vorschlag ? h('div', { class: 'warn', style: 'background:var(--gelb-bg);color:var(--gelb)' }, 'Ende ist ein Vorschlag (' + (t.personen.some((p) => p.weg) ? 'wer zuletzt gegangen ist' : 'Beginn + 3 Stunden, niemand hat sich ausgetragen') + ') – bitte prüfen.') : null,
       h('label', { class: 'label', for: 'a-bem' }, 'Bemerkung'), h('textarea', { id: 'a-bem', maxlength: '300', disabled: !offen, value: v.bemerkung, oninput: (e) => { v.bemerkung = e.target.value; } }),
       offen ? [h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:22px', onclick: async (e) => { const b = e.currentTarget; b.disabled = true; try { antwort(await speichern()); await neu(); } catch (x) { b.disabled = false; fehler(x); } } }, 'Speichern'),
-        h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:12px', onclick: () => frage({ titel: 'Abschließen?', text: v.titel + ' · ' + t.personen.length + ' Personen\nDanach wird es ins FDISK übertragen.', ja: 'Ja, abschließen',
-          aktion: async () => { if (!v.art) { melde('Bitte zuerst die Tätigkeitsart wählen.', true); return false; } antwort(await speichern()); antwort(await aktion({ aktion: 'abschliessen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Abschließen und ins FDISK')]
+        h('button', { type: 'button', class: 'btn haupt', style: 'margin-top:12px', onclick: () => frage({ titel: 'Abschließen?', text: v.titel + ' · ' + mz(t.personen.length, 'Person', 'Personen') + (v.ende ? ' · bis ' + v.ende.slice(11, 16) : '') + '\nKommt beim nächsten FDISK-Übertrag mit, sobald der Monat unter „Tätigkeiten“ freigegeben ist.', ja: 'Ja, abschließen',
+          aktion: async () => {
+            if (!v.art) { melde('Bitte zuerst die Tätigkeitsart wählen.', true); return false; }
+            if (!v.ende) { melde('Bitte zuerst das Ende eintragen.', true); return false; }
+            antwort(await speichern(true));
+            const r = await aktion({ aktion: 'abschliessen' });
+            if (r && r.lang) {   // über 12 Stunden: eigens bestätigen lassen (z. B. Leistungsbewerb, Fest)
+              const std = Math.round((new Date(v.ende) - new Date(v.beginn)) / 36e5);
+              setTimeout(() => frage({ titel: 'Wirklich ' + std + ' Stunden?', text: '„' + v.titel + '“ · ' + v.beginn.slice(11, 16) + ' bis ' + v.ende.slice(11, 16) + (v.ende.slice(0, 10) !== v.beginn.slice(0, 10) ? ' (Folgetag)' : '') + '\nWenn jemand vergessen hat auszutragen, bitte das Ende korrigieren.', ja: 'Ja, stimmt',
+                aktion: async () => { antwort(await aktion({ aktion: 'abschliessen', trotzdem: true })); await anwLaden(); zurueck(); zahlenLaden(); } }), 0);
+              return;
+            }
+            antwort(r); await anwLaden(); zurueck(); zahlenLaden();
+          } }) }, 'Abschließen')]
         : h('button', { type: 'button', class: 'btn zweit', style: 'margin-top:22px', onclick: () => frage({ titel: 'Wieder öffnen?', text: 'Dann kann man wieder nachtragen und ändern.', ja: 'Ja, öffnen', aktion: async () => { antwort(await aktion({ aktion: 'oeffnen' })); await neu(); } }) }, 'Wieder öffnen'),
-      h('button', { type: 'button', class: 'leise', style: 'color:var(--aus)', onclick: () => frage({ titel: 'Termin löschen?', text: '„' + t.titel + '“ mit allen ' + t.personen.length + ' Eintragungen. Das lässt sich nicht rückgängig machen.', ja: 'Ja, löschen', aktion: async () => { antwort(await aktion({ aktion: 'loeschen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Termin löschen')];
+      h('button', { type: 'button', class: 'leise', style: 'color:var(--aus)', onclick: () => frage({ titel: 'Termin löschen?', text: '„' + t.titel + '“' + (t.personen.length ? ' mit ' + (t.personen.length === 1 ? 'der Eintragung' : 'allen ' + t.personen.length + ' Eintragungen') : '') + '. Das lässt sich nicht rückgängig machen.', ja: 'Ja, löschen', aktion: async () => { antwort(await aktion({ aktion: 'loeschen' })); await anwLaden(); zurueck(); zahlenLaden(); } }) }, 'Termin löschen')];
   };
 
   // ---------- Verwaltung: Tätigkeiten eintragen und monatlich fürs FDISK freigeben ----------
@@ -1046,7 +1105,7 @@
         h('label', { class: 'label', for: 'e-ber' }, 'Was war? (kommt in den Facebook-Text und ins FDISK)'),
         h('textarea', { id: 'e-ber', maxlength: '1500', disabled: offen ? null : true, value: v.bericht, placeholder: 'z. B. Bei Eintreffen brannte ein Müllcontainer. Wir löschten mit einem HD-Rohr unter schwerem Atemschutz.', oninput: (x) => { v.bericht = x.target.value; } }));
       if (offen) {
-        add(box, h('div', { class: 'sticky gitter', style: 'gap:10px' },
+        add(box, h('div', { class: 'gitter', style: 'gap:10px;margin-top:18px' },
           h('button', { type: 'button', class: 'btn haupt', onclick: (x) => { const b = x.currentTarget; frage({ titel: 'Einsatz abschließen?', text: v.teilnehmer.length + (v.teilnehmer.length === 1 ? ' Person' : ' Personen') + (v.fahrzeuge.length ? ' · ' + v.fahrzeuge.join(', ') : ' · kein Fahrzeug') + '\nDanach gibt es den Facebook-Text, und der Einsatz ist bereit fürs FDISK.', ja: 'Ja, abschließen', aktion: () => senden('abschliessen', b) }); } }, 'Abschließen'),
           h('button', { type: 'button', class: 'btn zweit', onclick: (x) => senden('speichern', x.currentTarget) }, 'Zwischenspeichern')),
           h('button', { type: 'button', class: 'link', style: 'margin-top:16px', onclick: (x) => { const b = x.currentTarget; frage({ titel: 'Einsatz verwerfen?', text: 'Zum Beispiel bei einem Probealarm oder einem Einsatz, zu dem wir nicht ausgerückt sind. Er kommt dann nicht ins FDISK.', ja: 'Ja, verwerfen', aktion: () => senden('verwerfen', b) }); } }, 'Verwerfen (kein Einsatz für uns)'));
@@ -1132,7 +1191,7 @@
   function zeichne(nachOben) {
     if (!daten) return;
     if (!ich) { if (seite.s !== 'wer' && seite.s !== 'start') ziel = seite; seite = { s: 'wer' }; stapel.length = 0; }
-    else if (ADMIN[seite.s] && !verw) seite = { s: 'pin' };
+    else if (ADMIN[seite.s] && !verw) { pinZiel = seite; seite = { s: 'pin' }; }
     else if ((seite.s === 'fzstatus' || seite.s === 'taet' || seite.s === 'taetneu') && !rollen().fz) seite = { s: 'start' };
     else if ((seite.s === 'anwp' || seite.s === 'anwt' || seite.s === 'einsl' || seite.s === 'eins') && !rollen().anw) seite = { s: 'start' };
     else if (seite.s === 'fristen' && !rollen().ats) seite = { s: 'start' };
@@ -1155,14 +1214,14 @@
   else if (startArt === 'fahrzeuge') seite = { s: 'fahrzeuge' };
   else if (startArt === 'mangel') seite = { s: 'mangel' };
   else if (startArt === 'feedback') seite = { s: 'feedback' };
-  else if (startArt === 'maengel') seite = verw ? { s: 'maengel' } : { s: 'pin' };
-  else if (startArt === 'einsaetze' || startArt === 'fristen') seite = verw ? { s: startArt === 'einsaetze' ? 'einsl' : 'fristen' } : { s: 'pin' };
+  else if (startArt === 'maengel') seite = { s: 'maengel' };
+  else if (startArt === 'einsaetze' || startArt === 'fristen') seite = { s: startArt === 'einsaetze' ? 'einsl' : 'fristen' };
   else if (startArt === 'verwaltung') seite = verw ? { s: 'start' } : { s: 'pin' };
   if (seite.s !== 'start') stapel.push({ s: 'start' });
   if (seite.s === 'fahrzeug') stapel.push({ s: 'fahrzeuge' });
   laden().then(zahlenLaden);
   // Automatisch aktualisieren, solange keine Rückfrage offen ist und nichts eingetippt wird
-  const ANZEIGE = { start: 1, fahrzeuge: 1, fahrzeug: 1, laeuft: 1 };
+  const ANZEIGE = { start: 1, fahrzeuge: 1, fahrzeug: 1, laeuft: 1, da: 1 };
   const auffrischen = () => { if (ANZEIGE[seite.s] && !document.querySelector('.hg') && document.visibilityState === 'visible') laden(); };
   setInterval(auffrischen, 120000);
   document.addEventListener('visibilitychange', auffrischen);

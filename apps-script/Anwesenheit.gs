@@ -189,7 +189,8 @@ function daGehen(d) {
       const t = T.zeilen.find((x) => x.ID === id);
       if (!t || t.Status !== 'offen' || anwZeit_(t.Ende)) return;
       const p = alle.filter((a) => a['Termin-ID'] === id);
-      if (!p.length || p.some((a) => !anwZeit_(a.Gegangen))) return;
+      const vorOrt = p.filter((a) => String(a.Quelle) === 'QR');   // vom Kommando Nachgetragene zählen nicht (die drücken nie „Ich gehe“)
+      if (!vorOrt.length || vorOrt.some((a) => !anwZeit_(a.Gegangen))) return;
       T.sh.getRange(t._zeile, spE).setValue(jetzt);
       const spanne = Utilities.formatDate(new Date(anwZeit_(t.Beginn)), 'Europe/Vienna', 'HH:mm') + '–' + Utilities.formatDate(jetzt, 'Europe/Vienna', 'HH:mm');
       zusatz += ' Du warst der Letzte – „' + t.Titel + '“ ist damit beendet (' + spanne + ' Uhr).';
@@ -218,7 +219,8 @@ function daEinchecken(d) {
       if (!termin && id.indexOf('k:') === 0) {
         const k = kalenderHeute_(ss).find((x) => x.id === id);
         if (!k) return { ok: false, fehler: 'Der Termin ist nicht mehr offen. Bitte Seite neu laden.' };
-        T.sh.appendRow([k.id, k.titel, k.art, k.unterart, new Date(k.von), new Date(k.bis), 'offen', '', '', '']);
+        if (!k.ganz && k.von - ANW_VORLAUF_MIN * 60e3 > jetzt.getTime()) return { ok: false, fehler: '„' + k.titel + '“ beginnt um ' + Utilities.formatDate(new Date(k.von), 'Europe/Vienna', 'HH:mm') + ' Uhr – eintragen geht ab ' + Utilities.formatDate(new Date(k.von - ANW_VORLAUF_MIN * 60e3), 'Europe/Vienna', 'HH:mm') + ' Uhr.' };
+        T.sh.appendRow([k.id, k.titel, k.art, k.unterart, new Date(k.von), k.ganz ? '' : new Date(k.bis), 'offen', '', '', '']);   // ganztägig: Ende trägt das Kommando ein
         termin = { ID: k.id, Titel: k.titel, Status: 'offen' };
       }
       if (!termin) return { ok: false, fehler: 'Termin nicht gefunden. Bitte Seite neu laden.' };
@@ -281,8 +283,12 @@ function anwUebersicht(pin) {
       id: t.ID, titel: t.Titel, art: t['FDISK-Art'], unterart: t.Unterart, status: t.Status,
       beginn: anwZeit_(t.Beginn), ende: anwZeit_(t.Ende), text: anwFmt_(anwZeit_(t.Beginn)) + ' – ' + (anwZeit_(t.Ende) ? Utilities.formatDate(t.Ende, 'Europe/Vienna', 'HH:mm') : 'offen'),
       bemerkung: t.Bemerkung || '',
-      personen: A.filter((a) => a['Termin-ID'] === t.ID).map((a) => ({ name: a.Name, quelle: a.Quelle, fehlt: !String(a.Standesbuchnummer || '').trim() }))
-    }));
+      personen: A.filter((a) => a['Termin-ID'] === t.ID).map((a) => ({ name: a.Name, quelle: a.Quelle, fehlt: !String(a.Standesbuchnummer || '').trim(), weg: anwZeit_(a.Gegangen) || 0 }))
+    })).map((t) => {
+      // Vorschlag fürs Ende, falls keines eingetragen ist: wer zuletzt gegangen ist, sonst Beginn + 3 h
+      if (!t.ende && t.beginn) { const w = Math.max(0, ...t.personen.map((p) => p.weg)); t.endeVorschlag = w > t.beginn ? w : t.beginn + 3 * 3600e3; }
+      return t;
+    });
   return { ok: true, termine, arten: FDISK_ARTEN, unterarten: FDISK_UNTERARTEN, namen: mitglieder_(ss).map((m) => m.name).sort((a, b) => a.localeCompare(b, 'de')) };
 }
 
@@ -318,20 +324,25 @@ function anwAktion(pin, a) {
       if (a.beginn) T.sh.getRange(t._zeile, sp('Beginn')).setValue(lokal_(a.beginn));
       if (a.ende) T.sh.getRange(t._zeile, sp('Ende')).setValue(lokal_(a.ende));
       T.sh.getRange(t._zeile, sp('Bemerkung')).setValue(String(a.bemerkung || '').slice(0, 300));
-      if (/^freigegeben/.test(String(t['FDISK-Bericht'] || ''))) T.sh.getRange(t._zeile, sp('FDISK-Bericht')).setValue('');   // geändert → neu freigeben
+      // Freigabe bleibt bestehen: der Übertrag nimmt die geänderten Daten (sonst fiele der Termin aus dem schon freigegebenen Monat)
       return { ok: true, text: 'Gespeichert.' };
     }
     if (a.aktion === 'abschliessen') {
       if (!t['FDISK-Art']) return { ok: false, fehler: 'Bitte zuerst die FDISK-Art festlegen und speichern.' };
       if (!A.zeilen.some((x) => x['Termin-ID'] === t.ID)) return { ok: false, fehler: 'Niemand eingetragen – Termin lieber löschen.' };
-      if (!anwZeit_(t.Ende)) T.sh.getRange(t._zeile, sp('Ende')).setValue(new Date());   // ohne Ende (kein Kalendertermin): jetzt
+      // Ende muss eingetragen sein (nicht einfach „jetzt“ – sonst entstehen bei vergessenem Austragen Tätigkeiten über Tage)
+      const tb = anwZeit_(t.Beginn), te = anwZeit_(t.Ende);
+      if (!te) return { ok: false, fehler: 'Bitte zuerst das Ende eintragen und speichern.' };
+      if (te <= tb) return { ok: false, fehler: 'Das Ende muss nach dem Beginn liegen.' };
+      if (te - tb > 48 * 3600e3) return { ok: false, fehler: 'Länger als 48 Stunden – bitte Ende prüfen.' };
+      if (te - tb > 12 * 3600e3 && !a.trotzdem) return { ok: false, lang: true, fehler: 'Länger als 12 Stunden – bitte Ende prüfen (vergessen auszutragen?).' };
       T.sh.getRange(t._zeile, sp('Status')).setValue('abgeschlossen');
       T.sh.getRange(t._zeile, sp('Abgeschlossen von')).setValue(String(a.wer || 'Kommando').slice(0, 60));
       return { ok: true, text: '„' + t.Titel + '“ abgeschlossen – bereit fürs FDISK.' };
     }
     if (a.aktion === 'oeffnen') {
       T.sh.getRange(t._zeile, sp('Status')).setValue('offen');
-      if (/^freigegeben/.test(String(t['FDISK-Bericht'] || ''))) T.sh.getRange(t._zeile, sp('FDISK-Bericht')).setValue('');
+      // Freigabe bleibt: der Übertrag nimmt ihn erst wieder, wenn er erneut abgeschlossen ist (Monat gilt bis dahin nicht als übertragen)
       return { ok: true, text: 'Wieder geöffnet.' };
     }
     if (a.aktion === 'loeschen') {
