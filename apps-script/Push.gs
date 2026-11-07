@@ -4,7 +4,7 @@
  * Warum: ntfy.sh lehnt Nachrichten direkt aus Apps Script ab (Googles Server teilen sich ihre Adressen,
  * das Tageskontingent ist laufend erschöpft → Antwort 429, auch mit Token eines Gratis-Kontos).
  * Darum stellt die Web-App Meldungen (Einchecken, Mängel, Feedback) nur in den Tab „Push“ der Anwesenheitstabelle.
- * Der Pi mit einsatzUrl + einsatzKey + kommandoPushTopic holt sie jede Minute ab (doPost aktion „pushAbholen“,
+ * Der Pi mit einsatzUrl + einsatzKey + kommandoPushTopic holt sie jede Minute per cron ab (push-weiterleiten.py, doPost aktion „pushAbholen“,
  * Schlüssel = EINSATZ_KEY wie bei der Nachbereitung) und schickt sie über eure eigene Leitung in den Kommando-Kanal.
  * Der Kanalname steht damit nur mehr am Pi (config.secret.js), NTFY_TOPIC / NTFY_TOKEN werden nicht mehr gebraucht.
  */

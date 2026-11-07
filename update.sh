@@ -8,6 +8,10 @@ P="$HOME/.config/chromium/Default"
 touch /tmp/leaskin-update
 cd "$D" && git pull
 chmod +x "$D"/*.sh "$D"/mobil/*.sh 2>/dev/null
+# Push-Weiterleitung Web-App → Kommando-Kanal (jede Minute, wirkt nur am Pi mit config.secret.js)
+if [ -f "$D/config.secret.js" ] && ! crontab -l 2>/dev/null | grep -q 'lea-skin/push-weiterleiten.py'; then
+  (crontab -l 2>/dev/null; echo "* * * * * /usr/bin/python3 $D/push-weiterleiten.py") | crontab - && echo "Push-Weiterleitung eingerichtet (Protokoll: /tmp/lea-push.log)"
+fi
 # Handy-Ansicht: Server neu starten, falls eingerichtet
 systemctl list-unit-files lea-mobil.service >/dev/null 2>&1 && sudo -n systemctl restart lea-mobil 2>/dev/null && echo "Handy-Ansicht neu gestartet"
 echo "Version: $(grep '"version"' "$D/manifest.json" | head -1)"

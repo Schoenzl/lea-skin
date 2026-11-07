@@ -103,7 +103,7 @@ Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird 
   Bereitstellungen verwalten → Version „Neu“.
 - **Push in den Kommando-Kanal** bei jedem Einchecken per QR (nicht bei Nachtragen), bei Mängelmeldungen und App-Feedback.
   ntfy.sh nimmt von Googles Servern nichts an (429, auch mit Gratis-Token). Darum stellt die Web-App die Meldungen in den Tab „Push“
-  (Push.gs), und der Pi mit `config.secret.js` holt sie jede Minute ab (`pushAbholen`, Schlüssel `EINSATZ_KEY`/`einsatzKey`) und
+  (Push.gs), und der Pi mit `config.secret.js` holt sie per cron jede Minute ab (`push-weiterleiten.py`, richtet `update.sh` ein, Protokoll `/tmp/lea-push.log`) (`pushAbholen`, Schlüssel `EINSATZ_KEY`/`einsatzKey`) und
   schickt sie an `kommandoPushTopic`. Test: ▶ `pushTest` ausführen, nach etwa 1 Minute steht in Spalte „Abgeholt“ die Uhrzeit.
   `NTFY_TOPIC`/`NTFY_TOKEN` werden nicht mehr gebraucht.
 
