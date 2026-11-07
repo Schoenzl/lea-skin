@@ -3,7 +3,7 @@
  * Eigene Datei im selben Apps-Script-Projekt. Für alle ohne PIN: Startseite › „Feedback zur App“.
  * Art (Idee, Problem, Lob), Text, auf Wunsch ohne Namen. Landet im Tab „Feedback“ der Anwesenheitstabelle
  * und kommt per Mail an alle mit Rolle „Alles“ (Spalte E-Mail im Tab „Mitglieder“), sonst ans Konto der Web-App,
- * dazu Push über den ntfy-Kanal (NTFY_TOPIC, siehe Maengel.gs), falls eingerichtet.
+ * dazu Push in den Kommando-Kanal (über den Pi, siehe Push.gs).
  */
 const FB_TAB = 'Feedback';
 const FB_KOPF = ['Zeitstempel', 'Art', 'Text', 'Von', 'Seite', 'Erledigt'];

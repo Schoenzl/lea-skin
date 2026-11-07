@@ -318,36 +318,17 @@ function anwAktion(pin, a) {
   }
 }
 
-// ---------- Push „Jemand ist im Feuerwehrhaus“ über ntfy (App „ntfy“, kostenlos, ohne Konto) ----------
-// Skripteigenschaft NTFY_TOPIC = geheimer Kanalname (wer ihn kennt, bekommt die Nachrichten). Nicht ins Repo schreiben.
-// Skripteigenschaft NTFY_TOKEN = Zugangstoken (tk_…) eines kostenlosen Kontos auf ntfy.sh – ohne Token lehnt ntfy.sh
-// Anfragen von Google oft ab (Tageskontingent der gemeinsamen Google-Server erschöpft, Antwort 429).
-// Einmal ▶ pushTest ausführen: erlaubt den Versand nach außen und schickt eine Testnachricht.
+// ---------- Push „Jemand ist im Feuerwehrhaus“ ----------
+// Geht über die Warteschlange (Push.gs) an den Pi, der in den Kommando-Kanal schickt.
 function hausPush_(name, titel, anzahl) {
-  const topic = (PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC') || '').trim();
-  if (!topic) return;
-  try {
-    const text = titel + ' · ' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'HH:mm') + ' Uhr · ' + anzahl + (anzahl === 1 ? ' Person' : ' Personen') + ' da';
-    const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
-    const klick = id ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=da#' + id : '';
-    const q = 'title=' + encodeURIComponent(name + ' ist im Feuerwehrhaus') + '&tags=fire_engine' + (klick ? '&click=' + encodeURIComponent(klick) : '');
-    // Mit Zugangstoken (kostenloses ntfy-Konto) zählt das Kontingent für unser Konto statt für Googles gemeinsame Server-Adressen
-    const token = (PropertiesService.getScriptProperties().getProperty('NTFY_TOKEN') || '').trim();
-    const r = UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?' + q, {
-      method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true,
-      headers: token ? { Authorization: 'Bearer ' + token } : {}
-    });
-    const code = r.getResponseCode();
-    if (code !== 200) console.log('ntfy antwortet ' + code + ': ' + r.getContentText().slice(0, 300));
-    return code;
-  } catch (e) { console.log('Push fehlgeschlagen: ' + e.message); return -1; }   // Einchecken klappt trotzdem
+  const text = titel + ' · ' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'HH:mm') + ' Uhr · ' + anzahl + (anzahl === 1 ? ' Person' : ' Personen') + ' da';
+  return pushStellen_(name + ' ist im Feuerwehrhaus', text, 'fire_engine', pushLink_('da'));
 }
+// Einmal ▶ ausführen: stellt eine Testnachricht in die Warteschlange, der Pi schickt sie innerhalb von etwa 1 Minute.
 function pushTest() {
-  const topic = PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC');
-  if (!topic) { console.log('NTFY_TOPIC fehlt: Projekteinstellungen → Skripteigenschaften → NTFY_TOPIC anlegen.'); return; }
-  const code = hausPush_('Test', 'Testnachricht vom Anwesenheits-Skript', 1);
-  console.log(code === 200 ? 'ntfy hat die Testnachricht angenommen (Kanal „' + topic + '“). Kommt sie nicht an, liegt es an der App.'
-    : 'ntfy hat NICHT angenommen (Antwort ' + code + '), Details in der Zeile darüber.');
+  if (!pushStellen_('Test', 'Testnachricht aus der Web-App · ' + Utilities.formatDate(new Date(), 'Europe/Vienna', 'HH:mm') + ' Uhr', 'white_check_mark', '')) return;
+  console.log('Testnachricht steht im Tab „Push“. Der Pi holt sie innerhalb von etwa 1 Minute ab, dann steht in Spalte „Abgeholt“ die Uhrzeit.');
+  console.log('Bleibt „Abgeholt“ leer: am Pi ~/lea-skin/update.sh ausführen und prüfen, ob einsatzUrl/einsatzKey/kommandoPushTopic in config.secret.js stehen.');
 }
 
 // ---------- „Ich bin da“ aus der Handy-Ansicht am Pi (mobil/server.py ruft das per POST auf) ----------
@@ -358,6 +339,7 @@ function doPost(e) {
     const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (d.aktion === 'einsatzEnde') return antwort(einsatzEnde_(d));      // Pi meldet einen beendeten Einsatz (Nachbereitung.gs, EINSATZ_KEY)
     if (d.aktion === 'fristen') return antwort(fristenAusFdisk_(d));     // Fristen aus dem FDISK (Fristen.gs, FDISK_KEY)
+    if (d.aktion === 'pushAbholen') return antwort(pushAbholen_(d));    // Pi holt Push-Meldungen ab (Push.gs, EINSATZ_KEY)
     const soll = (PropertiesService.getScriptProperties().getProperty('DA_KEY') || '').trim();
     if (!soll || String(d.key || '') !== soll) return antwort({ ok: false, fehler: 'Schlüssel falsch oder DA_KEY nicht eingerichtet.' });
     if (d.aktion === 'start') { const s = daStart(); return antwort({ ok: true, termine: s.termine, arten: s.arten }); }

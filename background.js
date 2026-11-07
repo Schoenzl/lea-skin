@@ -382,6 +382,38 @@ const watch = async () => {
   await chrome.storage.local.set({ watch: st });
 };
 
+// ---------- Push-Weiterleitung: Meldungen der Web-App (Einchecken, Mängel, Feedback) → Kommando-Kanal ----------
+// ntfy.sh nimmt von Googles Servern nichts an (429), darum holt der Pi die Meldungen jede Minute ab
+// (Web-App aktion „pushAbholen“, Schlüssel einsatzKey) und schickt sie über die eigene Leitung. Nur der Pi mit config.secret.js.
+let pushLaeuft = false;
+const mitFrist = (url, opt, ms) => { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms); return fetch(url, Object.assign({ signal: ctl.signal }, opt)).finally(() => clearTimeout(t)); };
+const pushWeiterleiten = async () => {
+  if (pushLaeuft || !C.einsatzUrl || !C.einsatzKey || !C.kommandoPushTopic) return;
+  pushLaeuft = true;
+  try {
+    const offen = (await chrome.storage.local.get('pushOffen')).pushOffen || [];
+    try {
+      const r = await mitFrist(C.einsatzUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ aktion: 'pushAbholen', key: C.einsatzKey }) }, 30000);
+      const a = await r.json();
+      if (a && a.ok && Array.isArray(a.push)) a.push.forEach((p) => { if (!offen.some((x) => x.id === p.id)) offen.push(Object.assign({}, p, { seit: Date.now() })); });
+    } catch (e) { /* Web-App nicht erreichbar – nächste Minute wieder */ }
+    await chrome.storage.local.set({ pushOffen: offen });   // abgeholt ist abgeholt: erst merken, dann schicken
+    const rest = [];
+    for (const [i, p] of offen.entries()) {
+      if (i) await chrome.storage.local.set({ pushOffen: rest.concat(offen.slice(i)) });   // Gesendetes sofort austragen (keine Doppelten nach Neustart)
+      if (Date.now() - (p.seit || 0) > 2 * 3600e3) continue;   // ntfy 2 h lang nicht erreichbar → verwerfen
+      try {
+        const q = '?title=' + encodeURIComponent(String(p.titel || 'FF Deutsch Haslau')) + (p.tags ? '&tags=' + encodeURIComponent(p.tags) : '') +
+          (p.link ? '&click=' + encodeURIComponent(p.link) : '');
+        const r = await mitFrist('https://ntfy.sh/' + encodeURIComponent(C.kommandoPushTopic) + q, { method: 'POST', body: String(p.text || '') }, 10000);
+        if (!r.ok && r.status !== 400) rest.push(p);   // 400 = Meldung selbst kaputt, nicht ewig wiederholen
+      } catch (e) { rest.push(p); }
+    }
+    await chrome.storage.local.set({ pushOffen: rest });
+  } finally { pushLaeuft = false; }
+};
+
 const start = () => {
   chrome.alarms.create('leaskin-refresh', { periodInMinutes: C.aktualisierenMin || 5 });
   chrome.alarms.create('leaskin-watch', { periodInMinutes: 1 });
@@ -392,7 +424,7 @@ chrome.runtime.onInstalled.addListener(start);
 chrome.runtime.onStartup.addListener(start);
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'leaskin-refresh') refresh();
-  if (a.name === 'leaskin-watch') watch();
+  if (a.name === 'leaskin-watch') { watch(); pushWeiterleiten().catch(() => {}); }
 });
 chrome.runtime.onMessage.addListener((m) => {
   if (m === 'leaskin-refresh') refresh();

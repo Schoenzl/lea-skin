@@ -101,10 +101,11 @@ Ein QR-Code im Haus → `…/exec?seite=da`. Mitglied wählt seinen Namen (wird 
 - **Einrichten:** in Apps Script neue Skriptdatei `Anwesenheit` mit `Anwesenheit.gs`, `Code.gs` und `Buchung` ersetzen,
   ▶ `anwesenheitEinrichten` ausführen (Berechtigungen für Tabellen und Kalender erlauben), Tab „Mitglieder“ befüllen,
   Bereitstellungen verwalten → Version „Neu“.
-- **Push „… ist im Feuerwehrhaus“** bei jedem Einchecken per QR (nicht bei Nachtragen) über ntfy.sh: Skripteigenschaft
-  `NTFY_TOPIC` (geheimer Kanalname, nicht ins Repo) und `NTFY_TOKEN` (Zugangstoken eines kostenlosen ntfy.sh-Kontos, sonst 429), einmal ▶ `pushTest` ausführen (erlaubt Versand nach außen).
-  Abonnieren: App „ntfy“ → + → Kanalname. Tippen auf die Nachricht öffnet die Anwesenheit.
-  Derselbe Kanal bekommt auch Mängelmeldungen und App-Feedback. Empfehlung: `NTFY_TOPIC` = Kommando-Kanal, dann kommt alles in einen Kanal.
+- **Push in den Kommando-Kanal** bei jedem Einchecken per QR (nicht bei Nachtragen), bei Mängelmeldungen und App-Feedback.
+  ntfy.sh nimmt von Googles Servern nichts an (429, auch mit Gratis-Token). Darum stellt die Web-App die Meldungen in den Tab „Push“
+  (Push.gs), und der Pi mit `config.secret.js` holt sie jede Minute ab (`pushAbholen`, Schlüssel `EINSATZ_KEY`/`einsatzKey`) und
+  schickt sie an `kommandoPushTopic`. Test: ▶ `pushTest` ausführen, nach etwa 1 Minute steht in Spalte „Abgeholt“ die Uhrzeit.
+  `NTFY_TOPIC`/`NTFY_TOKEN` werden nicht mehr gebraucht.
 
 ### „Ich bin da“ in der Handy-Ansicht (nur Pi mit mobilPush)
 Reiter „Lage“ → Karte „Anwesenheit“ → „Ich bin da“ → Termin antippen. Weg: Handy → `mobil/server.py` (`/da/start`, `/da`) →

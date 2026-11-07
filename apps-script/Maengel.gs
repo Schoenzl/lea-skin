@@ -6,7 +6,7 @@
  * Fotos im privaten Drive-Ordner „Mängelmeldungen FF Deutsch Haslau“ (wird beim ersten Mal angelegt, nicht öffentlich).
  * Benachrichtigung: E-Mail mit Fotos an die Zuständigen (Spalte „E-Mail“ im Tab „Mitglieder“ der Anwesenheitstabelle)
  *   – Fahrzeug: Rolle „Alles“ und „Fahrmeister“ · Gerät/Haus: Rolle „Alles“ und Prüfer mit Funktion Gerätewart/Zeugmeister –
- *   ohne hinterlegte Adresse an das Konto der Web-App; dazu Push über den ntfy-Kanal (NTFY_TOPIC), falls eingerichtet.
+ *   ohne hinterlegte Adresse an das Konto der Web-App; dazu Push in den Kommando-Kanal (über den Pi, siehe Push.gs).
  * Der Fahrzeugstatus ändert sich erst, wenn Fahrmeister oder Kommando in der Verwaltung „Eingeschränkt“ oder „Außer Dienst“ tippt.
  */
 const MG_TAB = 'Mängelmeldungen';
@@ -113,20 +113,11 @@ function mgMelden_(mg, blobs) {
   const mitMail = e.namen.filter((n) => mitgliedMail_(n));
   return gesendet ? (mitMail.length ? ' und ist an ' + mitMail.map((n) => n.split(' ')[0]).join(', ') + ' gegangen' : ' und ist ans Kommando gegangen') : '';
 }
-// Push über den ntfy-Kanal (Skripteigenschaft NTFY_TOPIC) – auch für Feedback genutzt.
+// Push in den Kommando-Kanal über die Warteschlange (Push.gs) – auch für Feedback genutzt.
 // opt.tags = ntfy-Symbol (Standard warning), opt.seite = App-Seite beim Antippen (Standard maengel, '' = kein Link)
 function mgPush_(titel, text, opt) {
   opt = opt || {};
-  try {   // ein fehlgeschlagener Push darf Meldung/Feedback nie kaputt machen
-    const props = PropertiesService.getScriptProperties();
-    const topic = (props.getProperty('NTFY_TOPIC') || '').trim(); if (!topic) return;
-    const token = (props.getProperty('NTFY_TOKEN') || '').trim();
-    const seite = opt.seite === undefined ? 'maengel' : opt.seite;
-    const id = (/\/s\/([^/]+)\//.exec(ScriptApp.getService().getUrl() || '') || [])[1];
-    const klick = id && seite ? 'https://schoenzl.github.io/feuerwehr-dh/ff.html?seite=' + seite + '#' + id : '';
-    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic) + '?title=' + encodeURIComponent(titel) + '&tags=' + (opt.tags || 'warning') + (klick ? '&click=' + encodeURIComponent(klick) : ''), {
-      method: 'post', contentType: 'text/plain; charset=utf-8', payload: text, muteHttpExceptions: true, headers: token ? { Authorization: 'Bearer ' + token } : {} });
-  } catch (e) { console.log('ntfy: ' + e.message); }
+  return pushStellen_(titel, text, opt.tags || 'warning', pushLink_(opt.seite === undefined ? 'maengel' : opt.seite));
 }
 
 // ---------- Verwaltung ----------
