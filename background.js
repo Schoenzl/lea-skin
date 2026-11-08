@@ -329,10 +329,28 @@ const refreshIntern = async () => {
   await nachbarPruefen(next).catch(() => {});
 };
 
+// Nachbarwehren schneller erkennen: jede Minute nur die Listen der eingesetzten Feuerwehren (WASTL + LSZ), nicht alles
+const wastlFFs = async () => {
+  if (!C.wastlBezirk) return [];
+  return tableRows(await getHtml(WASTL + 'Land_FFimEinsatz.asp?bezirk=' + C.wastlBezirk)).filter((r) => r.length >= 3 && /^\d{6}\s/.test(r[0])).map((r) => {
+    const [name, meldung, zeit] = r.slice(-3);
+    return Object.assign({ code: name.slice(0, 6), name: name.slice(7), zeit }, splitMeldung(meldung));
+  });
+};
+const nachbarSchnell = async () => {
+  if (!(C.nachbarn || []).length || !(C.kommandoPushTopic || C.nachbarPushTopic)) return;
+  const [w, l] = await Promise.allSettled([wastlFFs(), lsz()]);
+  // fällt eine Quelle aus, nichts entscheiden (sonst würde ein laufender Einsatz als „neu“ wiederkommen)
+  if (w.status !== 'fulfilled' || l.status !== 'fulfilled') return;
+  await nachbarPruefen({ wastl: { feuerwehren: w.value }, lsz: l.value || { feuerwehren: [] } });
+};
+
 // ---------- Nachbarwehr im Einsatz → Push in den Kommando-Kanal (kommandoPushTopic, sonst nachbarPushTopic; nur ein Pi) ----------
 const istNachbar = (name) => (C.nachbarn || []).some((n) => norm_(name).indexOf(norm_(n)) !== -1);
 const norm_ = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-const nachbarPruefen = async (ex) => {
+let nachbarKette = Promise.resolve();
+const nachbarPruefen = (ex) => (nachbarKette = nachbarKette.then(() => nachbarPruefenIntern(ex)).catch(() => {}));   // nie zwei gleichzeitig (sonst doppelter Push)
+const nachbarPruefenIntern = async (ex) => {
   const ffs = (((ex.wastl || {}).feuerwehren) || []).concat(((ex.lsz || {}).feuerwehren) || []).filter((f) => istNachbar(f.name));
   const alt = (await chrome.storage.local.get('nachbarGesehen')).nachbarGesehen || {};
   const neu = {}, jetzt = Date.now();
@@ -387,6 +405,7 @@ const watch = async () => {
 const start = () => {
   chrome.alarms.create('leaskin-refresh', { periodInMinutes: C.aktualisierenMin || 5 });
   chrome.alarms.create('leaskin-watch', { periodInMinutes: 1 });
+  chrome.alarms.create('leaskin-nachbar', { periodInMinutes: 1 });
   chrome.storage.local.set({ bootAt: Date.now() });
   refresh();
 };
@@ -395,6 +414,7 @@ chrome.runtime.onStartup.addListener(start);
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'leaskin-refresh') refresh();
   if (a.name === 'leaskin-watch') watch();
+  if (a.name === 'leaskin-nachbar') nachbarSchnell().catch(() => {});
 });
 chrome.runtime.onMessage.addListener((m) => {
   if (m === 'leaskin-refresh') refresh();
